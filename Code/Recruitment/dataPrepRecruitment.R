@@ -3,266 +3,521 @@ library(car)
 library(rgdal)
 
 ##PLOTS##
+data.path <- "C:/Users/mekevans/Documents/Cdrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PIED_IPM/MEKEvans/FIAdata/"
+data.path <- "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/FIAdata/"
 
 # Read plots
-plots_subset <- read.csv("D:/EvansLab/Final/Data/FIA/PLOT_SUBSET.csv", header = T, stringsAsFactors = F)
+plots <- read.csv(paste(data.path,"PLOT_COMBINED.csv",sep=''), header = T, stringsAsFactors = F)
+# Read in conditions
+conds <- read.csv(paste(data.path,"COND_COMBINED.csv",sep=''), header = T, stringsAsFactors = F)
+conds <- subset(conds, COND_STATUS_CD == 1) # "accessible forest land" by FIA classification
 
-# Create output data frame
-out <- data.frame(plot = as.character(plots_subset$CN), 
-                  lat = plots_subset$LAT, 
-                  lon = plots_subset$LON, 
-                  PIED = integer(length(plots_subset$CN)), 
-                  measYear = plots_subset$MEASYEAR, 
-                  plotPrev = plots_subset$PREV_PLT_CN)
-out$plot <- as.character(out$plot)
-out$plotPrev <- as.character(out$plotPrev)
+# Create data frame that will be used for zero-inflated Poisson (count) regression
+# rData needs to be split by CONDID (I didn't implement this)
+rData <- data.frame(plot = as.character(plots$CN),
+                  lat = plots$LAT, 
+                  lon = plots$LON, 
+                  elev = plots$ELEV,
+                  state = plots$STATECD,
+                  county = plots$COUNTYCD,
+                  plotID = plots$PLOT,
+                  PApied = integer(length(plots$CN)), # will contain P/A information
+                  measYear = plots$MEASYEAR, 
+                  plotPrev = as.character(plots$PREV_PLT_CN))
+rData$plot <- as.character(rData$plot) # strangely enough, this line is necessary for the PA loop to work
+rData$plotPrev <- as.character(rData$plotPrev)
 
 # Get rid of plots that were not remeasured
-out <- subset(out, !is.na(out$plotPrev))
+rData <- subset(rData, !is.na(rData$plotPrev))
+# look up time 1 condition ID for each plot...but this isn't informative until plots are split by CONDID
+rData$CONDID <- conds$CONDID[match(rData$plotPrev, conds$PLT_CN)]
 
-##PIED##
 
+## was PIED present or absent in each FIA plot? ##
 # Read in tree data
-trees <- read.csv("D:/EvansLab/Final/Data/FIA/TREE_COMBINED.csv")
+trees <- read.csv(paste(data.path,"TREE_COMBINED.csv",sep=''), header = T, stringsAsFactors = F)
+# make list of those tree records that fall in (time 2) plots that are found in "rData"
+PA.trees <- subset(trees, PLT_CN %in% unique(rData$plot))
+PA.list <- split(x=PA.trees, f=PA.trees$PLT_CN) 
 
-# Loop through trees and code PIED presence/absence
-for (i in 1:nrow(out)) {
-  plot <- out[i, "plot"]
-  print(i / nrow(out) * 100)
-  tmp <- subset(trees, PLT_CN == plot)
-  if (nrow(tmp) == 0) out[i, "PIED"] <- NA
-  else if (106 %in% unique(tmp$SPCD)) out[i, "PIED"] <- 1
-  else out[i, "PIED"] <- 0
-  print(out[i, "PIED"])
+# Loop through trees and code PIED presence/absence at time 2
+# note that this includes dead trees, not just live trees
+# needs to be split by CONDID within plots, see above...not implemented
+for (i in 1:nrow(rData)) {
+  plot <- rData[i, "plot"] # use concatenation of PLT and CONDID?
+  print(i / nrow(rData) * 100)
+  tmp <- PA.list[[plot]]
+  if (is.null(tmp)) rData[i, "PApied"] <- NA # no tree records for this plot CN
+  else if (106 %in% unique(tmp$SPCD)) rData[i, "PApied"] <- 1
+  else rData[i, "PApied"] <- 0
+  print(rData[i, "PApied"])
 }
 
-# Get rid of all plots with no TREE records
-out <- out[!is.na(out$PIED),]
+# Get rid of all plots with no TREE records, no CONDID
+rData <- rData[!is.na(rData$PApied),]
+#rData <- rData[!is.na(rData$CONDID),] # not necessary until the data are split by CONDID
 
-##DATE##
+#save(file = "regen_out.RData", list =c("out"))
+# load saved RData
+#load(file = "../../Processed/Recruitment/regen_out.RData")
 
-# Add field for previous measurement year
-for (i in 1:nrow(out)) {
-  tmp <- plots_subset[out[i, "plotPrev"] == plots_subset$CN, "MEASYEAR"]
-  print(tmp)
-  out[i, "measYearPrev"] <- tmp
-}
-out$measInterval <- out$measYear - out$measYearPrev
+# Add fields for previous measurement year, census interval
+rData$PREV_MEASYEAR <- plots$MEASYEAR[match(rData$plotPrev, plots$CN)]
+rData$CENSUS_INTERVAL <- rData$measYear - rData$PREV_MEASYEAR
 
-# Create spatial data frame
-outSp <- SpatialPointsDataFrame(coords = cbind(out$lon, out$lat), 
-                                data = data.frame(plot = out$plot), 
-                                proj4string = CRS("+proj=longlat +datum=NAD83"))
 
-##ELEVATION##
-
-# raster::extract elevation
-elev <- raster("D:/EvansLab/Final/Data/SRTM/SRTM_all.tif")
-out$elev <- raster::extract(elev, outSp)
-
-##PRISM NORMALS##
-
-# Read and raster::extract PRISM normals (PPT, T, VPD_max, VPD_min)
-prism_files <- list.files(path = "D:/EvansLab/Final/Data/PRISM/Normals/", pattern = "bil$", full.names = T)
-prism <- stack(prism_files)
-outSp <- raster::extract(prism, outSp, sp = T)
-
-# Aggregate PRISM normals (cool season: 10-03)
-outSp$PPT_cool <- 
-  outSp$PRISM_ppt_30yr_normal_800mM2_10_bil + 
-  outSp$PRISM_ppt_30yr_normal_800mM2_11_bil + 
-  outSp$PRISM_ppt_30yr_normal_800mM2_12_bil + 
-  outSp$PRISM_ppt_30yr_normal_800mM2_01_bil + 
-  outSp$PRISM_ppt_30yr_normal_800mM2_02_bil + 
-  outSp$PRISM_ppt_30yr_normal_800mM2_03_bil
-outSp$T_cool <- (
-  outSp$PRISM_tmean_30yr_normal_800mM2_10_bil + 
-  outSp$PRISM_tmean_30yr_normal_800mM2_11_bil + 
-  outSp$PRISM_tmean_30yr_normal_800mM2_12_bil + 
-  outSp$PRISM_tmean_30yr_normal_800mM2_01_bil + 
-  outSp$PRISM_tmean_30yr_normal_800mM2_02_bil + 
-  outSp$PRISM_tmean_30yr_normal_800mM2_03_bil) / 6
-outSp$VPDmin_cool <- (
-  outSp$PRISM_vpdmin_30yr_normal_800mM2_10_bil + 
-  outSp$PRISM_vpdmin_30yr_normal_800mM2_11_bil + 
-  outSp$PRISM_vpdmin_30yr_normal_800mM2_12_bil + 
-  outSp$PRISM_vpdmin_30yr_normal_800mM2_01_bil + 
-  outSp$PRISM_vpdmin_30yr_normal_800mM2_02_bil + 
-  outSp$PRISM_vpdmin_30yr_normal_800mM2_03_bil) / 6
-outSp$VPDmax_cool <- (
-  outSp$PRISM_vpdmax_30yr_normal_800mM2_10_bil + 
-  outSp$PRISM_vpdmax_30yr_normal_800mM2_11_bil + 
-  outSp$PRISM_vpdmax_30yr_normal_800mM2_12_bil + 
-  outSp$PRISM_vpdmax_30yr_normal_800mM2_01_bil + 
-  outSp$PRISM_vpdmax_30yr_normal_800mM2_02_bil + 
-  outSp$PRISM_vpdmax_30yr_normal_800mM2_03_bil) / 6
-outSp$VPD_cool <- (outSp$VPDmax_cool + outSp$VPDmin_cool) / 2
-
-# Aggregate PRISM normals (warm season: 05-07)
-
-outSp$PPT_warm <- 
-  outSp$PRISM_ppt_30yr_normal_800mM2_05_bil + 
-  outSp$PRISM_ppt_30yr_normal_800mM2_06_bil + 
-  outSp$PRISM_ppt_30yr_normal_800mM2_07_bil
-outSp$T_warm <- (
-  outSp$PRISM_tmean_30yr_normal_800mM2_05_bil + 
-  outSp$PRISM_tmean_30yr_normal_800mM2_06_bil + 
-  outSp$PRISM_tmean_30yr_normal_800mM2_07_bil) / 3
-outSp$VPDmin_warm <- (
-  outSp$PRISM_vpdmin_30yr_normal_800mM2_05_bil + 
-  outSp$PRISM_vpdmin_30yr_normal_800mM2_06_bil + 
-  outSp$PRISM_vpdmin_30yr_normal_800mM2_07_bil) / 3
-outSp$VPDmax_warm <- (
-  outSp$PRISM_vpdmax_30yr_normal_800mM2_05_bil + 
-  outSp$PRISM_vpdmax_30yr_normal_800mM2_06_bil + 
-  outSp$PRISM_vpdmax_30yr_normal_800mM2_07_bil) / 3
-outSp$VPD_warm <- (outSp$VPDmax_warm + outSp$VPDmin_warm) / 2
-
-# Copy normals to original data frame
-out$PPT_w_normal <- outSp$PPT_warm
-out$PPT_c_normal <- outSp$PPT_cool
-out$T_w_normal <-   outSp$T_warm
-out$T_c_normal <-   outSp$T_cool
-out$VPD_w_normal <- outSp$VPD_warm
-out$VPD_c_normal <- outSp$VPD_cool
-
-##RECRUITS##
+## count PIED RECRUITS ##
 
 # Loop through plots
-out$recruits <- 0
-recruits <- subset(trees, RECONCILECD %in% c(1,2) & SPCD == 106)
-for (i in unique(recruits$PLT_CN)) {
-  tmp <- subset(recruits, PLT_CN == i)
+# more generous definition of recruits
+rData$recruits12 <- 0
+recruits12 <- subset(trees, RECONCILECD %in% c(1,2) & SPCD == 106)
+for (i in unique(recruits12$PLT_CN)) {
+  tmp <- subset(recruits12, PLT_CN == i) # add CONDID to this subsetting
   print(nrow(tmp))
-  out[out$plot == i, "recruits"] <- nrow(tmp)
+  rData[rData$plot == i, "recruits12"] <- nrow(tmp)
 }
 
-##COMPETITION##
+# more constrained definition of recruits
+# this is what I ended up using in ZIP models
+rData$recruits1 <- 0
+recruits1 <- subset(trees, RECONCILECD == 1 & SPCD == 106)
+for (i in unique(recruits1$PLT_CN)) {
+  tmp <- subset(recruits1, PLT_CN == i) # add CONDID to this subsetting
+  print(nrow(tmp))
+  rData[rData$plot == i, "recruits1"] <- nrow(tmp)
+}
 
-# Read in conditions
-conds <- read.csv("D:/EvansLab/Final/Data/FIA/COND_COMBINED.csv")
-conds <- subset(conds, COND_STATUS_CD == 1)
 
-for (i in 1:nrow(out)) {
-  tmpPlot <- out[i, "plot"]
-  condsMatch <- subset(conds, PLT_CN == as.character(tmpPlot))
+# there is precious little difference between these two:
+rData$diff <- rData$recruits12-rData$recruits1
+sum(rData$diff) # returns the value 3
+
+
+##create COMPETITION covariate data##
+
+plot.conds <- subset(conds, PLT_CN %in% unique(rData$plotPrev))
+for (i in 1:nrow(rData)) {
+  tmpPlot <- rData[i, "plotPrev"] # time 1 plot control number
+  condsMatch <- subset(plot.conds, PLT_CN == as.character(tmpPlot))
   balive <- condsMatch$BALIVE
   print(i)
   props <- condsMatch$CONDPROP_UNADJ
   wmean <- weighted.mean(balive, props, na.rm = T)
-  if (length(balive) == 0) out[i, "baLive"] <- NA
-  else out[i, "baLive"] <- wmean
+  if (length(balive) == 0) rData[i, "BALIVE"] <- NA
+  else rData[i, "BALIVE"] <- wmean
 }
 
-out[is.nan(out$baLive), "baLive"] <- NA
-out <- out[!is.na(out$baLive),]
+rData[is.nan(rData$BALIVE), "BALIVE"] <- NA
+rData <- subset(rData, !is.na(BALIVE))
 
-##PRISM conditions##
 
+##create OFFSET (SEED SOURCE) data##
+## ...and additional competition/facilitation offset variables that might affect recruitment rate
+
+# get rid of trees that are not in the time 1 plots in "rData" (just to make the search smaller)
+plot.trees <- subset(trees, PLT_CN %in% unique(rData$plotPrev))
+# create a list (indexed by plot) of trees (this also increases efficiency)
+trees.list <- split(x=plot.trees, f=plot.trees$PLT_CN) #6723
+missing <- setdiff(x=rData$plotPrev, y=trees$PLT_CN)
+head(rData[rData$plotPrev %in% missing,])
+# next line gets rid of those plots that had no trees at time 1 census
+rData <- rData[!(rData$plotPrev %in% missing),]
+# but trees could have colonized these 18 plots between time 1 and time 2
+
+for (i in 1:nrow(rData)) {
+  plot <- rData[i, "plotPrev"] # use concatenation of PLT and CONDID?
+  print(i / nrow(rData) * 100)
+#  tmp.PIED <- subset(trees.list[[plot]], SPCD == 106 & STATUSCD == 1)
+#  tmp.notPIED <- subset(trees.list[[plot]], SPCD != 106 & STATUSCD == 1)
+#  tmp.juniper <- subset(trees.list[[plot]], SPCD > 56 & SPCD < 70 & STATUSCD == 1)
+#  tmp.PIPO <- subset(trees.list[[plot]], SPCD == 122 & STATUSCD == 1)
+  plot.trees <- trees.list[[plot]]
+  tmp.PIED <- plot.trees[plot.trees$SPCD == 106 & plot.trees$STATUSCD == 1, ]
+  tmp.notPIED <- plot.trees[plot.trees$SPCD != 106 & plot.trees$STATUSCD == 1, ]
+  tmp.juniper <- plot.trees[plot.trees$SPCD > 56 & plot.trees$SPCD < 70 & plot.trees$STATUSCD == 1, ]
+  tmp.PIPO <- plot.trees[plot.trees$SPCD == 122 & plot.trees$STATUSCD == 1, ]
+  rData$PIEDadults1[i] <- nrow(tmp.PIED) # all trees >1" DRC
+  rData$otheradults1[i] <- nrow(tmp.notPIED) # all trees >1" DRC
+  rData$PIEDadults4[i] <- nrow(subset(tmp.PIED, DIA > 4.0)) # number of trees >4" DRC
+  rData$otheradults4[i] <- nrow(subset(tmp.notPIED, DIA > 4.0)) 
+  rData$PIEDadults8[i] <- nrow(subset(tmp.PIED, DIA > 8.0)) # number of trees >8" DRC
+  rData$otheradults8[i] <- nrow(subset(tmp.notPIED, DIA > 8.0))                               
+  rData$cumDIA.PIED[i] <- sum(tmp.PIED$DIA)
+  rData$cumDIA.others[i] <- sum(tmp.notPIED$DIA)
+  rData$BA.PIED[i] <- sum(tmp.PIED$DIA^2*0.005454, na.rm =T) # basal area in units of sq feet
+  # add BA.PIED of trees DIA > 4.0, i.e., reproductive
+  rData$BA.notPIED[i] <- sum(tmp.notPIED$DIA^2*0.005454, na.rm =T)
+  rData$BA.juniper[i] <- sum(tmp.juniper$DIA^2*0.005454, na.rm =T)
+  rData$BA.PIPO[i] <- sum(tmp.PIPO$DIA^2*0.005454, na.rm =T)
+  rData$AGB_intra[i] <- sum(tmp.PIED$DRYBIO_AG, na.rm = T)
+  rData$AGB_inter[i] <- sum(tmp.notPIED$DRYBIO_AG, na.rm = T)
+}
+
+table(rData[, c("recruits1", "PApied")]) # PApied is presence/absence at time 2, including dead trees
+table(rData[, c("PIEDadults1", "recruits1")])
+table(rData[, c("PIEDadults4", "recruits1")])
+# table(rData[, c("BA.juniper", "recruits1")])
+
+##create PRISM covariate data##
+### (most of the code in this entire script has to do with creating climate covariate data)
+
+# Read and extract climate
+# THE FOLLOWING LINES CAN BE SKIPPED if you've already generated the "ppt_extr.csv" etc. files
 # Create spatial points layer
-outPoints <- SpatialPoints(coords = cbind(out$lon, out$lat), 
+Points <- SpatialPoints(coords = cbind(rData$lon, rData$lat), 
                            proj4string = CRS("+proj=longlat +datum=NAD83"))
 
 # Read in PRISM climate stacks
-ppt <- stack("D:/EvansLab/Final/Data/PRISM/Historic/pptStack.tif")
-tmp <- stack("D:/EvansLab/Final/Data/PRISM/Historic/tmpStack.tif")
-vpd <- stack("D:/EvansLab/Final/Data/PRISM/Historic/vpdStack.tif")
+#clim.path <-  "F:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/"
+clim.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/"
+ppt <- stack(paste(clim.path,"pptStack.tif",sep=''))
+tmp <- stack(paste(clim.path,"tmpStack.tif",sep=''))
+vpd <- stack(paste(clim.path,"vpdStack.tif",sep=''))
 
 # raster::extract PRISM data
-ppt.extr <- raster::extract(ppt, outPoints)
-tmp.extr <- raster::extract(tmp, outPoints)
-vpd.extr <- raster::extract(vpd, outPoints)
+ppt.extr <- raster::extract(ppt, Points) # takes ~9 minutes each
+tmp.extr <- raster::extract(tmp, Points)
+vpd.extr <- raster::extract(vpd, Points)
+
+# Remove data after Oct, 2016 (because of different CRS Nov, 2016 vpdmax .bil)
+# note that the work-around for this problem is to assign the CRS of another layer to Nov and Dec of 2016
+# crs(vpdNov2016_raster) <- crs(vpdOct2016_raster)
+ppt.extr <- ppt.extr[, 1:430] 
+tmp.extr <- tmp.extr[, 1:430]
+vpd.extr <- vpd.extr[, 1:430]
 
 # Add sensible column names for raster::extracted climate data
 ppt.extr <- as.data.frame(ppt.extr)
 tmp.extr <- as.data.frame(tmp.extr)
 vpd.extr <- as.data.frame(vpd.extr)
-climateDir <- "D:/EvansLab/Final/Data/PRISM/Historic/"
-pptFiles <- list.files(path = climateDir, pattern = glob2rx("*ppt*.bil"), full.names = TRUE)
-tmpFiles <- list.files(path = climateDir, pattern = glob2rx("*tmean*.bil"), full.names = TRUE)
-vpdFiles <- list.files(path = climateDir, pattern = glob2rx("*vpdmin*.bil"), full.names = TRUE)
+#PRISM.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/PRISM/"
+PRISM.path <- "F:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/PRISM"
+pptFiles <- list.files(path = PRISM.path, pattern = glob2rx("*ppt*.bil"), full.names = TRUE)
+pptFiles <- pptFiles[1:430] # (hack to deal with CRS incompatibility, vpd .bil file Nov, 2016)
+#tmpFiles <- list.files(path = climateDir, pattern = glob2rx("*tmean*.bil"), full.names = TRUE)
+#vpdFiles <- list.files(path = climateDir, pattern = glob2rx("*vpdmin*.bil"), full.names = TRUE)
 colNames <- lapply(strsplit(pptFiles, "4kmM._"), function (x) x[2])
 colNames <- unlist(colNames)
 colNames <- lapply(strsplit(colNames, "_"), function (x) x[1])
 colNames <- unlist(colNames)
 colnames(ppt.extr) <- paste0("ppt_", colNames)
 colnames(tmp.extr) <- paste0("tmp_", colNames)
-colnames(vpd.extr) <- paste0("vpd_", colNames[1:ncol(vpd.extr)])
-
-# Remove partial 2016 data
-ppt.extr <- ppt.extr[, 1:1452]
-tmp.extr <- tmp.extr[, 1:1452]
-vpd.extr <- vpd.extr[, 1:1452]
+colnames(vpd.extr) <- paste0("vpd_", colNames)
 
 # Export climate data
-write.csv(ppt.extr, "D:/EvansLab/Final/Data/Processed/Recruitment/ppt_extr.csv", row.names = F)
-write.csv(tmp.extr, "D:/EvansLab/Final/Data/Processed/Recruitment/tmp_extr.csv", row.names = F)
-write.csv(vpd.extr, "D:/EvansLab/Final/Data/Processed/Recruitment/vpd_extr.csv", row.names = F)
+#recruit.path <- "C:/Users/mekevans/Documents/Cdrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PIED_IPM/MEKEvans/Processed/Recruitment/"
+recruit.path <- "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Processed/Recruitment/"
+write.csv(ppt.extr, paste0(recruit.path, "ppt_extr.csv"), row.names = F)
+write.csv(tmp.extr, paste0(recruit.path, "tmp_extr.csv"), row.names = F)
+write.csv(vpd.extr, paste0(recruit.path, "vpd_extr.csv"), row.names = F)
 
-# Calculate seasonal climate for each year
-for (i in 1896:2015) {
+### CONTINUE HERE IF YOU ALREADY HAVE GENERATED THE ABOVE csv files
+#recruit.path <- "C:/Users/mekevans/Documents/Cdrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PIED_IPM/MEKEvans/Processed/Recruitment/"
+recruit.path <- "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Processed/Recruitment/"
+ppt.extr <- read.csv(paste(recruit.path,"ppt_extr.csv",sep=''), header = T)
+tmp.extr <- read.csv(paste(recruit.path,"tmp_extr.csv",sep=''), header = T)
+vpd.extr <- read.csv(paste(recruit.path,"vpd_extr.csv",sep=''), header = T)
+
+
+# Calculate seasonal climate for each year, 1982 through 2016
+for (i in 1982:2016) {
   print(i)
-  ppt.extr[, paste0("PPT_c_", i)] <- rowSums(ppt.extr[, c(paste0("ppt_", i-1, "10"),
-                                                          paste0("ppt_", i-1, "11"), 
+  # cool season = pNov - Mar
+  ppt.extr[, paste0("PPT_c_", i)] <- rowSums(ppt.extr[, c(paste0("ppt_", i-1, "11"), 
                                                           paste0("ppt_", i-1, "12"), 
                                                           paste0("ppt_", i, "01"),
                                                           paste0("ppt_", i, "02"),
                                                           paste0("ppt_", i, "03"))])
-  tmp.extr[, paste0("T_c_", i)] <- rowMeans(tmp.extr[, c(paste0("tmp_", i-1, "10"),
-                                                         paste0("tmp_", i-1, "11"), 
+  tmp.extr[, paste0("T_c_", i)] <- rowMeans(tmp.extr[, c(paste0("tmp_", i-1, "11"), 
                                                          paste0("tmp_", i-1, "12"), 
                                                          paste0("tmp_", i, "01"),
                                                          paste0("tmp_", i, "02"),
                                                          paste0("tmp_", i, "03"))])
-  vpd.extr[, paste0("VPD_c_", i)] <- rowMeans(vpd.extr[, c(paste0("vpd_", i-1, "10"),
-                                                           paste0("vpd_", i-1, "11"), 
+  tmp.extr[, paste0("Tex_c_", i)] <- max(tmp.extr[, c(paste0("tmp_", i-1, "11"), 
+                                                      paste0("tmp_", i-1, "12"), 
+                                                      paste0("tmp_", i, "01"),
+                                                      paste0("tmp_", i, "02"),
+                                                      paste0("tmp_", i, "03"))])
+  vpd.extr[, paste0("VPD_c_", i)] <- rowMeans(vpd.extr[, c(paste0("vpd_", i-1, "11"), 
                                                            paste0("vpd_", i-1, "12"), 
                                                            paste0("vpd_", i, "01"),
                                                            paste0("vpd_", i, "02"),
                                                            paste0("vpd_", i, "03"))])
+  vpd.extr[, paste0("VPDex_c_", i)] <- max(vpd.extr[, c(paste0("vpd_", i-1, "11"), 
+                                                        paste0("vpd_", i-1, "12"), 
+                                                        paste0("vpd_", i, "01"),
+                                                        paste0("vpd_", i, "02"),
+                                                        paste0("vpd_", i, "03"))])
+  # previous fall = pSep - pOct
+  ppt.extr[, paste0("PPT_pf_", i)] <- rowSums(ppt.extr[, c(paste0("ppt_", i-1, "09"),
+                                                           paste0("ppt_", i-1, "10"))])
+  tmp.extr[, paste0("T_pf_", i)] <- rowMeans(tmp.extr[, c(paste0("tmp_", i-1, "09"),
+                                                          paste0("tmp_", i-1, "10"))])
+  tmp.extr[, paste0("Tex_pf_", i)] <- max(tmp.extr[, c(paste0("tmp_", i-1, "09"),
+                                                       paste0("tmp_", i-1, "10"))])
+  vpd.extr[, paste0("VPD_pf_", i)] <- rowMeans(vpd.extr[, c(paste0("vpd_", i-1, "09"),
+                                                            paste0("vpd_", i-1, "10"))])
+  vpd.extr[, paste0("VPDex_pf_", i)] <- max(vpd.extr[, c(paste0("vpd_", i-1, "09"),
+                                                         paste0("vpd_", i-1, "10"))])
+  # foresummer = Apr - Jun
+  ppt.extr[, paste0("PPT_fs_", i)] <- rowSums(ppt.extr[, c(paste0("ppt_", i, "04"),
+                                                           paste0("ppt_", i, "05"),
+                                                           paste0("ppt_", i, "06"))])
+  tmp.extr[, paste0("T_fs_", i)] <- rowMeans(tmp.extr[, c(paste0("tmp_", i, "04"),
+                                                          paste0("tmp_", i, "05"),
+                                                          paste0("tmp_", i, "06"))])
+  tmp.extr[, paste0("Tex_fs_", i)] <- max(tmp.extr[, c(paste0("tmp_", i, "04"),
+                                                       paste0("tmp_", i, "05"),
+                                                       paste0("tmp_", i, "06"))])
+  vpd.extr[, paste0("VPD_fs_", i)] <- rowMeans(vpd.extr[, c(paste0("vpd_", i, "04"),
+                                                            paste0("vpd_", i, "05"),
+                                                            paste0("vpd_", i, "06"))])
+  vpd.extr[, paste0("VPDex_fs_", i)] <- max(vpd.extr[, c(paste0("vpd_", i, "04"),
+                                                         paste0("vpd_", i, "05"),
+                                                         paste0("vpd_", i, "06"))])
   
-  ppt.extr[, paste0("PPT_w_", i)] <- rowSums(ppt.extr[, c(paste0("ppt_", i, "05"),
-                                                          paste0("ppt_", i, "06"),
-                                                          paste0("ppt_", i, "07"))])
-  tmp.extr[, paste0("T_w_", i)] <- rowMeans(tmp.extr[, c(paste0("tmp_", i, "05"),
-                                                         paste0("tmp_", i, "06"),
-                                                         paste0("tmp_", i, "07"))])
-  vpd.extr[, paste0("VPD_w_", i)] <- rowMeans(vpd.extr[, c(paste0("vpd_", i, "05"),
-                                                           paste0("vpd_", i, "06"),
-                                                           paste0("vpd_", i, "07"))])
+  # warm dry months = pSep - pOct + Apr - Jun
+  ppt.extr[, paste0("PPT_wd_", i)] <- rowSums(ppt.extr[, c(paste0("ppt_", i-1, "09"),
+                                                           paste0("ppt_", i-1, "10"),
+                                                           paste0("ppt_", i, "04"),
+                                                           paste0("ppt_", i, "05"),
+                                                           paste0("ppt_", i, "06"))])
+  tmp.extr[, paste0("T_wd_", i)] <- rowMeans(tmp.extr[, c(paste0("tmp_", i-1, "09"),
+                                                          paste0("tmp_", i-1, "10"),
+                                                          paste0("tmp_", i, "04"),
+                                                          paste0("tmp_", i, "05"),
+                                                          paste0("tmp_", i, "06"))])
+  tmp.extr[, paste0("Tex_wd_", i)] <- max(tmp.extr[, c(paste0("tmp_", i-1, "09"),
+                                                       paste0("tmp_", i-1, "10"),
+                                                       paste0("tmp_", i, "04"),
+                                                       paste0("tmp_", i, "05"),
+                                                       paste0("tmp_", i, "06"))])
+  vpd.extr[, paste0("VPD_wd_", i)] <- rowMeans(vpd.extr[, c(paste0("vpd_", i-1, "09"),
+                                                            paste0("vpd_", i-1, "10"),
+                                                            paste0("vpd_", i, "04"),
+                                                            paste0("vpd_", i, "05"),
+                                                            paste0("vpd_", i, "06"))])
+  vpd.extr[, paste0("VPDex_wd_", i)] <- max(vpd.extr[, c(paste0("vpd_", i-1, "09"),
+                                                         paste0("vpd_", i-1, "10"),
+                                                         paste0("vpd_", i, "04"),
+                                                         paste0("vpd_", i, "05"),
+                                                         paste0("vpd_", i, "06"))])
+  
+  # monsoon = Jul-Aug
+  ppt.extr[, paste0("PPT_m_", i)] <- rowSums(ppt.extr[, c(paste0("ppt_", i, "07"),
+                                                          paste0("ppt_", i, "08"))])
+  tmp.extr[, paste0("T_m_", i)] <- rowMeans(tmp.extr[, c(paste0("tmp_", i, "07"),
+                                                         paste0("tmp_", i, "08"))])
+  tmp.extr[, paste0("Tex_m_", i)] <- max(tmp.extr[, c(paste0("tmp_", i, "07"),
+                                                      paste0("tmp_", i, "08"))])
+  vpd.extr[, paste0("VPD_m_", i)] <- rowMeans(vpd.extr[, c(paste0("vpd_", i, "07"),
+                                                           paste0("vpd_", i, "08"))])
+  vpd.extr[, paste0("VPDex_m_", i)] <- max(vpd.extr[, c(paste0("vpd_", i, "07"),
+                                                        paste0("vpd_", i, "08"))])
+  # water year = pSept - Aug
+  ppt.extr[, paste0("PPT_yr_", i)] <- rowSums(ppt.extr[, c(paste0("ppt_", i-1, "09"),
+                                                           paste0("ppt_", i-1, "10"),
+                                                           paste0("ppt_", i-1, "11"), 
+                                                           paste0("ppt_", i-1, "12"), 
+                                                           paste0("ppt_", i, "01"),
+                                                           paste0("ppt_", i, "02"),
+                                                           paste0("ppt_", i, "03"),
+                                                           paste0("ppt_", i, "04"),
+                                                           paste0("ppt_", i, "05"),
+                                                           paste0("ppt_", i, "06"),
+                                                           paste0("ppt_", i, "07"),
+                                                           paste0("ppt_", i, "08"))])
+  tmp.extr[, paste0("T_yr_", i)] <- rowMeans(tmp.extr[, c(paste0("tmp_", i-1, "09"),
+                                                          paste0("tmp_", i-1, "10"),
+                                                          paste0("tmp_", i-1, "11"), 
+                                                          paste0("tmp_", i-1, "12"), 
+                                                          paste0("tmp_", i, "01"),
+                                                          paste0("tmp_", i, "02"),
+                                                          paste0("tmp_", i, "03"),
+                                                          paste0("tmp_", i, "04"),
+                                                          paste0("tmp_", i, "05"),
+                                                          paste0("tmp_", i, "06"),
+                                                          paste0("tmp_", i, "07"),
+                                                          paste0("tmp_", i, "08"))])
+  vpd.extr[, paste0("VPD_yr_", i)] <- rowMeans(vpd.extr[, c(paste0("vpd_", i-1, "09"),
+                                                            paste0("vpd_", i-1, "10"),
+                                                            paste0("vpd_", i-1, "11"), 
+                                                            paste0("vpd_", i-1, "12"), 
+                                                            paste0("vpd_", i, "01"),
+                                                            paste0("vpd_", i, "02"),
+                                                            paste0("vpd_", i, "03"),
+                                                            paste0("vpd_", i, "04"),
+                                                            paste0("vpd_", i, "05"),
+                                                            paste0("vpd_", i, "06"),
+                                                            paste0("vpd_", i, "07"),
+                                                            paste0("vpd_", i, "08"))])
 }
 
+
+##PRISM NORMALS##
+
+# Read and raster::extract PRISM normals (PPT, T, VPD_max, VPD_min)
+# import PRISM normals
+PRISM.norm.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/"
+#PRISM.norm.path <-  "F:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/"
+PPT.norm <- stack(paste(clim.path,"pptNormals.tif",sep=''))
+TMP.norm <- stack(paste(clim.path,"tmpNormals.tif",sep=''))
+VPD.norm <- stack(paste(clim.path,"vpdNormals.tif",sep=''))
+
+# raster::extract PRISM normals 1981-2010
+ppt.norm.extr <- raster::extract(PPT.norm, Points)
+tmp.norm.extr <- raster::extract(TMP.norm, Points)
+vpd.norm.extr <- raster::extract(VPD.norm, Points)
+
+ppt.norm.extr <- as.data.frame(ppt.norm.extr) # not sure this is necessary?
+tmp.norm.extr <- as.data.frame(tmp.norm.extr)
+vpd.norm.extr <- as.data.frame(vpd.norm.extr)
+
+# reasonable column names (not actually necessary)
+colnames(ppt.norm.extr) <- paste0("ppt_", 1:12) 
+colnames(tmp.norm.extr) <- paste0("tmp_", 1:12)
+colnames(vpd.norm.extr) <- paste0("vpd_", 1:12)
+
+# make seasonal normals and add to growth data frame
+# cool season = Nov-Mar
+rData$PPT_c_norm <- rowSums(ppt.norm.extr[, c(1:3, 11:12)])
+rData$T_c_norm <- rowMeans(tmp.norm.extr[, c(1:3, 11:12)])
+rData$VPD_c_norm <- rowMeans(vpd.norm.extr[, c(1:3, 11:12)])
+# previous fall = pSept-pOct
+rData$PPT_pf_norm <- rowSums(ppt.norm.extr[, c(9:10)])
+rData$T_pf_norm <- rowMeans(tmp.norm.extr[, c(9:10)])
+rData$VPD_pf_norm <- rowMeans(vpd.norm.extr[, c(9:10)])
+# foresummer = Apr-Jun
+rData$PPT_fs_norm <- rowSums(ppt.norm.extr[, c(4:6)])
+rData$T_fs_norm <- rowMeans(tmp.norm.extr[, c(4:6)])
+rData$VPD_fs_norm <- rowMeans(vpd.norm.extr[, c(4:6)])
+# warm, dry months = Apr-Jun + Sept-Oct
+rData$PPT_wd_norm <- rowSums(ppt.norm.extr[, c(4:6, 9:10)])
+rData$T_wd_norm <- rowMeans(tmp.norm.extr[, c(4:6, 9:10)])
+rData$VPD_wd_norm <- rowMeans(vpd.norm.extr[, c(4:6, 9:10)])
+# monsoon = Jul-Aug
+rData$PPT_m_norm <- rowSums(ppt.norm.extr[, c(7:8)])
+rData$T_m_norm <- rowMeans(tmp.norm.extr[, c(7:8)])
+rData$VPD_m_norm <- rowMeans(vpd.norm.extr[, c(7:8)])
+# water year
+rData$PPT_yr_norm <- rowSums(ppt.norm.extr[, c(1:12)])
+rData$T_yr_norm <- rowMeans(tmp.norm.extr[, c(1:12)])
+rData$VPD_yr_norm <- rowMeans(vpd.norm.extr[, c(1:12)])
+
 # Calculate seasonal averages
-lags <- c(15, 20, 25)
+lags <- c(15, 20, 25) # if I try to add 30-yr lag, bump up against 1981 limit of PRISM data
 for (j in lags) {
   print(j)
   lagLength <- j
   for (i in 1:nrow(ppt.extr)) {
     print(i)
-    out[i, paste0("PPT_c_window_", lagLength)] <- rowMeans(ppt.extr[i, paste0("PPT_c_", (out[i, "measYear"]-lagLength):(out[i, "measYear"]-1))])
-    out[i, paste0("T_c_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_c_", (out[i, "measYear"]-lagLength):(out[i, "measYear"]-1))])
-    out[i, paste0("VPD_c_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_c_", (out[i, "measYear"]-lagLength):(out[i, "measYear"]-1))])
-    out[i, paste0("PPT_w_window_", lagLength)] <- rowMeans(ppt.extr[i, paste0("PPT_w_", (out[i, "measYear"]-lagLength):(out[i, "measYear"]-1))])
-    out[i, paste0("T_w_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_w_", (out[i, "measYear"]-lagLength):(out[i, "measYear"]-1))])
-    out[i, paste0("VPD_w_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_w_", (out[i, "measYear"]-lagLength):(out[i, "measYear"]-1))])
+# cool season (pNov-Mar)
+    rData[i, paste0("PPT_c_window_", lagLength)] <- rowMeans(ppt.extr[i, paste0("PPT_c_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("T_c_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_c_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("Tex_c_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_c_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
+    rData[i, paste0("VPD_c_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_c_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("VPDex_c_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_c_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
+# monsoon (Jul-Aug)    
+    rData[i, paste0("PPT_m_window_", lagLength)] <- rowMeans(ppt.extr[i, paste0("PPT_m_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("T_m_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_m_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("Tex_m_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_m_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("VPD_m_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_m_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("VPDex_m_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_m_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
+# previous fall (pSep-pOct)    
+    rData[i, paste0("PPT_pf_window_", lagLength)] <- rowMeans(ppt.extr[i, paste0("PPT_pf_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("T_pf_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_pf_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("Tex_pf_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_pf_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("VPD_pf_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_pf_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("VPDex_pf_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_pf_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
+# foresummer (Apr-Jun)
+    rData[i, paste0("PPT_fs_window_", lagLength)] <- rowMeans(ppt.extr[i, paste0("PPT_fs_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("T_fs_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_fs_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("Tex_fs_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_fs_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("VPD_fs_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_fs_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("VPDex_fs_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_fs_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
+# warm dry months (pSep-pOct + Apr-Jun)    
+    rData[i, paste0("PPT_wd_window_", lagLength)] <- rowMeans(ppt.extr[i, paste0("PPT_wd_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("T_wd_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_wd_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("Tex_wd_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_wd_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("VPD_wd_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_wd_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("VPDex_wd_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_wd_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
+# water year  
+    rData[i, paste0("PPT_yr_window_", lagLength)] <- rowMeans(ppt.extr[i, paste0("PPT_yr_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("T_yr_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_yr_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("VPD_yr_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_yr_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
   }
 }
 
-##COMPETITION##
+# very little reason to expect that the climate variables above,
+# specific to each plot's census interval, will differ from the 1981-2010 climate normals
+# especially with the lags added
 
-# Calculate AGB (interspecific, intraspecific, all)
-for (i in 1:nrow(out)) {
-  print(i)
-  tmpPlot <- out[i, "plot"]
-  tmpTrees <- trees[trees$PLT_CN == tmpPlot,]
-  tmpIntra <- sum(subset(tmpTrees, SPCD == 106)$DRYBIO_AG, na.rm = T)
-  tmpInter <- sum(subset(tmpTrees, SPCD != 106)$DRYBIO_AG, na.rm = T)
-  tmpSum <- tmpIntra + tmpInter
-  out[i, "AGB_intra"] <- tmpIntra
-  out[i, "AGB_inter"] <- tmpInter
-  out[i, "AGB_all"] <- tmpSum
-}
+# create and add anomalies to growth data frame
+# for just one lag...others would have to be calculated
+# note that precip is lognormal (R-skewed), but precip anomalies are left-skewed (heavy tail in the negative)...because mean of a lognormal is right of center
+# monsoon precip anomalies are centered on zero (no change)
+# cool season, foresummer, and water year anomalies are left-skewed (heavy tail in negative values)
+# temperature anomalies are positive (no surprise)
+# cool season (pNov-Mar)
+rData$PPT_c_anom <- rData$PPT_c_window_20 - rData$PPT_c_norm # negative
+rData$T_c_anom <- rData$T_c_window_20 - rData$T_c_norm # positive
+rData$VPD_c_anom <- rData$VPD_c_window_20 - rData$VPD_c_norm # positive
+rData$PPTex_c_anom <- rData$PPTex_c_window_20 - rData$PPT_c_norm 
+rData$Tex_c_anom <- rData$Tex_c_window_20 - rData$T_c_norm
+rData$VPDex_c_anom <- rData$VPDex_c_window_20 - rData$VPD_c_norm
+
+# previous fall (pSep-pOct)
+rData$PPT_pf_anom <- rData$PPT_pf_window_20 - rData$PPT_pf_norm # no change
+rData$T_pf_anom <- rData$T_pf_window_20 - rData$T_pf_norm # positive
+rData$VPD_pf_anom <- rData$VPD_pf_window_20 - rData$VPD_pf_norm # positive
+#rData$PPTex_pf_anom <- rData$PPTex_pf_window_20 - rData$PPT_pf_norm # negative
+rData$Tex_pf_anom <- rData$Tex_pf_window_20 - rData$T_pf_norm # positive
+rData$VPDex_pf_anom <- rData$VPDex_pf_window_20 - rData$VPD_pf_norm # positive
+# foresummer (Apr-Jun)
+rData$PPT_fs_anom <- rData$PPT_fs_window_20 - rData$PPT_fs_norm # negative!
+rData$T_fs_anom <- rData$T_fs_window_20 - rData$T_fs_norm # positive
+rData$VPD_fs_anom <- rData$VPD_fs_window_20 - rData$VPD_fs_norm # positive
+#rData$PPTex_fs_anom <- rData$PPTex_fs_window_20 - rData$PPT_fs_norm # centered on zero
+rData$Tex_fs_anom <- rData$Tex_fs_window_20 - rData$T_fs_norm # positive
+rData$VPDex_fs_anom <- rData$VPDex_fs_window_20 - rData$VPD_fs_norm # positive
+# warm dry months (pSep-pOct + Apr-Jun)
+rData$PPT_wd_anom <- rData$PPT_wd_window_20 - rData$PPT_wd_norm # negative
+rData$T_wd_anom <- rData$T_wd_window_20 - rData$T_wd_norm
+rData$VPD_wd_anom <- rData$VPD_wd_window_20 - rData$VPD_wd_norm
+#rData$PPTex_wd_anom <- rData$PPTex_wd_window_20 - rData$PPT_wd_norm # positive!
+rData$Tex_wd_anom <- rData$Tex_wd_window_20 - rData$T_wd_norm
+rData$VPDex_wd_anom <- rData$VPDex_wd_window_20 - rData$VPD_wd_norm
+# monsoon (Jul-Aug)
+rData$PPT_m_anom <- rData$PPT_m_window_20 - rData$PPT_m_norm # negative
+rData$T_m_anom <- rData$T_m_window_20 - rData$T_m_norm
+rData$VPD_m_anom <- rData$VPD_m_window_20 - rData$VPD_m_norm
+#rData$PPTex_m_anom <- rData$PPTex_m_window_20 - rData$PPT_m_norm # centered on zero
+rData$Tex_m_anom <- rData$Tex_m_window_20 - rData$T_m_norm
+rData$VPDex_m_anom <- rData$VPDex_m_window_20 - rData$VPD_m_norm
+# water year (pSept - Aug)
+rData$PPT_yr_anom <- rData$PPT_yr_window_20 - rData$PPT_yr_norm # negative
+rData$T_yr_anom <- rData$T_yr_window_20 - rData$T_yr_norm
+rData$VPD_yr_anom <- rData$VPD_yr_window_20 - rData$VPD_yr_norm
+#rData$PPTex_yr_anom <- rData$PPTex_yr_window_20 - rData$PPT_yr_norm
+rData$Tex_yr_anom <- rData$Tex_yr_window_20 - rData$T_yr_norm
+rData$VPDex_yr_anom <- rData$VPDex_yr_window_20 - rData$VPD_yr_norm
+
+
+### last thing that needs to be done for recruitment subkernel
+### get size distribution of recruits (ingrowth)
+## it would be better to make sure size distribution is taken from the exact same set of trees that get put into ZIP model
+## but it probably doesn't make a difference
+recruits <- subset(trees, RECONCILECD == 1 & SPCD == 106)
+r.sizemean <- mean(log(recruits$DIA))
+r.sizesd <- sd(log(recruits$DIA))
+# other size (state) variables are possible, but have been rejected at this point
+
 
 ##EXPORT##
-out <- out[complete.cases(out),]
-write.csv(out, "D:/EvansLab/Final/Data/Processed/Recruitment/RecruitmentData.csv", row.names = F)
+rData2 <- rData[complete.cases(rData),]
+#write.csv(rData, "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Processed/Recruitment/RecruitData.csv", row.names = F)
+write.csv(rData, "C:/Users/mekevans/Documents/Cdrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PIED_IPM/MEKEvans/Processed/Recruitment/RecruitData.csv", row.names = F)
+
+save(r.sizemean, r.sizesd, file = "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Code/IPM/recrstats.rda")
+
