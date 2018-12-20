@@ -1,0 +1,10 @@
+library(raster)
+
+pdf("D:/EvansLab/Final/Output/PredictorMaps.pdf")
+plot(raster("D:/EvansLab/Final/Data/SRTM/SRTM_resampled.tif"), main = "Elevation")
+plot(raster("D:/EvansLab/Final/Data/BA/BA_resampled.tif"), main = "Plot basal area")
+plot(raster("D:/EvansLab/Final/Data/PRISM/Normals/PPT_cool.tif"), main = "PPT cool")
+plot(raster("D:/EvansLab/Final/Data/PRISM/Normals/PPT_warm.tif"), main = "PPT warm")
+plot(raster("D:/EvansLab/Final/Data/PRISM/Normals/VPD_cool.tif"), main = "VPD cool")
+plot(raster("D:/EvansLab/Final/Data/PRISM/Normals/VPD_warm.tif"), main = "VPD warm")
+dev.off()
