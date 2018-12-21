@@ -1,42 +1,283 @@
+### create model of BALIVE
+### to make a map of predicted BALIVE as a function of MAT and MAP
+### for use in building IPM
+
 library(sp)
 library(raster)
-library(rgdal)
-library(automap)
+library(dplyr)
+library(effects)
+library(mgcv)
 
-# Read in FIA condition table
-cond <- read.csv("D:/EvansLab/Final/Data/FIA/COND_COMBINED.csv", header = T)
+# path
+path = "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/"
+climate.path <- "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/"
 
+### create data object with BALIVE and climate normals ------------------------------------------------------------------------------------
+
+conds <- read.csv(paste0(path,"FIAdata/COND_COMBINED.csv",sep=''), header = T, stringsAsFactors = F)
 # Remove non-forest conditions (missing BALIVE, coded as 0 so causes underestimation)
-cond <- subset(cond, COND_STATUS_CD == 1)
+# conds <- subset(conds, COND_STATUS_CD == 1) # "accessible forest land" by FIA classification
 
-# Read in FIA plot table
-plots <- read.csv("D:/EvansLab/Final/Data/FIA/PLOT_SUBSET.csv", header = T)
-  
-# Loop through all plots and calculate plot basal area as mean condition basal area
-for (i in 1:nrow(plots)) {
-  tmpPlot <- plots[i, "CN"]
-  condsMatch <- subset(cond, PLT_CN == tmpPlot)
-  balive <- condsMatch$BALIVE
-  props <- condsMatch$CONDPROP_UNADJ
-  wmean <- weighted.mean(balive, props, na.rm = T)
-  print(i)
-  # if (length(balive) > 1) {
-  #   print(i)
-  #   print(wmean)
-  # }
-  print(wmean)
-  if (length(balive) == 0) plots[i, "baLive"] <- NA
-  else plots[i, "baLive"] <- wmean
-}
+# try including nonforested land in model
+conds.1 <- subset(conds, COND_STATUS_CD == 1) # "accessible forest land" by FIA classification
+conds.2 <- subset(conds, COND_STATUS_CD == 2) # "nonforest land" by FIA classification
+conds.2 <- conds.2[conds.2$PRESNFCD %in% c(20, 45), ] # only two categories of non-forest land that are not caused by (human) land use
+conds.2$BALIVE <- 0 # populate with zeros
+
+# join the two together
+conds <- rbind(conds.1, conds.2)
+
+hist(conds$BALIVE) # almost all of the data has values <=400; outliers above 400
+summary(conds$BALIVE) # maximum value is 1363!
+plot(conds$CONDPROP_UNADJ, conds$BALIVE) # reveals that one outlier for BALIVE is a cond with very low CONDPROP_UNADJ
+conds <- subset(conds, BALIVE < 1000) # removes one outlier!
+# another data point that perhaps should be removed is #2919 (see resids vs. leverage)
+
+# Read in plot data and get coordinates and previous measurement year
+plots <- read.csv(paste0(path,"FIAdata/PLOT_COMBINED.csv",sep=''), header = T, stringsAsFactors = F)
+
+conds$LAT <- plots$LAT[match(conds$PLT_CN, plots$CN)]
+conds$LON <- plots$LON[match(conds$PLT_CN, plots$CN)]
+conds$ELEV <- plots$ELEV[match(conds$PLT_CN, plots$CN)]
+conds$MEASYEAR <- plots$MEASYEAR[match(conds$PLT_CN, plots$CN)]
+
+# Make data spatial
+CondsSpat <- SpatialPointsDataFrame(coords = cbind(conds$LON, conds$LAT), 
+                                 data = conds, 
+                                 proj4string = CRS("+proj=longlat +datum=NAD83"))
+
+# import PRISM normals
+PPT.norm <- stack(paste0(climate.path,"pptNormals.tif",sep=''))
+TMP.norm <- stack(paste0(climate.path,"tmpNormals.tif",sep=''))
+VPD.norm <- stack(paste0(climate.path,"vpdNormals.tif",sep=''))
+
+# raster::extract PRISM normals 1981-2010
+ppt.norm.extr <- raster::extract(PPT.norm, CondsSpat)
+tmp.norm.extr <- raster::extract(TMP.norm, CondsSpat)
+vpd.norm.extr <- raster::extract(VPD.norm, CondsSpat)
+
+ppt.norm.extr <- as.data.frame(ppt.norm.extr) # not sure this is necessary?
+tmp.norm.extr <- as.data.frame(tmp.norm.extr)
+vpd.norm.extr <- as.data.frame(vpd.norm.extr)
+
+# reasonable column names (not actually necessary)
+colnames(ppt.norm.extr) <- paste0("ppt_", 1:12) 
+colnames(tmp.norm.extr) <- paste0("tmp_", 1:12)
+colnames(vpd.norm.extr) <- paste0("vpd_", 1:12)
+
+# make seasonal normals and add to conditions data frame
+# cool season = Nov-Mar
+conds$PPT_c_norm <- rowSums(ppt.norm.extr[, c(1:3, 11:12)])
+conds$T_c_norm <- rowMeans(tmp.norm.extr[, c(1:3, 11:12)])
+conds$VPD_c_norm <- rowMeans(vpd.norm.extr[, c(1:3, 11:12)])
+# previous fall = pSept-pOct
+conds$PPT_pf_norm <- rowSums(ppt.norm.extr[, c(9:10)])
+conds$T_pf_norm <- rowMeans(tmp.norm.extr[, c(9:10)])
+conds$VPD_pf_norm <- rowMeans(vpd.norm.extr[, c(9:10)])
+# foresummer = Apr-Jun
+conds$PPT_fs_norm <- rowSums(ppt.norm.extr[, c(4:6)])
+conds$T_fs_norm <- rowMeans(tmp.norm.extr[, c(4:6)])
+conds$VPD_fs_norm <- rowMeans(vpd.norm.extr[, c(4:6)])
+# warm, dry months = Apr-Jun + Sept-Oct
+conds$PPT_wd_norm <- rowSums(ppt.norm.extr[, c(4:6, 9:10)])
+conds$T_wd_norm <- rowMeans(tmp.norm.extr[, c(4:6, 9:10)])
+conds$VPD_wd_norm <- rowMeans(vpd.norm.extr[, c(4:6, 9:10)])
+# monsoon = Jul-Aug
+conds$PPT_m_norm <- rowSums(ppt.norm.extr[, c(7:8)])
+conds$T_m_norm <- rowMeans(tmp.norm.extr[, c(7:8)])
+conds$VPD_m_norm <- rowMeans(vpd.norm.extr[, c(7:8)])
+# water year
+conds$PPT_yr_norm <- rowSums(ppt.norm.extr[, c(1:12)])
+conds$T_yr_norm <- rowMeans(tmp.norm.extr[, c(1:12)])
+conds$VPD_yr_norm <- rowMeans(vpd.norm.extr[, c(1:12)])
 
 # Create output data frame
-output <- plots[, c("CN", "LON", "LAT", "baLive")]
-output <- output[complete.cases(output),]
+output <- conds[, c("PLT_CN", "CONDID", "CONDPROP_UNADJ",
+                            "LAT", "LON", "ELEV",
+                            "BALIVE", 
+                            "PPT_c_norm", "T_c_norm", "VPD_c_norm",
+                            "PPT_wd_norm", "T_wd_norm", "VPD_wd_norm",
+                            "PPT_pf_norm", "T_pf_norm", "VPD_pf_norm",
+                            "PPT_fs_norm", "T_fs_norm", "VPD_fs_norm",
+                            "PPT_m_norm", "T_m_norm", "VPD_m_norm",
+                            "PPT_yr_norm", "T_yr_norm", "VPD_yr_norm")]
+# write.csv(output, paste0(path, "BA/BALIVEdata.csv"), row.names = F)
+write.csv(output, paste0(path, "BA/BALIVEdata2.csv"), row.names = F)
 
-# Make output spatial
-proj <- "+init=epsg:4269 +proj=longlat +ellps=GRS80 +datum=NAD83 +no_defs +towgs84=0,0,0"
-spOutput <- SpatialPointsDataFrame(output[, c("LON", "LAT")], as.data.frame(output[, "baLive"]), proj4string = CRS(proj))
-names(spOutput) <- "BA"
+# load data object for model of BALIVE ---------------------------------------------------------------
+BAdata <- read.csv(paste0(path, "BA/BALIVEdata2.csv"), header = T, stringsAsFactors = F)
 
-# Write as shapefile
-writeOGR(spOutput, "D:/EvansLab/Final/Data/BA", "BasalAreaPoints", "ESRI Shapefile")
+# standardize covariates
+BAdata.scaled <- BAdata %>% mutate_at(scale, .vars = vars(-PLT_CN, 
+                                                          -CONDPROP_UNADJ, 
+                                                          -CONDID,
+                                                          -BALIVE,
+                                                          -LAT, -LON))
+
+# make scaling objects ------------------------------------------------------------------------
+ba.predictors <- c("T_yr_norm", "PPT_yr_norm")
+
+get_scale = function(data, predictors) {
+  sc = list("scale" = NULL, "center"  = NULL)
+  for (i in predictors) {
+    sc$scale[i] = attributes(data[, i])$"scaled:scale"
+    sc$center[i] = attributes(data[, i])$"scaled:center"
+  }
+  return(sc)
+}
+
+ba.scaling = get_scale(BAdata.scaled, ba.predictors)
+
+# remove scaling information from the dataset so that the model doesnt expect scaled data in predict()
+for (i in ba.predictors) {
+  attributes(BAdata.scaled[, i]) = NULL
+}
+
+
+# simple models -----------------------------------------------------------
+
+# lm with sqrt transformation
+BAmodel1 <- lm(sqrt(BALIVE) ~ (PPT_yr_norm + T_yr_norm)^2 + 
+                  I(T_yr_norm^2) + I(PPT_yr_norm^2), 
+                  data = BAdata.scaled)
+plot(BAmodel1)
+plot(allEffects(BAmodel1))
+res = resid(BAmodel1)
+plot(density(res))
+#plot(qqnorm(res))
+#qqline(res)
+#plot(conds$BALIVE, res, ylab="residuals", xlab="BALIVE"); abline(0, 0)
+
+# gamma model
+BAmodel.g <- glm((BALIVE+1) ~ (PPT_yr_norm + T_yr_norm)^2 + 
+                I(T_yr_norm^2) + I(PPT_yr_norm^2), 
+                 family=Gamma(link="log"),
+                 data = BAdata.scaled)
+plot(BAmodel.g)
+plot(allEffects(BAmodel.g))
+#res = simulateResiduals(BAmodel1)
+#plot(res)
+#plotResiduals(BAdata.scaled$PPT_yr_norm, res$scaledResiduals, quantreg = T, main = "PPT_yr_norm") #
+#plotResiduals(BAdata.scaled$T_yr_norm, res$scaledResiduals, quantreg = T, main = "T_yr_norm") # 
+
+# gam model ---------------------------------------------------------------
+
+
+BAmodel.gam <- gam(sqrt(BALIVE) ~ s(PPT_yr_norm) 
+                   + s(T_yr_norm)
+                   + s(LON, LAT, k = 100),
+                   # family=tw(link = "identity"),
+                   # family = Tweedie(p = 1.5, link = "identity"),
+                   data = BAdata.scaled)
+summary(BAmodel.gam)
+mgcv::plot.gam(BAmodel.gam, pages = 1, scheme = 2)
+gam.check(BAmodel.gam)
+plot(density(resid(BAmodel.gam)))
+
+library(mgcViz)
+b <- getViz(BAmodel.gam)
+# qq(b, method = "simul1", a.qqpoi = list("shape" = 1), a.ablin = list("linetype" = 2))
+qq(b, rep = 20, showReps = T, CI = "none", a.qqpoi = list("shape" = 19), 
+   a.replin = list("alpha" = 0.2))
+
+smoothScatter(predict(BAmodel.gam)^2, BAdata.scaled$BALIVE)
+abline(c(0, 0), c(1, 1), col = "gold")
+
+
+
+# gamlss model ---------------------------------------------------------------
+
+# library(gamlss)
+# library(gamlss.add)
+# BAmodel.gam <- gamlss::gamlss(BALIVE+1 ~ ga(~ s(PPT_yr_norm) 
+#                                             + s(T_yr_norm)
+#                                             + s(LON, LAT, k = 50)),
+#                               family = GA,
+#                               sigma.formula = ~ 1, 
+#                               data = BAdata.scaled)
+# rqres.plot(BAmodel.gam)
+# summary(BAmodel.gam)
+# plot(BAmodel.gam)
+# term.plot(BAmodel.gam, pages = 1)
+# 
+# 
+# smoothScatter(predict(BAmodel.gam, type = "response")-1, BAdata.scaled$BALIVE)
+# abline(c(0, 0), c(1, 1), col = "gold")
+
+
+# export model for coefficients and scaling information -------------------
+save(BAmodel1, ba.scaling, file = paste0(path, "BA/BArescaling.Rdata"))
+save(BAmodel.g, ba.scaling, file = paste0(path, "BA/BArescalingGamma.Rdata"))
+
+# prepare to make map --------------------------------------------------------------
+# Load climate layers
+# these created using the script "current.R"
+ppt_yr_raster <- raster(paste0(climate.path, "PRISM/Normals/PPT_year.tif"))
+t_yr_raster <- raster(paste0(climate.path, "PRISM/Normals/T_year.tif"))
+
+# bring in scaling
+load(paste0(path, "BA/BArescaling.Rdata"))
+
+# function to predict balive using (scaled) climate data -----------------------------------
+ba.pred <- function(PPTann, Tann, LON, LAT) { 
+  
+  # raw (unscaled) data
+  badata <- data.frame(PPT_yr_norm = PPTann,
+                      T_yr_norm = Tann)
+  
+  # rescaled data
+  scaled.badata = data.frame(scale(badata, 
+                                  scale = ba.scaling$scale[match(names(badata), names(ba.scaling$scale))], 
+                                  center = ba.scaling$center[match(names(badata), names(ba.scaling$center))]))  
+  scaled.badata$LON = LON
+  scaled.badata$LAT = LAT
+  
+  # apply the fitted model to the scaled input data
+  # bapred <- predict(BAmodel1, newdata = scaled.badata) 
+  bapred <- predict(BAmodel.gam, newdata = scaled.badata) 
+  return(bapred^2) 
+
+  }
+
+
+# use model and MAT, MAP to predict balive (make map) -----------------------------------
+# Extract climate for cell
+ppt_yr_val <- raster::getValues(ppt_yr_raster)
+t_yr_val <- raster::getValues(t_yr_raster)
+LON = raster::xFromCell(ppt_yr_raster, 1:ncell(ppt_yr_raster))
+LAT = raster::yFromCell(ppt_yr_raster, 1:ncell(ppt_yr_raster))
+
+# use model to predict balive
+BA <- ba.pred(PPTann = ppt_yr_val, Tann = t_yr_val, 
+              LON = LON, LAT = LAT)
+
+# Prepare empty raster
+balive <- ppt_yr_raster
+balive <- setValues(balive, as.vector(BA))
+balivenew = balive
+
+
+par(mfrow = c(1, 1))
+plot(balive)
+points(LAT ~ LON, BAdata, pch = 16, cex= 0.01, col = rgb(0,0,0,0.1))
+hist(balive)
+
+
+# explore observed BA in space ----------------------------------------------------
+
+plot(LAT ~ LON, BAdata, pch = 16, cex = 0.1,
+     col = terrain.colors(10)[cut(sqrt(BAdata$BALIVE), 10, ordered_result = T)], 
+     asp = 1)
+
+hist(BAdata$BALIVE)
+
+
+
+# # Export ----------------------------------------------------------------------
+# as pdf
+pdf(paste0(path, "BA/BAmap.pdf"))
+plot(balive, main = "BALIVE")
+dev.off()
+
+# as raster (for use in building IPM)
+writeRaster(balive, paste0(path, "BA/balive.tif"), overwrite = T)
