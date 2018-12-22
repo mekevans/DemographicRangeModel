@@ -34,28 +34,35 @@ hist(log(survData$BALIVE)) # log transform has a heavy left tail
 survData$surv <- ifelse(survData$STATUSCD == 2, 0, 1)
 survData$mort <- ifelse(survData$STATUSCD == 1, 0, 1)
 
-# transformed predictors
-survData$log.PPT_yr <- log(survData$PPT_yr)
-survData$log.PPT_yr_norm <- log(survData$PPT_yr_norm)
-
-survData$log.size <- log(survData$PREVDIA)
-survData$log.BALIVE <- log(survData$BALIVE)
-
+# remove cases where BALIVE at time 1 = zero (should be impossible)
 # survData <- subset(survData, log.BALIVE > 0) 
 survData.2 <- subset(survData, BALIVE > 0) # goes from 20329 to 20161
+
+# remove conditions where fire or harvest occurred
+survData.3 <- survData[!(survData$DSTRBCD1 %in% c(30, 31, 32, 80)), ] # goes from 20329 to 19867
 
 # standardize covariates
 survData.scaled <- survData %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
                                                           -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
                                                           -CENSUS_INTERVAL, 
                                                           -AGB_INCR, -DIA_INCR, -BA_INCR,
-                                                          -surv, -mort))
+                                                          -surv, -mort,
+                                                          -AGENTCD, -DSTRBCD1, -DSTRBCD2, -DSTRBCD3))
 
 survData2.scaled <- survData.2 %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
                                                               -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
                                                               -CENSUS_INTERVAL, 
                                                               -AGB_INCR, -DIA_INCR, -BA_INCR,
-                                                              -surv, -mort))
+                                                              -surv, -mort,
+                                                              -AGENTCD, -DSTRBCD1, -DSTRBCD2, -DSTRBCD3))
+
+survData3.scaled <- survData.3 %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
+                                                                 -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
+                                                                 -CENSUS_INTERVAL, 
+                                                                 -AGB_INCR, -DIA_INCR, -BA_INCR,
+                                                                 -surv, -mort,
+                                                                 -AGENTCD, -DSTRBCD1, -DSTRBCD2, -DSTRBCD3))
+
 
 library(lme4)
 # model with PREVDIA instead of BAt1
@@ -108,6 +115,13 @@ smodel3.q <- glmer(mort ~ PREVDIA + I(PREVDIA^2) + BALIVE + I(BALIVE^2) +
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+# AIC = 16781.1 (no trees killed by fire, harvest)
+smodel3 <- glmer(mort ~ PREVDIA + I(PREVDIA^2) + BALIVE + I(BALIVE^2) +
+                     PPT_yr_norm + I(PPT_yr_norm^2) +
+                     T_yr_norm + I(T_yr_norm^2) +  
+                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 
 # remove BALIVE; AIC = 17282.9
 smodel4.q <- glmer(mort ~ PREVDIA + I(PREVDIA^2) +
@@ -116,6 +130,16 @@ smodel4.q <- glmer(mort ~ PREVDIA + I(PREVDIA^2) +
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+
+# remove trees killed by fire or harvest; AIC = 16805.0
+smodel4 <- glmer(mort ~ PREVDIA + I(PREVDIA^2) +
+                     PPT_yr_norm + I(PPT_yr_norm^2) +
+                     T_yr_norm + I(T_yr_norm^2) +  
+                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+plot(allEffects(smodel4))
+
 
 # interactions, AIC = 17335.7
 smodel6 <- glmer(mort ~ (PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm)^2 + 
@@ -594,7 +618,8 @@ plot(allEffects(smodel1))
 ### dealing with std'ized covariates
 
 # specify the predictors in the "best" model (or candidate best)
-surv.predictors <- c("PREVDIA", "T_yr_norm", "PPT_yr_norm") # "I(PREVDIA)", "I(T_yr_norm)", "I(PPT_yr_norm)"
+#surv.predictors <- c("PREVDIA", "T_yr_norm", "PPT_yr_norm")
+surv.predictors <- c("PREVDIA", "T_yr_norm", "PPT_yr_norm", "BALIVE")
 # eventually rewrite this so that it can handle alternative "best" models
 
 get_scale = function(data, predictors) {
@@ -606,7 +631,7 @@ get_scale = function(data, predictors) {
   return(sc)
 }
 
-surv.scaling = get_scale(survData.scaled, surv.predictors)
+surv.scaling = get_scale(survData3.scaled, surv.predictors)
 
 # remove scaling information from the dataset so that the model doesnt expect scaled data in predict()
 for (i in surv.predictors) {
@@ -614,94 +639,6 @@ for (i in surv.predictors) {
 }
 
 # export model for coefficients and scaling information -------------------
-save(smodel4.q, surv.scaling, file = "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Code/IPM/SurvRescaling.Rdata")
-
-
-
-### OLD STUFF - Michiel
-
-
-# Model: size + elevation + BA + climate
-smodel <- update(smodel, . ~ . - PPT_c)
-smodel <- update(smodel, . ~ . - PPT_w)
-smodel <- update(smodel, . ~ . - VPD_c)
-smodel <- update(smodel, . ~ . + I(PREV_DRYBIO_AG^2))
-smodel <- update(smodel, . ~ . + I(PREV_DRYBIO_AG^2) + I(PREV_DRYBIO_AG^3))
-# smodel <- update(smodel, . ~ . + I(VPD_w^2) + I(VPD_w^3))
-smodel <- update(smodel, . ~ . - VPD_w)
-smodel <- update(smodel, . ~ . + log(VPD_w))
-summary(smodel)
-save(smodel, file = "D:/EvansLab/Final/Models/BC/surv.rda")
-pdf("D:/EvansLab/Final/Output/BC/SurvivalModel.pdf")
-coefplot(smodel, intercept = F)
-preds <- ggpredict(smodel, terms = c("PREV_DRYBIO_AG"))
-ggplot(preds, aes(x, predicted)) + geom_line() + ggtitle("Mortality vs. biomass")
-preds <- ggpredict(smodel, terms = c("elev"))
-ggplot(preds, aes(x, predicted)) + geom_line() + ggtitle("Mortality vs. elevation")
-preds <- ggpredict(smodel, terms = c("baLive"))
-ggplot(preds, aes(x, predicted)) + geom_line() + ggtitle("Mortality vs. plot BA")
-preds <- ggpredict(smodel, terms = c("VPD_w"))
-ggplot(preds, aes(x, predicted)) + geom_line() + ggtitle("Mortality vs. VPD warm")
-dev.off()
-# Publication figure
-preds <- ggpredict(smodel, terms = c("PREV_DRYBIO_AG"))
-A <- ggplot(preds, aes(x, predicted)) + geom_line() + ylab("Mortality") + xlab("Biomass")
-preds <- ggpredict(smodel, terms = c("elev"))
-B <- ggplot(preds, aes(x, predicted)) + geom_line() + ylab("Mortality") + xlab("Elevation")
-preds <- ggpredict(smodel, terms = c("baLive"))
-C <- ggplot(preds, aes(x, predicted)) + geom_line() + ylab("Mortality") + xlab("Plot basal area")
-preds <- ggpredict(smodel, terms = c("VPD_w"))
-D <- ggplot(preds, aes(x, predicted)) + geom_line() + ylab("Mortality") + xlab("Warm-season VPD")
-all <- plot_grid(A, B, C, D, labels = c("A", "B", "C", "D"), align = "hv")
-save_plot("D:/EvansLab/Final/Manuscript/FigS6.png", all, base_aspect_ratio = 1.5)
-
-# Model: size + elevation + BA
-smodel <- glm(dead ~ PREV_DRYBIO_AG + I(PREV_DRYBIO_AG^2) + I(PREV_DRYBIO_AG^3) + elev + baLive, family = "binomial", data = survData)
-summary(smodel)
-save(smodel, file = "D:/EvansLab/Final/Models/B/surv.rda")
-pdf("D:/EvansLab/Final/Output/B/SurvivalModel.pdf")
-coefplot(smodel, intercept = F)
-preds <- ggpredict(smodel, terms = c("PREV_DRYBIO_AG"))
-ggplot(preds, aes(x, predicted)) + geom_line() + ggtitle("Mortality vs. biomass")
-preds <- ggpredict(smodel, terms = c("elev"))
-ggplot(preds, aes(x, predicted)) + geom_line() + ggtitle("Mortality vs. elevation")
-preds <- ggpredict(smodel, terms = c("baLive"))
-ggplot(preds, aes(x, predicted)) + geom_line() + ggtitle("Mortality vs. plot BA")
-dev.off()
-# Publication figure
-preds <- ggpredict(smodel, terms = c("PREV_DRYBIO_AG"))
-A <- ggplot(preds, aes(x, predicted)) + geom_line() + ylab("Mortality") + xlab("Biomass")
-preds <- ggpredict(smodel, terms = c("elev"))
-B <- ggplot(preds, aes(x, predicted)) + geom_line() + ylab("Mortality") + xlab("Elevation")
-preds <- ggpredict(smodel, terms = c("baLive"))
-C <- ggplot(preds, aes(x, predicted)) + geom_line() + ylab("Mortality") + xlab("Plot basal area")
-all <- plot_grid(A, B, C, labels = c("A", "B", "C"), align = "hv")
-save_plot("D:/EvansLab/Final/Manuscript/FigS4.png", all, base_aspect_ratio = 1.5)
-
-# Model: size + elevation + climate
-smodel <- glm(dead ~ PREV_DRYBIO_AG + elev + PPT_c + PPT_w + VPD_c + VPD_w, family = "binomial", data = survData)
-smodel <- update(smodel, . ~ . - PPT_c)
-smodel <- update(smodel, . ~ . - PPT_w)
-smodel <- update(smodel, . ~ . - VPD_c)
-smodel <- update(smodel, . ~ . + I(PREV_DRYBIO_AG^2) + I(PREV_DRYBIO_AG^3))
-summary(smodel)
-save(smodel, file = "D:/EvansLab/Final/Models/C/surv.rda")
-pdf("D:/EvansLab/Final/Output/C/SurvivalModel.pdf")
-coefplot(smodel, intercept = F)
-preds <- ggpredict(smodel, terms = c("PREV_DRYBIO_AG"))
-ggplot(preds, aes(x, predicted)) + geom_line() + ggtitle("Mortality vs. biomass")
-preds <- ggpredict(smodel, terms = c("elev"))
-ggplot(preds, aes(x, predicted)) + geom_line() + ggtitle("Mortality vs. elevation")
-preds <- ggpredict(smodel, terms = c("VPD_w"))
-ggplot(preds, aes(x, predicted)) + geom_line() + ggtitle("Mortality vs. VPD warm")
-dev.off()
-# Publication figure
-preds <- ggpredict(smodel, terms = c("PREV_DRYBIO_AG"))
-A <- ggplot(preds, aes(x, predicted)) + geom_line() + ylab("Mortality") + xlab("Biomass")
-preds <- ggpredict(smodel, terms = c("elev"))
-B <- ggplot(preds, aes(x, predicted)) + geom_line() + ylab("Mortality") + xlab("Elevation")
-preds <- ggpredict(smodel, terms = c("VPD_w"))
-C <- ggplot(preds, aes(x, predicted)) + geom_line() + ylab("Mortality") + xlab("Warm-season VPD")
-all <- plot_grid(A, B, C, labels = c("A", "B", "C"), align = "hv")
-save_plot("D:/EvansLab/Final/Manuscript/FigS5.png", all, base_aspect_ratio = 1.5)
-
+#save(smodel4.q, surv.scaling, file = "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Code/IPM/SurvRescaling.Rdata")
+save(smodel4, surv.scaling, file = "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Code/IPM/SurvRescalingNoFire.Rdata")
+save(smodel3, surv.scaling, file = "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Code/IPM/SurvRescalingBA.Rdata")
