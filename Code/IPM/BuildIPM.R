@@ -17,7 +17,9 @@ load(paste0(path, "Code/IPM/GrRescaling.Rdata"))
 
 # survival model + scaling
 # from modelSelection_Survival.R
-load(paste0(path, "Code/IPM/SurvRescaling.Rdata"))
+# load(paste0(path, "Code/IPM/SurvRescaling.Rdata"))
+#load(paste0(path, "Code/IPM/SurvRescalingNoFire.Rdata"))
+load(paste0(path, "Code/IPM/SurvRescalingBA.Rdata"))
 
 # recruitment model + scaling
 # from modelSelection_Recruit.R
@@ -29,20 +31,24 @@ load(paste0(path, "Code/IPM/recrstats.rda"))
 
 # Load FIA survival, growth data
 FIA <- read.csv(paste0(path, "Processed/Survival/SurvivalData.csv"), header = T, stringsAsFactors = F)
-#FIA <- read.csv("C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
+# when running IPM without trees killed by fire, technically should filter out those trees
+# prolly makes ~0 difference
+FIA <- FIA[!(FIA$DSTRBCD1 %in% c(30, 31, 32, 80)), ]
 
 xy = FIA[, c("LON", "LAT")]
 spFIA = sp::SpatialPoints(xy)
 spFIA = SpatialPointsDataFrame(spFIA, FIA)
 
 # Survival ---------------------------------------
-s.x <- function(size.x, Tann, PPTann, interval = 1) {
+#s.x <- function(size.x, Tann, PPTann, interval = 1) {
+s.x <- function(size.x, balive, Tann, PPTann, interval = 1) {
   
   # raw (unscaled) data
   # on the LH side is the name of the variable in the cloglog regression (model object)
   # on the RH side is the name of the variable in this function (s.x)
   sdata <- data.frame(PREVDIA = size.x, 
-                      #T_yr_norm = Tann, 
+                      BALIVE = balive,
+                      # T_yr_norm = Tann, 
                       T_yr_norm = ifelse(Tann < 12, Tann, 12), # clamp response where Tann > 12
                       PPT_yr_norm = PPTann)  
   # rescaled data
@@ -56,13 +62,24 @@ s.x <- function(size.x, Tann, PPTann, interval = 1) {
   #scaled.sdata$CENSUS_INTERVAL <- interval # would this be equivalent? consistent with fec below
   
   # apply the fitted model to the scaled input data
-  spred <- predict(smodel4.q, newdata = scaled.sdata, type = "response", re.form = NA) # no plot rnd effects used by predict here
+  spred <- predict(smodel3, newdata = scaled.sdata, type = "response", re.form = NA) # no plot rnd effects used by predict here
   
   return(1-spred)
 }
 
 # try out s.x on some realistic combinations of values
 #s.x(size.x = c(8.4, 8.4, 8.4), Tann = c(2.0, 8.9, 15.0), PPTann = c(395, 395, 395), interval = 10)
+# look at survival as a function of PPTann (ave-sized tree, ave Tann...)
+test = s.x(size.x = 8.4, balive = 110, Tann = 8.9, PPTann = seq(1, 1000, length.out = 100), interval = 10)
+plot(seq(1, 1000, length.out = 100), test)
+# look at survival as a function of Tann
+test = s.x(size.x = 8.4, balive = 110, Tann = seq(-4, 30, length.out = 100), PPTann = 395, interval = 10)
+plot(seq(-4, 30, length.out = 100), test)
+# look at survival as a function of balive, if balive is in mort model
+test = s.x(size.x = 8.4, balive = seq(0, 360, length.out = 100), Tann = 8.9, PPTann = 395, interval = 10)
+plot(seq(0, 360, length.out = 100), test, ylab = "10-yr survival probability", xlab = "basal area live trees")
+#abline(v = min(FIA$BALIVE)); abline(v = max(FIA$BALIVE)) # extrapolation lines
+abline(v = 239) # 239 is the maximum value in Michiel's interpolated BALIVE; 360 is the largest value observed at PIED plots
 
 # Growth ------------------------------
 
@@ -119,6 +136,21 @@ g.mean <- function(size.x, balive, PPTann, Tann, interval = 1) {
   gpred <- predict(gmodel.7, newdata = scaled.gdata, re.form = NA) * interval
   return(gpred)
 }
+
+# look at mean growth as a function of PPTann (ave-sized tree, ave Tann...)
+test = g.mean(size.x = 8.4, balive = 110, Tann = 8.9, PPTann = seq(1, 1500, length.out = 100), interval = 10)
+plot(seq(1, 1000, length.out = 100), test, ylab = "10-yr growth incr (in)", xlab = "mean annual precipitation (mm)")
+abline(v = min(FIA$PPT_yr_norm)); abline(v = max(FIA$PPT_yr_norm)) # extrapolation lines
+# look at mean growth as a function of Tann
+test = g.mean(size.x = 8.4, balive = 110, Tann = seq(-1, 24, length.out = 100), PPTann = 395, interval = 10)
+plot(seq(-4, 30, length.out = 100), test, ylab = "10-yr growth incr (in)", xlab = "mean annual temperature (C)")
+abline(v = min(FIA$T_yr_norm)); abline(v = max(FIA$T_yr_norm)) # extrapolation lines
+# look at mean growth as a function of balive
+test = g.mean(size.x = 8.4, balive = seq(0, 240, length.out = 100), Tann = 8.9, PPTann = 395, interval = 10)
+plot(seq(0, 240, length.out = 100), test, ylab = "10-yr growth incr (in)", xlab = "basal area live trees")
+abline(v = min(FIA$BALIVE)); abline(v = max(FIA$BALIVE)) # extrapolation lines
+abline(v = 190, col = "blue", lty = 2, lwd = 3) # clamping line
+
 
 # Fecundity -----------------------------------------------
 # function fec is used for building the IPM
@@ -237,7 +269,8 @@ for (i in 1:nrow(ppt_yr_raster)) {
     G <- h*outer(y, y, g.yx, balive = ba_val, PPTann = ppt_yr_val, Tann = t_yr_val) # G is an n*n matrix, currently 500*500 = 250,000
     # each column is one of n sizes at time t (the mid-points), each row is the transition probability to a new size at time t+dt
     #plot(y, G[,10], type = "l", ylab = "density", xlim = c(0,55)) # try with larger and larger values for the G column, the PD marches down/across
-    S <- s.x(y, PPTann = ppt_yr_val, Tann = t_yr_val, interval = 1)
+    # S <- s.x(y, PPTann = ppt_yr_val, Tann = t_yr_val, interval = 1)
+    S <- s.x(y, balive = ba_val, PPTann = ppt_yr_val, Tann = t_yr_val, interval = 1)
     P <- G
     for (k in 1:n) P[,k] <- G[,k]*S #survival*growth subkernel
     # Recruitment
@@ -267,7 +300,8 @@ for (i in 1:nrow(ppt_yr_raster)) {
       next
     }
     G <- g.mean(size.x = median(FIA$DIA, na.rm = T), balive = ba_val, PPTann = ppt_yr_val, Tann = t_yr_val) # interval = 1 in g.mean function
-    S <- s.x(size.x = median(FIA$DIA, na.rm = T), PPTann = ppt_yr_val, Tann = t_yr_val)
+    # S <- s.x(size.x = median(FIA$DIA, na.rm = T), PPTann = ppt_yr_val, Tann = t_yr_val)
+    S <- s.x(size.x = median(FIA$DIA, na.rm = T), balive = ba_val, PPTann = ppt_yr_val, Tann = t_yr_val)
     R <- f.mean(balive = ba_val, PPTann = ppt_yr_val, Tann = t_yr_val)
     growth[i,j] <- G
     survival[i,j] <- S
@@ -277,7 +311,7 @@ for (i in 1:nrow(ppt_yr_raster)) {
   plot(growth); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 }
 
-pdf("C:/Users/mekevans/Documents/Cdrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PIED_IPM/MEKEvans/Output/vitalRates.pdf")
+pdf("C:/Users/mekevans/Documents/Cdrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PIED_IPM/MEKEvans/Output/vitalRatesBALIVEinmort.pdf")
 plot(growth, main = "Growth"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 plot(survival, main = "Survival", zlim = c(0.95, 1)); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 plot(reproduction, main = "Reproduction"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
