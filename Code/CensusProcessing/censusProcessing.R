@@ -5,9 +5,9 @@
 ### modified by M. Evans, L. Huelsmann
 
 
-plot.path <- "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/FIAdata/plots/"
-tree.path <- "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/FIAdata/trees/"
-cond.path <- "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/FIAdata/conds/"
+plot.path <- "./FIAdata/plots/"
+tree.path <- "./FIAdata/trees/"
+cond.path <- "./FIAdata/conds/"
 
 # Combine plots
 plot_list <- list.files(path=paste(plot.path,sep=''), pattern="*.csv")
@@ -16,7 +16,7 @@ plots_combined <- do.call("rbind",
                                 function(x)
                                 read.csv(paste(plot.path, x, sep=''),
                                            header = T, stringsAsFactors = F)))
-write.csv(plots_combined, "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/FIAdata/PLOT_COMBINED.csv")
+write.csv(plots_combined, "./FIAdata/PLOT_COMBINED.csv")
 
 
 # Combine trees
@@ -27,7 +27,7 @@ trees_combined <- do.call("rbind",
                                    read.csv(paste(tree.path, x, sep=''),
                                             header = T, stringsAsFactors = F)))
 trees_combined$PLT_CN <- as.character(trees_combined$PLT_CN)
-write.csv(trees_combined, "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/FIAdata/TREE_COMBINED.csv")
+write.csv(trees_combined, "./FIAdata/TREE_COMBINED.csv")
 
 # Combine conditions
 cond_list <- list.files(path=paste(cond.path,sep=''), pattern="*.csv")
@@ -37,4 +37,4 @@ conds_combined <- do.call("rbind",
                                    read.csv(paste(cond.path, x, sep=''),
                                             header = T, stringsAsFactors = F)))
 conds_combined$PLT_CN <- as.character(conds_combined$PLT_CN)
-write.csv(conds_combined, "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/FIAdata/COND_COMBINED.csv")
+write.csv(conds_combined, "./FIAdata/COND_COMBINED.csv")

@@ -2,7 +2,7 @@ library(sp)
 library(raster)
 library(rgdal)
 
-data.path <- "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/FIAdata/"
+data.path <- "./FIAdata/"
 
 # Read tree data and subset PIED
 grData <- read.csv(paste(data.path,"TREE_COMBINED.csv",sep=''), header = T, stringsAsFactors = F)
@@ -67,7 +67,7 @@ grSpat <- SpatialPointsDataFrame(coords = cbind(grData_remeas$LON, grData_remeas
 ### should be moved to historic.R
 ### should be done once for both the survival and growth data, and dead trees subsetted out (one line) for growth analysis
 # Read in PRISM climate stacks
-clim.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/"
+clim.path <-  "./ClimateData/"
 ppt <- stack(paste(clim.path,"pptStack.tif",sep=''))
 tmp <- stack(paste(clim.path,"tmpStack.tif",sep=''))
 vpd <- stack(paste(clim.path,"vpdStack.tif",sep=''))
@@ -88,7 +88,7 @@ vpd.extr <- vpd.extr[, 1:430]
 ppt.extr <- as.data.frame(ppt.extr)
 tmp.extr <- as.data.frame(tmp.extr)
 vpd.extr <- as.data.frame(vpd.extr)
-PRISM.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/PRISM/"
+PRISM.path <-  "./ClimateData/PRISM/"
 pptFiles <- list.files(path = PRISM.path, pattern = glob2rx("*ppt*.bil"), full.names = TRUE)
 pptFiles <- pptFiles[1:430] # (hack to deal with CRS incompatibility, vpd .bil file Nov, 2016)
 #tmpFiles <- list.files(path = PRISM.path, pattern = glob2rx("*tmean*.bil"), full.names = TRUE)
@@ -102,7 +102,7 @@ colnames(tmp.extr) <- paste0("tmp_", colNames)
 colnames(vpd.extr) <- paste0("vpd_", colNames)
 
 # Export climate data
-processed.path <- "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Processed/Growth/"
+processed.path <- "./Processed/Growth/"
 write.csv(ppt.extr, paste0(processed.path,"ppt_extr.csv"), row.names = F)
 write.csv(tmp.extr, paste0(processed.path,"tmp_extr.csv"), row.names = F)
 write.csv(vpd.extr, paste0(processed.path,"vpd_extr.csv"), row.names = F)
@@ -251,7 +251,7 @@ for (i in 1982:2016) {
 ### THE FOLLOWING ONLY NEEDS TO BE DONE ONCE
 ### should be moved to normals.R
 # import PRISM normals
-PRISM.norm.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/PRISM/Normals/"
+PRISM.norm.path <-  "./ClimateData/PRISM/Normals/"
 PPT.norm <- stack(paste(clim.path,"pptNormals.tif",sep=''))
 TMP.norm <- stack(paste(clim.path,"tmpNormals.tif",sep=''))
 VPD.norm <- stack(paste(clim.path,"vpdNormals.tif",sep=''))
