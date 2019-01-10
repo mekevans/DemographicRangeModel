@@ -1,0 +1,71 @@
+\documentclass{article}
+\title{PIED IPM Workflow}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\maketitle
+
+\section{Overview}
+This document details the procedure for creating an integral projection model (IPM) to predict the distribution of \emph{Pinus edulis} (pinyon pine), beginning with the data processing and ending with the creation of predictor maps. The inputs for the model are climate data from PRISM and Forest Inventory and Analysis (FIA) data. The outputs are an integral project model to predict population growth rates and a map of the predicted distribution of \emph{Pinus edulis}.
+
+The overall workflow is as follows:
+\begin{enumerate}
+\item Process the climate and FIA census data
+\item Combine the climate and FIA census data and process in preparation for vital rate modeling
+\item Build vital rate models and use model selection to choose the best model for each vital rate
+\item Build IPM
+\item Create predictive maps of \emph{Pinus edulis} distribution
+\end{enumerate}
+
+\section{FIA data processing}
+The FIA data are divided into separate files by state. The initial processing of these data is simply to combine the data from different states into a single file. We used PIED data from four states: Utah, Colorado, Arizona, and New Mexico. For each state, we used data from three data files: \emph{\**\_COND.csv}, \emph{\**\_PLOT.csv}, and \emph{\**\_TREE.csv}. 
+
+The data tables from the different states were combined using a file called \emph{censusProcessing.R}:
+
+<<eval=FALSE>>=
+source("./Code/CensusProcessing/censusProcessing.R")
+@
+
+As an example, here is the code for combining the plot data files:
+First we set the path for the files with
+<<eval=FALSE>>=
+plot.path <- "./FIAdata/plots/"
+@
+
+Then we read the files, combined them, and exported the merged file:
+<<eval=FALSE>>=
+plot_list <- list.files(path=paste(plot.path,sep=''), pattern="*.csv")
+plots_combined <- do.call("rbind",
+                         lapply(plot_list,
+                                function(x)
+                                read.csv(paste(plot.path, x, sep=''),
+                                           header = T, stringsAsFactors = F)))
+write.csv(plots_combined, "./FIAdata/PLOT_COMBINED.csv")
+
+@
+
+\section{Climate data processing}
+
+\section{Data preparation for vital rate models}
+Selecting only data we want from FIA data (PIED, remeasured, etc.) ??Is there a reason this wasn't done in the census processing step?
+
+Calculate basal area increment
+
+Combine with plot data to get location info and census year info
+
+Calculate census interval
+
+Combine with condition data to get tree-specific basal area in plot
+
+Use lat/long to make data spatial
+
+Bring in climate data
+
+Extract climate data for each data point based on spatial data
+
+Filter dates ??Some questions about the notes on this
+
+Reformat to dataframes, add column names ??I need the .bil files for this
+
+\end{document}
