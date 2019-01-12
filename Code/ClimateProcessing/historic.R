@@ -5,7 +5,7 @@ library(raster)
 ### (36*12) + 11 = 443 files
 
 # Search for PRISM files
-PRISM.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/PRISM/"
+PRISM.path <-  "./ClimateData/PRISM/"
 pptFiles <- list.files(path = PRISM.path, pattern = glob2rx("*ppt*.bil"), full.names = TRUE)
 tmpFiles <- list.files(path = PRISM.path, pattern = glob2rx("*tmean*.bil"), full.names = TRUE)
 #vpdminFiles <- list.files(path = PRISM.path, pattern = glob2rx("*vpdmin*.bil"), full.names = TRUE)
@@ -31,13 +31,13 @@ for (i in 1:length(vpdmaxFiles)) {
 }
 
 # Crop to extent of FIA Pinus edulis occurrences
-cropExtent <- extent(raster("C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/BA/BA.tif"))
+cropExtent <- extent(raster("./BA/BA.tif"))
 pptStackCropped <- crop(pptStack, cropExtent)
 tmpStackCropped <- crop(tmpStack, cropExtent)
 vpdStackCropped <- crop(vpdStack, cropExtent)
 
 # Export rasters
-clim.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/"
+clim.path <-  "./ClimateData/"
 writeRaster(pptStackCropped, paste0(clim.path, "pptStack.tif"), overwrite = T)
 writeRaster(tmpStackCropped, paste0(clim.path, "tmpStack.tif"), overwrite = T)
 writeRaster(vpdStackCropped, paste0(clim.path, "vpdStack.tif"), overwrite = T)

@@ -2,7 +2,7 @@ library(raster)
 library(rgdal)
 
 # Read PRISM normals
-PRISM.norm.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/PRISM/Normals/"
+PRISM.norm.path <-  "./ClimateData/PRISM/Normals/"
 prism_files <- list.files(path = PRISM.norm.path, pattern = "bil$", full.names = T)
 prism <- stack(prism_files)
 
@@ -35,7 +35,7 @@ T_year <- ( # average T
   prism$PRISM_tmean_30yr_normal_4kmM2_08_bil) / 12
 
 # Crop normals to extent of BA (for better visualization)
-BA <- raster("C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/BA/BA.tif")
+BA <- raster("./BA/BA.tif")
 ext <- extent(BA)
 PPT_year <- crop(PPT_year, ext)
 T_year <- crop(T_year, ext)
