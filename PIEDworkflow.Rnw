@@ -1,4 +1,9 @@
 \documentclass{article}
+\usepackage{tabularx}% http://ctan.org/pkg/tabularx
+\usepackage{booktabs}% http://ctan.org/pkg/booktabs
+\usepackage{amsmath}
+\usepackage[flushleft]{threeparttable}
+
 \title{PIED IPM Workflow}
 
 \begin{document}
@@ -19,6 +24,51 @@ The overall workflow is as follows:
 \end{enumerate}
 
 \section{FIA data processing}
+\begin{table}[h!]
+		\centering
+		\resizebox{\textwidth}{!}{%
+		\begin{threeparttable}
+			\caption[FIA processing input files]{Input files for FIA data processing}
+			\label{tab:fia_in}
+			\begin{tabular}{lccc}
+				\toprule
+				R script & Input file names & File path & Source\\
+				\midrule
+				censusProcessing.R & UT\_COND.csv & ./FIAdata/conds/ & Online: FIA databank\\
+				& CO\_COND.csv & ./FIAdata/conds/ & Online: FIA databank\\
+				& AZ\_COND.csv & ./FIAdata/conds/ & Online: FIA databank\\
+				& NM\_COND.csv & ./FIAdata/conds/ & Online: FIA databank\\
+        & UT\_PLOT.csv & ./FIAdata/plots/ & Online: FIA databank\\
+				& CO\_PLOT.csv & ./FIAdata/plots/ & Online: FIA databank\\
+				& AZ\_PLOT.csv & ./FIAdata/plots/ & Online: FIA databank\\
+				& NM\_PLOT.csv & ./FIAdata/plots/ & Online: FIA databank\\
+        & UT\_TREE.csv & ./FIAdata/trees/ & Online: FIA databank\\
+				& CO\_TREE.csv & ./FIAdata/trees/ & Online: FIA databank\\
+				& AZ\_TREE.csv & ./FIAdata/trees/ & Online: FIA databank\\
+				& NM\_TREE.csv & ./FIAdata/trees/ & Online: FIA databank\\
+				\bottomrule
+			\end{tabular}
+		\end{threeparttable}}
+	\end{table}
+
+\begin{table}[h!]
+		\centering
+		\resizebox{\textwidth}{!}{%
+		\begin{threeparttable}
+			\caption[FIA processing output files]{Output files from FIA data processing}
+			\label{tab:fia_out}
+			\begin{tabular}{lccc}
+				\toprule
+				R script & Output file names & File path\\
+				\midrule
+				censusProcessing.R & COND\_COMBINED.csv & ./FIAdata/\\
+        & PLOT\_COMBINED.csv & ./FIAdata/\\
+        & TREE\_COMBINED.csv & ./FIAdata/\\
+				\bottomrule
+			\end{tabular}
+		\end{threeparttable}}
+	\end{table}
+
 The FIA data are divided into separate files by state. The initial processing of these data is simply to combine the data from different states into a single file. We used PIED data from four states: Utah, Colorado, Arizona, and New Mexico. For each state, we used data from three data files: \emph{\**\_COND.csv}, \emph{\**\_PLOT.csv}, and \emph{\**\_TREE.csv}. 
 
 The data tables from the different states were combined using a file called \emph{censusProcessing.R}:
@@ -42,12 +92,121 @@ plots_combined <- do.call("rbind",
                                 read.csv(paste(plot.path, x, sep=''),
                                            header = T, stringsAsFactors = F)))
 write.csv(plots_combined, "./FIAdata/PLOT_COMBINED.csv")
-
 @
 
 \section{Climate data processing}
+\begin{table}[h!]
+		\centering
+		\resizebox{\textwidth}{!}{%
+		\begin{threeparttable}
+			\caption[Climate processing input files]{Input files for climate data processing}
+			\label{tab:clim_in}
+			\begin{tabular}{lccc}
+				\toprule
+				R script & Input file names & File path & Source\\
+				\midrule
+				current.R & PRISM normals .bil & ./ClimateData/PRISM/Normals/ & Online: PRISM\\
+				& BA.tif & ./BA/ & ??\\
+				\midrule
+				future.R & WorldClim .tif & ./ClimateData/WorldClim/ & Online: WorldClim\\
+				& BA.tif & ./BA/ & ??\\
+        & PPT\_cool.tif & ?? & Online: PRISM?\\
+				& PPT\_warm.tif & ?? & Online: PRISM?\\
+				\midrule
+				historic.R & PRISM .bil (ppt, tmean, vpdmax) & ./ClimateData/PRISM/ & Online: PRISM\\
+				& BA.tif & ./BA/ & ??\\
+				\midrule
+        normals.R & PRISM normas .bil (ppt, tmean, vpdmax) & ./ClimateData/PRISM/Normals/ & Online: PRISM\\
+				& BA.tif & ./BA/ & ??\\
+				\bottomrule
+			\end{tabular}
+		\end{threeparttable}}
+	\end{table}
+
+\begin{table}[h!]
+		\centering
+		\resizebox{\textwidth}{!}{%
+		\begin{threeparttable}
+			\caption[vital rate data prep output files]{Output files from vital rate model data preparation}
+			\label{tab:vrData_out}
+			\begin{tabular}{lccc}
+				\toprule
+				R script & Output file names & File path\\
+				\midrule
+				current.R & PPT\_year.tif & ./ClimateData/PRISM/Normals/\\
+        & T\_year.tif & ./ClimateData/PRISM/Normals/\\
+        \midrule
+        future.R & PPT\_cool.tif & ./ClimateData/WorldClim/\\
+        & PPT\_warm.tif & ./ClimateData/WorldClim/\\
+        \midrule
+				historic.R & pptStack.tif & ./ClimateData/\\
+				& tmpStack.tif & ./ClimateData/\\
+				& vpdStack.tif & ./ClimateData/\\
+				\midrule
+				normals.R & pptNormals.tif & ./ClimateData/\\
+				& tmpNormals.tif & ./ClimateData/\\
+				& vpdNormals.tif & ./ClimateData/\\
+				\bottomrule
+			\end{tabular}
+		\end{threeparttable}}
+	\end{table}
 
 \section{Data preparation for vital rate models}
+\begin{table}[h!]
+		\centering
+		\resizebox{\textwidth}{!}{%
+		\begin{threeparttable}
+			\caption[Vital model data prep input files]{Input files for data preparation for vital rate models}
+			\label{tab:vrData_in}
+			\begin{tabular}{lccc}
+				\toprule
+				R script & Input file names & File path & Source\\
+				\midrule
+				dataPrepGrowth.R & TREE\_COMBINED.csv & ./FIAdata/ & censusProcessing.R\\
+				& PLOT\_COMBINED.csv & ./FIAdata/ & censusProcessing.R\\
+				& COND\_COMBINED.csv & ./FIAdata/ & censusProcessing.R\\
+				& pptStack.tif & ./ClimateData/ & historic.R\\
+				& tmpStack.tif & ./ClimateData/ & historic.R\\
+				& vpdStack.tif & ./ClimateData/ & historic.R\\
+				& PRISM \**ppt\**.bil & ./ClimateData/PRISM/ & Online: PRISM\\
+				& pptNormals.tif & ./ClimateData/ & normals.R\\
+				& tmpNormals.tif & ./ClimateData/ & normals.R\\
+				& vpdNormals.tif & ./ClimateData/ & normals.R\\
+				\bottomrule
+			\end{tabular}
+		\end{threeparttable}}
+	\end{table}
+
+
+\begin{table}[h!]
+		\centering
+		\resizebox{\textwidth}{!}{%
+		\begin{threeparttable}
+			\caption[vital rate data prep output files]{Output files from vital rate model data preparation}
+			\label{tab:vrData_out}
+			\begin{tabular}{lccc}
+				\toprule
+				R script & Output file names & File path\\
+				\midrule
+				dataPrepGrowth.R & ppt\_extr.csv & ./Processed/Growth/\\
+        & tmp\_extr.csv & ./Processed/Growth/\\
+        & vpd\_extr.csv & ./Processed/Growth/\\
+        & GrowthData.csv & ./Processed/Growth/\\
+        \midrule
+        dataPrepSurvival.R & ppt\_extr.csv & ./Processed/Survival/\\
+        & tmp\_extr.csv & ./Processed/Survival/\\
+        & vpd\_extr.csv & ./Processed/Survival/\\
+        & SurvivalData.csv & ./Processed/Survival/\\
+        \midrule
+				dataPrepRecruitment.R & ppt\_extr.csv & ./Processed/Recruitment/\\
+        & tmp\_extr.csv & ./Processed/Recruitment/\\
+        & vpd\_extr.csv & ./Processed/Recruitment/\\
+        & RecruitmentData.csv & ./Processed/Recruitment/\\
+        \bottomrule
+			\end{tabular}
+		\end{threeparttable}}
+	\end{table}
+
 Selecting only data we want from FIA data (PIED, remeasured, etc.) ??Is there a reason this wasn't done in the census processing step?
 
 Calculate basal area increment
@@ -64,8 +223,59 @@ Bring in climate data
 
 Extract climate data for each data point based on spatial data
 
-Filter dates ??Some questions about the notes on this
+Filter dates because of incompatibility in PRISM data
 
-Reformat to dataframes, add column names ??I need the .bil files for this
+Reformat to dataframes, add column names (using .bil PRISM files), and export spatial climate data
+
+Import spatial climate data
+
+Calculate seasonal climate variables:
+
+Variables:
+\begin{enumerate}
+\item{Cumulative precipitation}
+\item{Mean temperature}
+\item{Temperature extreme (maximum)}
+\item{Mean VPD}
+\item{VPD extreme (maximum)}
+\end{enumerate}
+
+Seasons:
+\begin{enumerate}
+\item{Cool season (previous November -- March)}
+\item{Previous fall (previous September -- previous October)}
+\item{Foresummer (April-June)}
+\item{Warm, dry months (previous September -- previous October and April-June)}
+\item{Monsoon (July-August)}
+\item{Water year (previous September-August)}
+\end{enumerate}
+
+Import PRISM normals, extract, and change column names
+
+Calculate seasonal (see above) climate normals and add to dataframe 
+
+Add seasonal climate variables specific to each tree's census interval
+
+Calculate anomalies and add to dataframe
+
+Create and export demography + climate dataframe
+
+Plot climate--vital rate relationships
+
+\section{Questions}
+\subsection{Lines 299-340 in \emph{dataPrepGrowth.R}}
+This is the section where we add the seasonal climate variables (specific to each tree's census interval) to growth data frame. Here is an example of the code:
+
+<<eval=FALSE,keep.source=FALSE>>=
+grData_remeas$PPT_c <- rowMeans(ppt.extr[, paste0("PPT_c_", (grData_remeas[, "PREV_MEASYEAR"]+1):(grData_remeas[, "MEASYEAR"]))]) #Should there be an "i" in the row indices for grData_remeas? There is everywhere else.
+grData_remeas$T_c <- rowMeans(tmp.extr[, paste0("T_c_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
+
+@
+
+I have two questions about this section:
+\begin{enumerate}
+\item{There are i's in the indices for grData\_remeas in every line except for the precipitation calculations. Should i's be added to the precipation calculations too?}
+\item{It looks like this section should be inside a for loop to calculate different census intervals for each record. Currently it is calculating the same interval for all the records based on the value of i leftover from the previous for loop. There is also a note in the corresponding section of the \emph{dataPrepSurvival.R} file saying, ``could not get this to vectorize successfully," which also makes it sound like it should be in a loop, rather than the attempted vectorization that seems to be happening. Is this true?}
+\end{enumerate}
 
 \end{document}
