@@ -3,8 +3,7 @@ library(car)
 library(rgdal)
 
 ##PLOTS##
-data.path <- "C:/Users/mekevans/Documents/Cdrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PIED_IPM/MEKEvans/FIAdata/"
-data.path <- "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/FIAdata/"
+data.path <- "./FIAdata/"
 
 # Read plots
 plots <- read.csv(paste(data.path,"PLOT_COMBINED.csv",sep=''), header = T, stringsAsFactors = F)
@@ -170,7 +169,7 @@ Points <- SpatialPoints(coords = cbind(rData$lon, rData$lat),
 
 # Read in PRISM climate stacks
 #clim.path <-  "F:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/"
-clim.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/"
+clim.path <-  "./ClimateData/"
 ppt <- stack(paste(clim.path,"pptStack.tif",sep=''))
 tmp <- stack(paste(clim.path,"tmpStack.tif",sep=''))
 vpd <- stack(paste(clim.path,"vpdStack.tif",sep=''))
@@ -192,7 +191,7 @@ ppt.extr <- as.data.frame(ppt.extr)
 tmp.extr <- as.data.frame(tmp.extr)
 vpd.extr <- as.data.frame(vpd.extr)
 #PRISM.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/PRISM/"
-PRISM.path <- "F:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/PRISM"
+PRISM.path <- "./ClimateData/PRISM"
 pptFiles <- list.files(path = PRISM.path, pattern = glob2rx("*ppt*.bil"), full.names = TRUE)
 pptFiles <- pptFiles[1:430] # (hack to deal with CRS incompatibility, vpd .bil file Nov, 2016)
 #tmpFiles <- list.files(path = climateDir, pattern = glob2rx("*tmean*.bil"), full.names = TRUE)
@@ -207,14 +206,14 @@ colnames(vpd.extr) <- paste0("vpd_", colNames)
 
 # Export climate data
 #recruit.path <- "C:/Users/mekevans/Documents/Cdrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PIED_IPM/MEKEvans/Processed/Recruitment/"
-recruit.path <- "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Processed/Recruitment/"
+recruit.path <- "./Processed/Recruitment/"
 write.csv(ppt.extr, paste0(recruit.path, "ppt_extr.csv"), row.names = F)
 write.csv(tmp.extr, paste0(recruit.path, "tmp_extr.csv"), row.names = F)
 write.csv(vpd.extr, paste0(recruit.path, "vpd_extr.csv"), row.names = F)
 
 ### CONTINUE HERE IF YOU ALREADY HAVE GENERATED THE ABOVE csv files
 #recruit.path <- "C:/Users/mekevans/Documents/Cdrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PIED_IPM/MEKEvans/Processed/Recruitment/"
-recruit.path <- "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Processed/Recruitment/"
+recruit.path <- "./Processed/Recruitment/"
 ppt.extr <- read.csv(paste(recruit.path,"ppt_extr.csv",sep=''), header = T)
 tmp.extr <- read.csv(paste(recruit.path,"tmp_extr.csv",sep=''), header = T)
 vpd.extr <- read.csv(paste(recruit.path,"vpd_extr.csv",sep=''), header = T)
@@ -359,7 +358,7 @@ for (i in 1982:2016) {
 
 # Read and raster::extract PRISM normals (PPT, T, VPD_max, VPD_min)
 # import PRISM normals
-PRISM.norm.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/"
+PRISM.norm.path <-  "./ClimateData/"
 #PRISM.norm.path <-  "F:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/"
 PPT.norm <- stack(paste(clim.path,"pptNormals.tif",sep=''))
 TMP.norm <- stack(paste(clim.path,"tmpNormals.tif",sep=''))
@@ -517,7 +516,7 @@ r.sizesd <- sd(log(recruits$DIA))
 ##EXPORT##
 rData2 <- rData[complete.cases(rData),]
 #write.csv(rData, "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Processed/Recruitment/RecruitData.csv", row.names = F)
-write.csv(rData, "C:/Users/mekevans/Documents/Cdrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PIED_IPM/MEKEvans/Processed/Recruitment/RecruitData.csv", row.names = F)
+write.csv(rData, "./Processed/Recruitment/RecruitData.csv", row.names = F)
 
-save(r.sizemean, r.sizesd, file = "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Code/IPM/recrstats.rda")
+save(r.sizemean, r.sizesd, file = "./Code/IPM/recrstats.rda")
 
