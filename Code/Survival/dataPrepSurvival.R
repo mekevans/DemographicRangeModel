@@ -3,7 +3,7 @@ library(raster)
 library(ggplot2)
 library(wesanderson)
 
-data.path <- "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/FIAdata/"
+data.path <- "./FIAdata/"
 
 # Read data and subset PIED
 grData <- read.csv(paste(data.path,"TREE_COMBINED.csv",sep=''), header = T, stringsAsFactors = F)
@@ -80,7 +80,7 @@ grSpat <- SpatialPointsDataFrame(coords = cbind(grData_remeas$LON, grData_remeas
 ### should be done once for both the survival and growth data, and dead trees subsetted out (one line) for growth analysis
 
 # Read in PRISM climate stacks
-clim.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/"
+clim.path <-  "./ClimateData/"
 ppt <- stack(paste(clim.path,"pptStack.tif",sep=''))
 tmp <- stack(paste(clim.path,"tmpStack.tif",sep=''))
 vpd <- stack(paste(clim.path,"vpdStack.tif",sep=''))
@@ -101,7 +101,7 @@ vpd.extr <- vpd.extr[, 1:430]
 ppt.extr <- as.data.frame(ppt.extr)
 tmp.extr <- as.data.frame(tmp.extr)
 vpd.extr <- as.data.frame(vpd.extr)
-PRISM.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/PRISM/"
+PRISM.path <-  "./ClimateData/PRISM/"
 pptFiles <- list.files(path = PRISM.path, pattern = glob2rx("*ppt*.bil"), full.names = TRUE)
 pptFiles <- pptFiles[1:430] # (hack to deal with CRS incompatibility, vpd .bil file Nov, 2016)
 #tmpFiles <- list.files(path = PRISM.path, pattern = glob2rx("*tmean*.bil"), full.names = TRUE)
@@ -115,7 +115,7 @@ colnames(tmp.extr) <- paste0("tmp_", colNames)
 colnames(vpd.extr) <- paste0("vpd_", colNames)
 
 # Export climate data
-surv.path <- "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Processed/Survival/"
+surv.path <- "./Processed/Survival/"
 write.csv(ppt.extr, paste0(surv.path, "ppt_extr.csv"), row.names = F)
 write.csv(tmp.extr, paste0(surv.path, "tmp_extr.csv"), row.names = F)
 write.csv(vpd.extr, paste0(surv.path, "vpd_extr.csv"), row.names = F)
@@ -313,47 +313,153 @@ grData_remeas$VPD_yr_norm <- rowMeans(vpd.norm.extr[, c(1:12)])
 # could not get this to vectorize successfully
 # close is:
 # grData_remeas$PPT_c <- rowMeans(ppt.extr[, paste0("PPT_c_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$PPT_c <- rowMeans(ppt.extr[, paste0("PPT_c_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$T_c <- rowMeans(tmp.extr[, paste0("T_c_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$VPD_c <- rowMeans(vpd.extr[, paste0("VPD_c_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$PPTex_c <- apply(ppt.extr[, paste0("PPT_c_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))], 1, min)
-grData_remeas$Tex_c <- apply(tmp.extr[, paste0("T_c_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))], 1, max)
-grData_remeas$VPDex_c <- apply(vpd.extr[, paste0("VPD_c_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))], 1, max)
+#An alternative, but I don't know if it's better/more efficient than a loop
+#Pull out census years for each record 
+#(only need to do this once)
+census_years<-mapply(':',(grData_remeas[, "PREV_MEASYEAR"]+1),(grData_remeas[, "MEASYEAR"]))
 
-grData_remeas$PPT_pf <- rowMeans(ppt.extr[, paste0("PPT_pf_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$T_pf <- rowMeans(tmp.extr[, paste0("T_pf_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$VPD_pf <- rowMeans(vpd.extr[, paste0("VPD_pf_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$PPTex_pf <- apply(ppt.extr[, paste0("PPT_pf_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))], 1, min)
-grData_remeas$Tex_pf <- apply(tmp.extr[, paste0("T_pf_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))], 1, max)
-grData_remeas$VPDex_pf <- apply(vpd.extr[, paste0("VPD_pf_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))], 1, max)
+#(need to do this for each climate variable)
 
-grData_remeas$PPT_fs <- rowMeans(ppt.extr[, paste0("PPT_fs_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$T_fs <- rowMeans(tmp.extr[, paste0("T_fs_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$VPD_fs <- rowMeans(vpd.extr[, paste0("VPD_fs_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$PPTex_fs <- apply(ppt.extr[, paste0("PPT_fs_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))], 1, min)
-grData_remeas$Tex_fs <- apply(tmp.extr[, paste0("T_fs_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))], 1, max)
-grData_remeas$VPDex_fs <- apply(vpd.extr[, paste0("VPD_fs_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))], 1, max)
+#Get column names for climate data in years of census
+census_col_names<-lapply(census_years, function(x) paste0("PPT_c_", x))
+#Get column indices, convert list to matrix, and add to .extr dataframe
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(ppt.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+ppt.extr<-cbind(ppt.extr,mat)
+#Same as previous line, but requires more lines of code:
+#n.obs <- sapply(census_matrix, length)
+#seq.max <- seq_len(max(n.obs))
+#mat <- t(sapply(census_matrix, "[", i = seq.max))
 
-grData_remeas$PPT_wd <- rowMeans(ppt.extr[, paste0("PPT_wd_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$T_wd <- rowMeans(tmp.extr[, paste0("T_wd_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$VPD_wd <- rowMeans(vpd.extr[, paste0("VPD_wd_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$PPTex_wd <- apply(ppt.extr[, paste0("PPT_wd_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))], 1, min)
-grData_remeas$Tex_wd <- apply(tmp.extr[, paste0("T_wd_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))], 1, max)
-grData_remeas$VPDex_wd <- apply(vpd.extr[, paste0("VPD_wd_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))], 1, max)
+#Repeat for other variables
+census_col_names<-lapply(census_years, function(x) paste0("T_c_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(tmp.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+tmp.extr<-cbind(tmp.extr,mat)
 
-grData_remeas$PPT_m <- rowMeans(ppt.extr[, paste0("PPT_m_", grData_remeas[i, "PREV_MEASYEAR"]:(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$T_m <- rowMeans(tmp.extr[, paste0("T_m_", grData_remeas[i, "PREV_MEASYEAR"]:(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$VPD_m <- rowMeans(vpd.extr[, paste0("VPD_m_", grData_remeas[i, "PREV_MEASYEAR"]:(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$PPTex_m <- apply(ppt.extr[, paste0("PPT_m_", grData_remeas[i, "PREV_MEASYEAR"]:(grData_remeas[i, "MEASYEAR"]))], 1, min)
-grData_remeas$Tex_m <- apply(tmp.extr[, paste0("T_m_", grData_remeas[i, "PREV_MEASYEAR"]:(grData_remeas[i, "MEASYEAR"]))], 1, max)
-grData_remeas$VPDex_m <- apply(vpd.extr[, paste0("VPD_m_", grData_remeas[i, "PREV_MEASYEAR"]:(grData_remeas[i, "MEASYEAR"]))], 1, max)
+census_col_names<-lapply(census_years, function(x) paste0("VPD_c_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(vpd.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+vpd.extr<-cbind(vpd.extr,mat)
+rm(census_col_names,census_col_indices)
 
-grData_remeas$PPT_yr <- rowMeans(ppt.extr[, paste0("PPT_yr_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$T_yr <- rowMeans(tmp.extr[, paste0("T_yr_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$VPD_yr <- rowMeans(vpd.extr[, paste0("VPD_yr_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-grData_remeas$PPTex_yr <- apply(ppt.extr[, paste0("PPT_yr_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))], 1, min)
-grData_remeas$Tex_yr <- apply(tmp.extr[, paste0("T_yr_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))], 1, max)
-grData_remeas$VPDex_yr <- apply(vpd.extr[, paste0("VPD_yr_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))], 1, max)
+#Calculate variables
+grData_remeas$PPT_c <- apply(ppt.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$T_c <- apply(tmp.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$VPD_c <- apply(vpd.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$PPTex_c <- apply(ppt.extr,1,function(x) {n=length(x); min(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$Tex_c <- apply(tmp.extr,1,function(x) {n=length(x); max(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$VPDex_c <- apply(vpd.extr,1,function(x) {n=length(x); max(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+
+census_col_names<-lapply(census_years, function(x) paste0("PPT_pf_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(ppt.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+ppt.extr[,"1":"15"]<-mat
+
+census_col_names<-lapply(census_years, function(x) paste0("T_pf_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(tmp.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+tmp.extr[,"1":"15"]<-mat
+
+census_col_names<-lapply(census_years, function(x) paste0("VPD_pf_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(ppt.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+vpd.extr[,"1":"15"]<-mat
+
+grData_remeas$PPT_pf <- apply(ppt.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$T_pf <- apply(tmp.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$VPD_pf <- apply(vpd.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$PPTex_pf <- apply(ppt.extr,1,function(x) {n=length(x); min(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$Tex_pf <- apply(tmp.extr,1,function(x) {n=length(x); max(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$VPDex_pf <- apply(vpd.extr,1,function(x) {n=length(x); max(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+
+census_col_names<-lapply(census_years, function(x) paste0("PPT_fs_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(ppt.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+ppt.extr[,"1":"15"]<-mat
+
+census_col_names<-lapply(census_years, function(x) paste0("T_fs_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(tmp.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+tmp.extr[,"1":"15"]<-mat
+
+census_col_names<-lapply(census_years, function(x) paste0("VPD_fs_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(vpd.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+vpd.extr[,"1":"15"]<-mat
+
+grData_remeas$PPT_fs <- apply(ppt.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$T_fs <- apply(tmp.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$VPD_fs <- apply(vpd.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$PPTex_fs <- apply(ppt.extr,1,function(x) {n=length(x); min(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$Tex_fs <- apply(tmp.extr,1,function(x) {n=length(x); max(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$VPDex_fs <- apply(vpd.extr,1,function(x) {n=length(x); max(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+
+census_col_names<-lapply(census_years, function(x) paste0("PPT_wd_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(ppt.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+ppt.extr[,"1":"15"]<-mat
+
+census_col_names<-lapply(census_years, function(x) paste0("T_wd_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(tmp.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+tmp.extr[,"1":"15"]<-mat
+
+census_col_names<-lapply(census_years, function(x) paste0("VPD_wd_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(vpd.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+vpd.extr[,"1":"15"]<-mat
+
+grData_remeas$PPT_wd <- apply(ppt.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$T_wd <- apply(tmp.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$VPD_wd <- apply(vpd.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$PPTex_wd <- apply(ppt.extr,1,function(x) {n=length(x); min(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$Tex_wd <- apply(tmp.extr,1,function(x) {n=length(x); max(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$VPDex_wd <- apply(vpd.extr,1,function(x) {n=length(x); max(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+
+census_col_names<-lapply(census_years, function(x) paste0("PPT_m_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(ppt.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+ppt.extr[,"1":"15"]<-mat
+
+census_col_names<-lapply(census_years, function(x) paste0("T_m_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(tmp.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+tmp.extr[,"1":"15"]<-mat
+
+census_col_names<-lapply(census_years, function(x) paste0("VPD_m_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(vpd.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+vpd.extr[,"1":"15"]<-mat
+
+grData_remeas$PPT_m <- apply(ppt.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$T_m <- apply(tmp.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$VPD_m <- apply(vpd.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$PPTex_m <- apply(ppt.extr,1,function(x) {n=length(x); min(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$Tex_m <- apply(tmp.extr,1,function(x) {n=length(x); max(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$VPDex_m <- apply(vpd.extr,1,function(x) {n=length(x); max(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+
+census_col_names<-lapply(census_years, function(x) paste0("PPT_yr_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(ppt.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+ppt.extr[,"1":"15"]<-mat
+
+census_col_names<-lapply(census_years, function(x) paste0("T_yr_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(tmp.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+tmp.extr[,"1":"15"]<-mat
+
+census_col_names<-lapply(census_years, function(x) paste0("VPD_yr_", x))
+census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(vpd.extr)))
+mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
+vpd.extr[,"1":"15"]<-mat
+
+grData_remeas$PPT_yr <- apply(ppt.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$T_yr <- apply(tmp.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$VPD_yr <- apply(vpd.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$PPTex_yr <- apply(ppt.extr,1,function(x) {n=length(x); min(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$Tex_yr <- apply(tmp.extr,1,function(x) {n=length(x); max(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
+grData_remeas$VPDex_yr <- apply(vpd.extr,1,function(x) {n=length(x); max(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
 
 # create and add anomalies to growth data frame
 # note that precip is lognormal (R-skewed), but precip anomalies are left-skewed (heavy tail in the negative)...because mean of a lognormal is right of center
@@ -637,7 +743,7 @@ output <- grData_remeas[, c("CN", "PREV_TRE_CN", "PLT_CN", "PREV_PLT_CN", "CONDI
                             "Tmean_drought", "T_50mo_norm", "T_dr_anom", "cum_T_anom",
                             "PPT_pf_dr", "PPT_c_dr", "PPT_fs_dr", "PPT_m_dr",
                             "PPT_pf_dr_anom", "PPT_c_dr_anom", "PPT_fs_dr_anom", "PPT_m_dr_anom")]
-write.csv(output, "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Processed/Survival/SurvivalData.csv", row.names = F)
+write.csv(output, "./Processed/Survival/SurvivalData.csv", row.names = F)
 
 
 #### OLD CODE (FOR LOOP LOOK-UPS)
