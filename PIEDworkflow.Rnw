@@ -207,31 +207,22 @@ write.csv(plots_combined, "./FIAdata/PLOT_COMBINED.csv")
 		\end{threeparttable}}
 	\end{table}
 
-Selecting only data we want from FIA data (PIED, remeasured, etc.) ??Is there a reason this wasn't done in the census processing step?
+The first step in this process was to read in the FIA data (\emph{TREE\_COMBINED.csv}) and select the data records that were suitable for our study. We wanted data for only \emph{Pinus edulis}, trees that lived or died, trees that had been measured in at least two censuses, and trees that had a previous above-ground dry biomass (AGB) measure. We then used the remaining records to calculate the change in diameter and basal area increments for each tree. Next we imported the plot-level FIA data (\emph{PLOT\_COMBINED.csv}), added the location and census information to the demographic dataframe, and calculated the census interval for each tree. Next we imported the condition data (\emph{COND\_COMBINED.csv}) to add the basal area from each plot to the demographic dataframe. Finally, we made the lat/long to make data spatial to facilitate combining the demographic data with the spatial climate data.
 
-Calculate basal area increment
+The recruitment data prep included a few addition steps. The first was to code the plots based on PIED presence/absense and remove plots with no tree records. Then we calculated the number of recruits in each plot, using two different definitions of recruits: ??. We also created offset variables that might affect recruitment rates. These offset variables were:
+\begin{enumerate}
+\item{Number adult trees >1" DRC, PIED and non-PIED species}
+\item{Number adult trees >4" DRC, PIED and non-PIED species}
+\item{Number adult trees >8" DRC, PIED and non-PIED species}
+\item{Cumulative diameter of adult trees >1" DRC, PIED and non-PIED species}
+\item{Basal area of adult trees >1" DRC; PIED, non-PIED species, juniper, and PIPO}
+\item{Above-ground dry biomass of adult trees >1" DRC, PIED and non-PIED species}
+\end{enumerate}
 
-Combine with plot data to get location info and census year info
+The next step is to bring in the climate data and extract the climate data for each of our data points. This only needs to be done once (so this section should probably be moved to a new script). Once the data are imported and the data for our points are extracted, the data are filtered to remove some 2016 dates because of an incompatibility issue with the PRISM. Hopefully this will not be an issue when the new PRISM data are imported. The data are then reformatted, given column names using the \emph{.bil} PRISM files and exported for future use.
 
-Calculate census interval
+Once we have created the data files with the spatial climate data, we import those files and calculate the spatial climate variables that will be used in the analysis and added them to the climate data frames. The variables we tested were:
 
-Combine with condition data to get tree-specific basal area in plot
-
-Use lat/long to make data spatial
-
-Bring in climate data
-
-Extract climate data for each data point based on spatial data
-
-Filter dates because of incompatibility in PRISM data
-
-Reformat to dataframes, add column names (using .bil PRISM files), and export spatial climate data
-
-Import spatial climate data
-
-Calculate seasonal climate variables:
-
-Variables:
 \begin{enumerate}
 \item{Cumulative precipitation}
 \item{Mean temperature}
@@ -240,7 +231,7 @@ Variables:
 \item{VPD extreme (maximum)}
 \end{enumerate}
 
-Seasons:
+These variables were calculated for six different seasons:
 \begin{enumerate}
 \item{Cool season (previous November -- March)}
 \item{Previous fall (previous September -- previous October)}
@@ -250,32 +241,30 @@ Seasons:
 \item{Water year (previous September-August)}
 \end{enumerate}
 
-Import PRISM normals, extract, and change column names
+For the recruitment data, the seasonal variables were calculated for 15-, 20-, and 25-year time lags.
 
-Calculate seasonal (see above) climate normals and add to dataframe 
+Next we added climate normals to the data frame. This was done by importing the PRISM normals files, extracting the data for our points, and giving them suitable climate names. The climate normals were calculated for the seasons listed above and added to the demography dataframe. 
 
-Add seasonal climate variables specific to each tree's census interval
+The FIA plots had different census intervals, so for each record, we calculated the seasonal climate variables specific to each tree's census interval. These were also added to the demography dataframe. These seasonal variable were used along with the climate normals to calculate climate anomalies for each census period.
 
-Calculate anomalies and add to dataframe
+The recruitment data prep included a final step of calculating the size distribution of recruits
 
-Create and export demography + climate dataframe
+We then selected the data we wanted from the demography dataframe and exported the file. For the growth, survival, and recruitment data, these files were \emph{GrowthData.csv}, \emph{SurvivalData.csv}, and \emph{Recruitment.csv}, respectively.
 
-Plot climate--vital rate relationships
+These data files could then be imported to create plot of the climate -- vital rate relationships:
 
 \section{Questions}
-\subsection{Lines 299-340 in \emph{dataPrepGrowth.R}}
-This is the section where we add the seasonal climate variables (specific to each tree's census interval) to growth data frame. Here is an example of the code:
+\subsection{\emph{dataPrepRecruitment.R}, lines 32 and 45-53}
+What exactly is CONDID, and what needs to be done with it?
+\subsection{\emph{dataPrepRecruitment.R}, lines 70-88}
+What were the two definitions of recruits?
 
-<<eval=FALSE,keep.source=FALSE>>=
-grData_remeas$PPT_c <- rowMeans(ppt.extr[, paste0("PPT_c_", (grData_remeas[, "PREV_MEASYEAR"]+1):(grData_remeas[, "MEASYEAR"]))]) #Should there be an "i" in the row indices for grData_remeas? There is everywhere else.
-grData_remeas$T_c <- rowMeans(tmp.extr[, paste0("T_c_", (grData_remeas[i, "PREV_MEASYEAR"]+1):(grData_remeas[i, "MEASYEAR"]))])
-
-@
-
-I have two questions about this section:
+\section{To-do}
 \begin{enumerate}
-\item{There are i's in the indices for grData\_remeas in every line except for the precipitation calculations. Should i's be added to the precipation calculations too?}
-\item{It looks like this section should be inside a for loop to calculate different census intervals for each record. Currently it is calculating the same interval for all the records based on the value of i leftover from the previous for loop. There is also a note in the corresponding section of the \emph{dataPrepSurvival.R} file saying, ``could not get this to vectorize successfully," which also makes it sound like it should be in a loop, rather than the attempted vectorization that seems to be happening. Is this true?}
+\item{Download new PRISM climate data}
+\item{Move code for extracted climate data (\emph{\**\_extr.csv} files) to its own script}
+\item{Split rData by CONDID}
+\item{In recruitment offset variable calculation, add BA.PIED of trees DIA > 4.0, i.e., reproductive}
 \end{enumerate}
 
 \end{document}
