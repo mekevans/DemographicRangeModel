@@ -27,7 +27,9 @@ for (i in tmpFiles) {
 vpdStack <- stack()
 for (i in 1:length(vpdmaxFiles)) {
   print(i)
-  vpdStack <- stack(vpdStack, raster(vpdmaxFiles[i]))
+  rast<-raster(vpdmaxFiles[i])
+  if(i == 431 | i == 432){crs(rast)<-crs(raster(vpdmaxFiles[1]))}
+  vpdStack <- stack(vpdStack, rast)
 }
 
 # Crop to extent of FIA Pinus edulis occurrences

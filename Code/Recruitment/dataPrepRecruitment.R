@@ -182,9 +182,9 @@ vpd.extr <- raster::extract(vpd, Points)
 # Remove data after Oct, 2016 (because of different CRS Nov, 2016 vpdmax .bil)
 # note that the work-around for this problem is to assign the CRS of another layer to Nov and Dec of 2016
 # crs(vpdNov2016_raster) <- crs(vpdOct2016_raster)
-ppt.extr <- ppt.extr[, 1:430] 
-tmp.extr <- tmp.extr[, 1:430]
-vpd.extr <- vpd.extr[, 1:430]
+#ppt.extr <- ppt.extr[, 1:430] 
+#tmp.extr <- tmp.extr[, 1:430]
+#vpd.extr <- vpd.extr[, 1:430]
 
 # Add sensible column names for raster::extracted climate data
 ppt.extr <- as.data.frame(ppt.extr)
@@ -193,7 +193,7 @@ vpd.extr <- as.data.frame(vpd.extr)
 #PRISM.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/PRISM/"
 PRISM.path <- "./ClimateData/PRISM"
 pptFiles <- list.files(path = PRISM.path, pattern = glob2rx("*ppt*.bil"), full.names = TRUE)
-pptFiles <- pptFiles[1:430] # (hack to deal with CRS incompatibility, vpd .bil file Nov, 2016)
+#pptFiles <- pptFiles[1:430] # (hack to deal with CRS incompatibility, vpd .bil file Nov, 2016)
 #tmpFiles <- list.files(path = climateDir, pattern = glob2rx("*tmean*.bil"), full.names = TRUE)
 #vpdFiles <- list.files(path = climateDir, pattern = glob2rx("*vpdmin*.bil"), full.names = TRUE)
 colNames <- lapply(strsplit(pptFiles, "4kmM._"), function (x) x[2])
@@ -220,7 +220,7 @@ vpd.extr <- read.csv(paste(recruit.path,"vpd_extr.csv",sep=''), header = T)
 
 
 # Calculate seasonal climate for each year, 1982 through 2016
-for (i in 1982:2016) {
+for (i in 1982:2017) {
   print(i)
   # cool season = pNov - Mar
   ppt.extr[, paste0("PPT_c_", i)] <- rowSums(ppt.extr[, c(paste0("ppt_", i-1, "11"), 
@@ -462,7 +462,7 @@ for (j in lags) {
 rData$PPT_c_anom <- rData$PPT_c_window_20 - rData$PPT_c_norm # negative
 rData$T_c_anom <- rData$T_c_window_20 - rData$T_c_norm # positive
 rData$VPD_c_anom <- rData$VPD_c_window_20 - rData$VPD_c_norm # positive
-rData$PPTex_c_anom <- rData$PPTex_c_window_20 - rData$PPT_c_norm 
+rData$PPTex_c_anom <- rData$PPTex_c_window_20 - rData$PPT_c_norm  # PPTex_c_window_20 does not exist
 rData$Tex_c_anom <- rData$Tex_c_window_20 - rData$T_c_norm
 rData$VPDex_c_anom <- rData$VPDex_c_window_20 - rData$VPD_c_norm
 
@@ -499,8 +499,8 @@ rData$PPT_yr_anom <- rData$PPT_yr_window_20 - rData$PPT_yr_norm # negative
 rData$T_yr_anom <- rData$T_yr_window_20 - rData$T_yr_norm
 rData$VPD_yr_anom <- rData$VPD_yr_window_20 - rData$VPD_yr_norm
 #rData$PPTex_yr_anom <- rData$PPTex_yr_window_20 - rData$PPT_yr_norm
-rData$Tex_yr_anom <- rData$Tex_yr_window_20 - rData$T_yr_norm
-rData$VPDex_yr_anom <- rData$VPDex_yr_window_20 - rData$VPD_yr_norm
+rData$Tex_yr_anom <- rData$Tex_yr_window_20 - rData$T_yr_norm  # Tex_yr_window_20 does not exist
+rData$VPDex_yr_anom <- rData$VPDex_yr_window_20 - rData$VPD_yr_norm  # VPDex_yr_window_20 does not exist
 
 
 ### last thing that needs to be done for recruitment subkernel

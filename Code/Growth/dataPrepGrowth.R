@@ -59,7 +59,7 @@ grData_remeas[is.nan(grData_remeas$BALIVE), "BALIVE"] <- NA
 grData_remeas <- subset(grData_remeas, !is.na(BALIVE))
 
 #JUST UNTIL NEW PRISM DATA ARE ADDED - FILTER OUT 2017 DATA
-grData_remeas<-subset(grData_remeas,grData_remeas$MEASYEAR<2017)
+#grData_remeas<-subset(grData_remeas,grData_remeas$MEASYEAR<2017)
 
 # Make lat, lon data spatial
 grSpat <- SpatialPointsDataFrame(coords = cbind(grData_remeas$LON, grData_remeas$LAT), 
@@ -83,9 +83,9 @@ vpd.extr <- raster::extract(vpd, grSpat)
 # Remove data after Oct, 2016 (because of different CRS Nov, 2016 vpdmax .bil)
 # note that the work-around for this problem is to assign the CRS of another layer to Nov and Dec of 2016
 # crs(vpdNov2016_raster) <- crs(vpdOct2016_raster)
-ppt.extr <- ppt.extr[, 1:430] 
-tmp.extr <- tmp.extr[, 1:430]
-vpd.extr <- vpd.extr[, 1:430]
+#ppt.extr <- ppt.extr[, 1:430] 
+#tmp.extr <- tmp.extr[, 1:430]
+#vpd.extr <- vpd.extr[, 1:430]
 
 # Add sensible column names for raster::extracted climate data
 ppt.extr <- as.data.frame(ppt.extr)
@@ -93,7 +93,7 @@ tmp.extr <- as.data.frame(tmp.extr)
 vpd.extr <- as.data.frame(vpd.extr)
 PRISM.path <-  "./ClimateData/PRISM/"
 pptFiles <- list.files(path = PRISM.path, pattern = glob2rx("*ppt*.bil"), full.names = TRUE)
-pptFiles <- pptFiles[1:430] # (hack to deal with CRS incompatibility, vpd .bil file Nov, 2016)
+#pptFiles <- pptFiles[1:430] # (hack to deal with CRS incompatibility, vpd .bil file Nov, 2016)
 #tmpFiles <- list.files(path = PRISM.path, pattern = glob2rx("*tmean*.bil"), full.names = TRUE)
 #vpdFiles <- list.files(path = PRISM.path, pattern = glob2rx("*vpdmin*.bil"), full.names = TRUE)
 colNames <- lapply(strsplit(pptFiles, "4kmM._"), function (x) x[2])
@@ -117,7 +117,7 @@ tmp.extr <- read.csv(paste(processed.path,"tmp_extr.csv",sep=''), header = T)
 vpd.extr <- read.csv(paste(processed.path,"vpd_extr.csv",sep=''), header = T)
 
 # Calculate seasonal climate variables for each year
-for (i in 1982:2016) {
+for (i in 1982:2017) {
   print(i)
   # cool season = pNov - Mar
   ppt.extr[, paste0("PPT_c_", i)] <- rowSums(ppt.extr[, c(paste0("ppt_", i-1, "11"), 
@@ -525,6 +525,7 @@ write.csv(output, "./Processed/Growth/GrowthData.csv", row.names = F)
 
 
 ##### plotting climate and growth data
+grData_remeas<-read.csv("./Processed/Growth/GrowthData.csv")
 plot(grData_remeas$LAT, grData_remeas$PPT_m, xlab = "latitude", ylab = "precipitation Jul-Aug")
 
 # make figure showing average climatogram

@@ -251,11 +251,20 @@ The recruitment data prep included a final step of calculating the size distribu
 
 We then selected the data we wanted from the demography dataframe and exported the file. For the growth, survival, and recruitment data, these files were \emph{GrowthData.csv}, \emph{SurvivalData.csv}, and \emph{Recruitment.csv}, respectively.
 
-These data files could then be imported to create plot of the climate -- vital rate relationships:
+\subsection{Plots}
+The growth script also includes the following plots (Would want to create a script to create these plots that doesn't involve running the whole data prep scripts if we want to include the plots here):
+
+Latitude vs precipitation
+
+Temperature vs precipitation
+
+Basal area at time t vs basal area at time t (as a check that the values are correct, I assume)
+
+Basal area at time t vs basal area at time t+1
 
 \section{Questions}
 \subsection{\emph{dataPrepRecruitment.R}, lines 32 and 45-53}
-What exactly is CONDID, and what needs to be done with it?
+What exactly is CONDID, and what needs to be done with it? Okay, don't worry about this for now.
 \subsection{\emph{dataPrepRecruitment.R}, lines 70-88}
 What were the two definitions of recruits?
 
@@ -263,8 +272,10 @@ What were the two definitions of recruits?
 \begin{enumerate}
 \item{Download new PRISM climate data}
 \item{Move code for extracted climate data (\emph{\**\_extr.csv} files) to its own script}
+\item{Divide up other scripts where it makes sense}
 \item{Split rData by CONDID}
 \item{In recruitment offset variable calculation, add BA.PIED of trees DIA > 4.0, i.e., reproductive}
+\item{Create make file}
 \end{enumerate}
 
 \end{document}
