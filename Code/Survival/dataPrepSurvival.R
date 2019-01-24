@@ -1,5 +1,6 @@
 library(sp)
 library(raster)
+library(rdgal)
 library(ggplot2)
 library(wesanderson)
 
@@ -399,17 +400,17 @@ grData_remeas$VPDex_c <- apply(vpd.extr,1,function(x) {n=length(x); max(x[c(x[n-
 census_col_names<-lapply(census_years, function(x) paste0("PPT_pf_", x))
 census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(ppt.extr)))
 mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
-ppt.extr[,"1":"15"]<-mat
+ppt.extr[,(length(ppt.extr)-14):length(ppt.extr)]<-mat
 
 census_col_names<-lapply(census_years, function(x) paste0("T_pf_", x))
 census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(tmp.extr)))
 mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
-tmp.extr[,"1":"15"]<-mat
+tmp.extr[,(length(ppt.extr)-14):length(ppt.extr)]<-mat
 
 census_col_names<-lapply(census_years, function(x) paste0("VPD_pf_", x))
 census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(ppt.extr)))
 mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
-vpd.extr[,"1":"15"]<-mat
+vpd.extr[,(length(ppt.extr)-14):length(ppt.extr)]<-mat
 rm(census_col_names,census_col_indices)
 
 grData_remeas$PPT_pf <- apply(ppt.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
@@ -422,17 +423,17 @@ grData_remeas$VPDex_pf <- apply(vpd.extr,1,function(x) {n=length(x); max(x[c(x[n
 census_col_names<-lapply(census_years, function(x) paste0("PPT_fs_", x))
 census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(ppt.extr)))
 mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
-ppt.extr[,"1":"15"]<-mat
+ppt.extr[,(length(ppt.extr)-14):length(ppt.extr)]<-mat
 
 census_col_names<-lapply(census_years, function(x) paste0("T_fs_", x))
 census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(tmp.extr)))
 mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
-tmp.extr[,"1":"15"]<-mat
+tmp.extr[,(length(ppt.extr)-14):length(ppt.extr)]<-mat
 
 census_col_names<-lapply(census_years, function(x) paste0("VPD_fs_", x))
 census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(vpd.extr)))
 mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
-vpd.extr[,"1":"15"]<-mat
+vpd.extr[,(length(ppt.extr)-14):length(ppt.extr)]<-mat
 rm(census_col_names,census_col_indices)
 
 grData_remeas$PPT_fs <- apply(ppt.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
@@ -445,17 +446,17 @@ grData_remeas$VPDex_fs <- apply(vpd.extr,1,function(x) {n=length(x); max(x[c(x[n
 census_col_names<-lapply(census_years, function(x) paste0("PPT_wd_", x))
 census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(ppt.extr)))
 mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
-ppt.extr[,"1":"15"]<-mat
+ppt.extr[,(length(ppt.extr)-14):length(ppt.extr)]<-mat
 
 census_col_names<-lapply(census_years, function(x) paste0("T_wd_", x))
 census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(tmp.extr)))
 mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
-tmp.extr[,"1":"15"]<-mat
+tmp.extr[,(length(ppt.extr)-14):length(ppt.extr)]<-mat
 
 census_col_names<-lapply(census_years, function(x) paste0("VPD_wd_", x))
 census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(vpd.extr)))
 mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
-vpd.extr[,"1":"15"]<-mat
+vpd.extr[,(length(ppt.extr)-14):length(ppt.extr)]<-mat
 rm(census_col_names,census_col_indices)
 
 grData_remeas$PPT_wd <- apply(ppt.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
@@ -468,17 +469,17 @@ grData_remeas$VPDex_wd <- apply(vpd.extr,1,function(x) {n=length(x); max(x[c(x[n
 census_col_names<-lapply(census_years, function(x) paste0("PPT_m_", x))
 census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(ppt.extr)))
 mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
-ppt.extr[,"1":"15"]<-mat
+ppt.extr[,(length(ppt.extr)-14):length(ppt.extr)]<-mat
 
 census_col_names<-lapply(census_years, function(x) paste0("T_m_", x))
 census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(tmp.extr)))
 mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
-tmp.extr[,"1":"15"]<-mat
+tmp.extr[,(length(ppt.extr)-14):length(ppt.extr)]<-mat
 
 census_col_names<-lapply(census_years, function(x) paste0("VPD_m_", x))
 census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(vpd.extr)))
 mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
-vpd.extr[,"1":"15"]<-mat
+vpd.extr[,(length(ppt.extr)-14):length(ppt.extr)]<-mat
 rm(census_col_names,census_col_indices)
 
 grData_remeas$PPT_m <- apply(ppt.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
@@ -491,17 +492,17 @@ grData_remeas$VPDex_m <- apply(vpd.extr,1,function(x) {n=length(x); max(x[c(x[n-
 census_col_names<-lapply(census_years, function(x) paste0("PPT_yr_", x))
 census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(ppt.extr)))
 mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
-ppt.extr[,"1":"15"]<-mat
+ppt.extr[,(length(ppt.extr)-14):length(ppt.extr)]<-mat
 
 census_col_names<-lapply(census_years, function(x) paste0("T_yr_", x))
 census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(tmp.extr)))
 mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
-tmp.extr[,"1":"15"]<-mat
+tmp.extr[,(length(ppt.extr)-14):length(ppt.extr)]<-mat
 
 census_col_names<-lapply(census_years, function(x) paste0("VPD_yr_", x))
 census_col_indices<-lapply(census_col_names,function(x) match(x,colnames(vpd.extr)))
 mat<-t(sapply(census_col_indices, '[', seq(max(sapply(census_col_indices, length)))))
-vpd.extr[,"1":"15"]<-mat
+vpd.extr[,(length(ppt.extr)-14):length(ppt.extr)]<-mat
 rm(census_col_names,census_col_indices)
 
 grData_remeas$PPT_yr <- apply(ppt.extr,1,function(x) {n=length(x); mean(x[c(x[n-14],x[n-13],x[n-12],x[n-11],x[n-10],x[n-9],x[n-8],x[n-7],x[n-6],x[n-5],x[n-4],x[n-3],x[n-2],x[n-1],x[n])],na.rm=T)})
