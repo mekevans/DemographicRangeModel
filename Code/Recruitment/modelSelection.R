@@ -4,7 +4,7 @@ library(coefplot)
 library(effects)
 
 # Read and process data
-rdata <- read.csv("C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Processed/Recruitment/RecruitData.csv", header = T, stringsAsFactors = F)
+rdata <- read.csv("./Processed/Recruitment/RecruitData.csv", header = T, stringsAsFactors = F)
 
 #rdata <- read.csv("C:/Users/mekevans/Documents/Cdrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PIED_IPM/MEKEvans/Processed/Recruitment/RecruitData.csv", header = T, stringsAsFactors = F)
 
@@ -75,8 +75,10 @@ rmodel_zip <- glmmTMB(recruits1 ~ 1
                       data = rdata.scaled, 
                       family = "poisson")
 summary(rmodel_zip) # AIC = 4346.1
+#ELS update: AIC = 4979.1
 res = simulateResiduals(rmodel_zip)
 plot(res, quantreg = T) # ns: p = 0.09159
+#ELs update: p = 0.160998
 # must read in Effect.glmmTMB function
 # see https://github.com/glmmTMB/glmmTMB/blob/7ba86a972ddb13226a8de9eab0e113e6156fccf4/glmmTMB/R/effects.R
 plot(Effect.glmmTMB("BALIVE", rmodel_zip))
@@ -99,8 +101,10 @@ rmodel_zipcumDIA <- glmmTMB(recruits1 ~ 1
                              data = rdata.scaled, 
                              family = "poisson")
 summary(rmodel_zipcumDIA) # AIC = 4573.6
+#ELS update: AIC = 5250.3
 res = simulateResiduals(rmodel_zipcumDIA)
 plot(res, quantreg = T) # significant deviation: p = 0.02349
+#ELS update: p = 0.01968
 
 rmodel_zip_PIEDBA <- glmmTMB(recruits1 ~ 1
                             + BALIVE + I(BALIVE^2)
@@ -115,8 +119,10 @@ rmodel_zip_PIEDBA <- glmmTMB(recruits1 ~ 1
                             data = rdata.scaled, 
                             family = "poisson")
 summary(rmodel_zip_PIEDBA) # AIC = 4893.0
+#ELS update: AIC = 5626.9
 res = simulateResiduals(rmodel_zip_PIEDBA)
 plot(res, quantreg = T) # significant deviation: p = 0.00022
+#ELS update: p = 0.00028
 
 # instead of climate normals
 # best guesses as to time interval relevant for actual recruitment
@@ -133,9 +139,10 @@ rmodel_zip25 <- glmmTMB(recruits1 ~ 1
                            data = rdata.scaled, 
                            family = "poisson")
 summary(rmodel_zip25) # AIC = 4343.9
+#ELS update: 4979.3
 res = simulateResiduals(rmodel_zip25)
 plot(res, quantreg = T) # deviation of the residuals is NOT significant (p = 0.08891)
-
+#ELS update: p = 0.16122
 
 # time frame for Poisson = 20 yrs
 rmodel_zip20 <- glmmTMB(recruits1 ~ 1
@@ -151,8 +158,10 @@ rmodel_zip20 <- glmmTMB(recruits1 ~ 1
                           data = rdata.scaled, 
                           family = "poisson")
 summary(rmodel_zip20) # AIC = 4342.1
+#ELS update: 4978.2
 res = simulateResiduals(rmodel_zip20)
 plot(res, quantreg = T) # deviation is NS: p = 0.09852
+#ELS update: p = 0.17992
 
 # 15 yrs (Poisson)
 rmodel_zip15 <- glmmTMB(recruits1 ~ 1
@@ -168,11 +177,13 @@ rmodel_zip15 <- glmmTMB(recruits1 ~ 1
                         data = rdata.scaled, 
                         family = "poisson")
 summary(rmodel_zip15) # AIC = 4344.8
+#ELS update: 4979.9
 res = simulateResiduals(rmodel_zip15)
 plot(res, quantreg = T) # deviation is NS: p = 0.05795
-
+#ELS update: p = 0.16915
 
 # use PIPO basal area, AIC = 5615.8
+#ELS update: 5171.0
 rmodel_zipoiss <- glmmTMB(recruits1 ~ 1
                           + BA.PIPO + I(BA.PIPO^2)
                           + PPT_yr_window_20 + I(PPT_yr_window_20^2)
@@ -187,6 +198,7 @@ rmodel_zipoiss <- glmmTMB(recruits1 ~ 1
                           family = "poisson")
 
 # use non-PIED basal area, AIC = 5640.7
+#ELS update: 5182.9
 rmodel_zipoiss <- glmmTMB(recruits1 ~ 1
                           + BA.notPIED + I(BA.notPIED^2)
                           + PPT_yr_window_20 + I(PPT_yr_window_20^2)
@@ -201,6 +213,7 @@ rmodel_zipoiss <- glmmTMB(recruits1 ~ 1
                           family = "poisson")
 
 # used basal area of juniper, AIC = 5643.2
+#ELS update: 5185.1
 rmodel_zipoiss <- glmmTMB(recruits1 ~ 1
                           + BA.juniper + I(BA.juniper^2)
                           + PPT_yr_window_20 + I(PPT_yr_window_20^2)
@@ -217,6 +230,7 @@ rmodel_zipoiss <- glmmTMB(recruits1 ~ 1
 
 # model reduction...can remove PPT, then T, then BALIVE from Bernoulli, with little change in AIC
 # AIC = 4343.7, 4340.9, 5439.1
+#ELS update: 4977.5 (full), 5036.5 (remove PPT), 5036.1 (then T), 5238.2 (then BALIVE)
 # remove PPT from Bernoulli
 rmodel_zipoiss <- glmmTMB(recruits1 ~ 1
                           + BALIVE + I(BALIVE^2)
@@ -233,10 +247,13 @@ summary(rmodel_zipoiss)
 res = simulateResiduals(rmodel_zipoiss) 
 # deviation ns: p = 0.09159 (without PPT)
 # deviation ns: p = 0.09159 (without PPT or T)
+#ELS update: p = 0.16915
 
 # this model is no different from models with predictors on the Bernoulli
 # AIC = 4343.4
+#ELS update: 4980.6
 # residuls do not deviate significanty from expectation (p = 0.0801)
+#ELS update: p = 0.19231
 rmodel_zipoiss <- glmmTMB(recruits1 ~ 1
                           + BALIVE + I(BALIVE^2)
                           + PPT_yr_norm + I(PPT_yr_norm^2)
@@ -251,6 +268,7 @@ plot(res, quantreg = T)
 
 # try model with 2-way interacions
 # AIC = 4335.0
+#ELS update: 4968.2
 rmodel_zip.int <- glmmTMB(recruits1 ~ 1
                           + (BALIVE + PPT_yr_norm + T_yr_norm)^2
                           + I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) 
@@ -261,11 +279,13 @@ rmodel_zip.int <- glmmTMB(recruits1 ~ 1
                           family = "poisson")
 res = simulateResiduals(rmodel_zip.int)
 plot(res, quantreg = T) # p = 0.07203
+#ELS update: p = 0.28427
 
 
 # try models with seasonal climate normals
 # THIS IS THE BEST MODEL AS OF 9/19/18
 # AIC = 4317.7; support for breaking climate into 3 seasons
+#ELS update: 4950.0
 rmodel_zip3seas <- glmmTMB(recruits1 ~ 1
                        + BALIVE + I(BALIVE^2)
                        + PPT_wd_norm + I(PPT_wd_norm^2)
@@ -281,11 +301,13 @@ rmodel_zip3seas <- glmmTMB(recruits1 ~ 1
                        family = "poisson")
 res = simulateResiduals(rmodel_zip3seas)
 plot(res, quantreg = T) # second best p value so far: p = 0.10428
+#ELS update:p = 0.20541
 plot(Effect.glmmTMB("BALIVE", rmodel_zip3seas))
 plot(Effect.glmmTMB("PPT_c_norm", rmodel_zip3seas))
 plot(Effect.glmmTMB("T_m_norm", rmodel_zip3seas))
 
 #AIC 4319.0; no loss of fit to data when PPT data are 12-month rather than 3 seasons
+#ELS update: 4949.8
 rmodel_zip3seasT <- glmmTMB(recruits1 ~ 1
                              + BALIVE + I(BALIVE^2)
                              + PPT_yr_norm + I(PPT_yr_norm^2)
@@ -300,10 +322,12 @@ rmodel_zip3seasT <- glmmTMB(recruits1 ~ 1
 res = simulateResiduals(rmodel_zip3seasT)
 plot(res, quantreg = T)
 # residuals of this model do not differ significantly from expectation (p = 0.07646)
+#ELS update: p = 0.18692
 plot(Effect.glmmTMB("BALIVE", rmodel_zip3seasT))
 plot(Effect.glmmTMB("PPT_yr_norm", rmodel_zip3seasT))
 
 # this model is worse, AIC = 4334.9
+#ELS update: 4973.1
 rmodel_zip3seasPPT <- glmmTMB(recruits1 ~ 1
                             + BALIVE + I(BALIVE^2)
                             + T_yr_norm + I(T_yr_norm^2)
@@ -318,6 +342,7 @@ rmodel_zip3seasPPT <- glmmTMB(recruits1 ~ 1
 res = simulateResiduals(rmodel_zip3seasPPT)
 plot(res, quantreg = T)
 # residuals of this model do not differ significantly from expectation (p = 0.08494)
+#ELS update: p = 0.17949
 plot(Effect.glmmTMB("BALIVE", rmodel_zip3seasPPT))
 plot(Effect.glmmTMB("PPT_wd_norm", rmodel_zip3seasPPT))
 plot(Effect.glmmTMB("PPT_m_norm", rmodel_zip3seasPPT))
@@ -326,6 +351,7 @@ plot(Effect.glmmTMB("PPT_m_norm", rmodel_zip3seasPPT))
 # try this model with interactions
 # THIS IS THE BEST MODEL AS OF 10/04/18
 # AIC = 4297.9
+#ELS update: 4922.1
 rmodel_zip3seasTint <- glmmTMB(recruits1 ~ 1
                             + (BALIVE + PPT_yr_norm + T_wd_norm + T_c_norm + T_m_norm)^2
                             + I(BALIVE^2) + I(PPT_yr_norm^2)
@@ -337,6 +363,7 @@ rmodel_zip3seasTint <- glmmTMB(recruits1 ~ 1
                             family = "poisson")
 res = simulateResiduals(rmodel_zip3seasTint)
 plot(res, quantreg = T) # best p value I've seen so far: p=0.14391
+#ELS update: p = 0.35657
 plot(Effect.glmmTMB("BALIVE", rmodel_zip3seasTint))
 plot(Effect.glmmTMB("PPT_yr_norm", rmodel_zip3seasTint))
 plot(Effect.glmmTMB("T_m_norm", rmodel_zip3seasTint))

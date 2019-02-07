@@ -6,10 +6,10 @@ library(effects)
 
 # Read data
 # start with the same data file that is used for analysis of survival/mortality
-grdata <- read.csv("C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
+grdata <- read.csv("./Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
 
 # Only keep trees that didn't die
-grdata <- subset(grdata, STATUSCD == 1) #15742
+grdata <- subset(grdata, STATUSCD == 1) #18204
 
 # Create increment columns
 # note that growth increments need to be moved to the positive realm (by adding a constant)
@@ -84,13 +84,15 @@ plot(simulateResiduals(gmodel.1a, integerResponse = F), quantreg = T)
 class(gmodel.1b) <- "lmerMod"
 plot(simulateResiduals(gmodel.1b, integerResponse = F), quantreg = T)
 
-# compare annual vs. 3 vs. 4 seasons...likes annual better
+# compare annual vs. 3 vs. 4 seasons...likes annual better 
+# ELS update: unchanged
 gmodel.1a <- lmer(DIA_INCR ~ PREVDIA + I(PREVDIA^2) + BALIVE + PPT_yr + VPD_yr + (1|PLT_CN), data = grdata.scaled)
 gmodel.1b <- lmer(DIA_INCR ~ PREVDIA + I(PREVDIA^2) + BALIVE + PPT_c + PPT_wd + PPT_m + VPD_c + VPD_wd + VPD_m + (1|PLT_CN), data = grdata.scaled)
 gmodel.1c <- lmer(DIA_INCR ~ PREVDIA + I(PREVDIA^2) + BALIVE + PPT_c + PPT_pf + PPT_fs + PPT_m + VPD_c + VPD_pf + VPD_fs + VPD_m + (1|PLT_CN), data = grdata.scaled)
 mod.comp1 <- model.sel(gmodel.1a, gmodel.1b, gmodel.1c)
 
 # compare T vs. VPD...delta AIC is 2.94 (slight preference for T)
+# ELS update: delta AIC is 4.97 (preference for T)
 gmodel.2a <- lmer(DIA_INCR ~ PREVDIA + I(PREVDIA^2) + BALIVE + PPT_yr + VPD_yr + (1|PLT_CN), data = grdata.scaled)
 gmodel.2b <- lmer(DIA_INCR ~ PREVDIA + I(PREVDIA^2) + BALIVE + PPT_yr + T_yr + (1|PLT_CN), data = grdata.scaled)
 mod.comp2 <- model.sel(gmodel.2a, gmodel.2b)
@@ -112,8 +114,10 @@ gmodel.3l <- lmer(DIA_INCR ~ PREVDIA + I(PREVDIA^2) + BALIVE + PPT_c_norm + PPT_
 mod.comp3 <- model.sel(gmodel.3a, gmodel.3b, gmodel.3c, gmodel.3d, gmodel.3e, gmodel.3f, 
                        gmodel.3g, gmodel.3h, gmodel.3i, gmodel.3j, gmodel.3k, gmodel.3l)
 # gmodel.3a is best among these (true whether BAt1 or PREVDIA is the size predictor)
+## ELS update: unchanged
 
 # add 2-way interactions, excluding size^2
+# ELS update: 3a still best, not all models converged
 gmodel.4a <- lmer(DIA_INCR ~ (PREVDIA + BALIVE + PPT_yr + T_yr)^2 + I(PREVDIA^2) + (1|PLT_CN), data = grdata.scaled)
 gmodel.4b <- lmer(DIA_INCR ~ (PREVDIA + BALIVE + PPT_c + PPT_wd + PPT_m + T_c + T_wd + T_m)^2 + I(PREVDIA^2) + (1|PLT_CN), data = grdata.scaled)
 gmodel.4c <- lmer(DIA_INCR ~ (PREVDIA + BALIVE + PPT_c + PPT_pf + PPT_fs + PPT_m + T_c + T_pf + T_fs + T_m)^2 + I(PREVDIA^2) + (1|PLT_CN), data = grdata.scaled)
@@ -127,10 +131,11 @@ class(gmodel.3a) <- "lmerMod"
 plot(simulateResiduals(gmodel.3a, integerResponse = F), quantreg = T) # residuals look good
 
 # try model with all quadratics instead of 2-way interactions
+# ELS update: model 6 was best
 gmodel.5 <- lmer(DIA_INCR ~ PREVDIA + I(PREVDIA^2) + BALIVE + I(BALIVE^2) +
                             PPT_yr + I(PPT_yr^2) + VPD_yr + I(VPD_yr^2) + 
                             (1|PLT_CN), data = grdata.scaled)
-#plot(allEffects(gmodel.5))
+plot(allEffects(gmodel.5))
 #res = simulateResiduals(gmodel.5, integerResponse = F) #doesn't work??
 #plotResiduals(grdata.scaled$PREVDIA, res$scaledResiduals, quantreg = T, main = "PREVDIA")
 
@@ -171,4 +176,4 @@ for (i in gr.predictors) {
 }
 
 # export model for coefficients and scaling information -------------------
-save(gmodel.7, gr.scaling, growSD, file = "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Code/IPM/GrRescaling.Rdata")
+save(gmodel.7, gr.scaling, growSD, file = "./Code/IPM/GrRescaling.Rdata")

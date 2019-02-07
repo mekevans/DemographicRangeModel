@@ -1,0 +1,373 @@
+\documentclass{article}
+
+\title{PIED recruitment models}
+
+\usepackage{float}
+\usepackage{subcaption}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\maketitle
+
+\section{Overview}
+After playing around with the vital rate models, we decided to take the following approach to model selection:
+\begin{enumerate}
+\item{Select adult PIED offset (BA.PIED, cumDIA.PIED, PIEDadults1)}
+\item{Select main effects (balive, precipitation, temperature)}
+\item{Add pairwise interactions}
+\item{Add quadratics}
+\item{Add both pairwise interactions}
+\item{Try more thorough model selection, including seasonal climate variables, climate anomalies, etc.}
+\end{enumerate}
+
+Additional model selection can then be done at the map stage to determine how increasing the complexity of the models to get lower $AIC$ affects projected distributions.
+
+<<echo=FALSE>>=
+library(ggeffects)
+library(ggplot2)
+library(coefplot)
+library(cowplot)
+library(effects)
+library(MuMIn)
+library(dplyr)
+library(DHARMa)
+library(lme4)
+library(glmmTMB)
+
+rdata <- read.csv("./Processed/Recruitment/RecruitData.csv", header = T, stringsAsFactors = F)
+
+#rdata <- read.csv("C:/Users/mekevans/Documents/Cdrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PIED_IPM/MEKEvans/Processed/Recruitment/RecruitData.csv", header = T, stringsAsFactors = F)
+
+# looking at the data
+recruit.table <- table(rdata[, c("PIEDadults1", "recruits1")])
+
+plot.info <- c("plot", "lat", "lon", "elev", "state", "county", "plotID", "PIEDadults1", "recruits1")
+colonize.plots <- rdata[rdata$PIEDadults1 == 0 & rdata$recruits1 > 0, plot.info]
+
+# Subset data: only plots that contained PIED trees at time 1 census
+# AGB: note that it was previously incorrectly time 2
+rdata <- subset(rdata, PIEDadults1 > 0)
+rdata2 <- subset(rdata, BALIVE < 400) # 6720
+rdata$BA.all <- rdata$BA.PIED + rdata$BA.notPIED
+rdata.scaled <- rdata %>% mutate_at(scale, .vars = vars(-plot, -lat, -lon, -elev, -PApied,
+                                                        -state, -county, -plotID, -CONDID, 
+                                                          -measYear, -plotPrev, -PREV_MEASYEAR,
+                                                          -CENSUS_INTERVAL, -recruits1, -recruits12,
+                                                          -AGB_intra, -BA.PIED, -PIEDadults1,
+                                                          -PIEDadults4, -PIEDadults8, -cumDIA.PIED))
+@
+
+\section{Histograms}
+<<echo=FALSE>>=
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+@
+
+\begin{figure}[H]
+<<fig=TRUE, echo=FALSE>>=
+par(mfrow=c(3,2))
+hist(rdata$recruits1)
+plot(rdata$PIEDadults1, rdata$recruits1)
+hist(rdata$recruits1, breaks = c(seq(0, 8, by = 1)), xlim = c(0, 8))
+plot(rdata$BALIVE, rdata$recruits1)
+hist(rdata$PIEDadults1, breaks = c(seq(0,53, by=1)), xlim = c(0, 53))
+plot(rdata$PPT_yr_norm, rdata$recruits1)
+@
+\end{figure}
+
+\begin{figure}[H]
+<<fig=TRUE,echo=FALSE>>=
+par(mfrow=c(2,2))
+hist(rdata$BALIVE)
+hist(rdata$BALIVE, breaks = c(seq(0, 750, by = 10)), xlim = c(0, 500))
+hist(rdata2$BALIVE, breaks = c(seq(0, 400, by = 10)), xlim = c(0, 400))
+@
+\end{figure}
+
+\section{Models}
+<<echo=FALSE>>=
+# From https://github.com/glmmTMB/glmmTMB/blob/7ba86a972ddb13226a8de9eab0e113e6156fccf4/glmmTMB/R/effects.R
+Effect.glmmTMB <- function (focal.predictors, mod, ...) {
+    fam <- family(mod)
+    ## code to make the 'truncated_*' families work
+    if (grepl("^truncated", fam$family)) 
+        fam <- c(fam, make.link(fam$link))
+    ## dummy functions to make Effect.default work
+    dummyfuns <- list(variance=function(mu) mu,
+                      initialize=expression(mustart <- y + 0.1),
+                      dev.resids=function(...) poisson()$dev.res(...)
+                      )
+    for (i in names(dummyfuns)) {
+        if (is.null(fam[[i]])) fam[[i]] <- dummyfuns[[i]]
+    }
+    ## allow calculation of effects ...
+    if (length(formals(fam$variance))>1) {
+        warning("overriding variance function for effects: ",
+                "computed variances may be incorrect")
+        fam$variance <- dummyfuns$variance
+    }
+    args <- list(call = getCall(mod),
+                 coefficients = lme4::fixef(mod)[["cond"]],
+                 vcov = vcov(mod)[["cond"]],
+                 family=fam)
+    if (!requireNamespace("effects"))
+        stop("please install the effects package")
+    effects::Effect.default(focal.predictors, mod, ..., sources = args)
+}
+@
+
+Selecting offset: Only the model with PIEDadults1 had acceptable residuals, so we will proceed with that throughout the rest of the model selection.
+
+\subsection{Compare additional basic predictors (balive, ppt, temp)}
+<<echo=FALSE>>=
+r_balive<-glmmTMB(recruits1 ~ 1
+                      + BALIVE
+                      + offset(log(CENSUS_INTERVAL))
+                      + offset(log(PIEDadults1)), # various alternatives for this offset
+                      ziformula = ~ 1,
+                      data = rdata.scaled, 
+                      family = "poisson")
+r_ppt<-glmmTMB(recruits1 ~ 1
+                      + PPT_yr_norm
+                      + offset(log(CENSUS_INTERVAL))
+                      + offset(log(PIEDadults1)), # various alternatives for this offset
+                      ziformula = ~ 1,
+                      data = rdata.scaled, 
+                      family = "poisson")
+r_t<-glmmTMB(recruits1 ~ 1
+                      + T_yr_norm 
+                      + offset(log(CENSUS_INTERVAL))
+                      + offset(log(PIEDadults1)), # various alternatives for this offset
+                      ziformula = ~ 1,
+                      data = rdata.scaled, 
+                      family = "poisson")
+r_clim<-glmmTMB(recruits1 ~ 1
+                       + PPT_yr_norm + T_yr_norm 
+                      + offset(log(CENSUS_INTERVAL))
+                      + offset(log(PIEDadults1)), # various alternatives for this offset
+                      ziformula = ~ 1,
+                      data = rdata.scaled, 
+                      family = "poisson")
+r_balive_clim<-glmmTMB(recruits1 ~ 1
+                      + BALIVE + PPT_yr_norm + T_yr_norm 
+                      + offset(log(CENSUS_INTERVAL))
+                      + offset(log(PIEDadults1)), # various alternatives for this offset
+                      ziformula = ~ 1,
+                      data = rdata.scaled, 
+                      family = "poisson")
+mod.comp1<-model.sel(r_balive,r_ppt,r_t,r_clim,r_balive_clim)
+@
+
+<<>>=
+mod.comp1
+@
+
+The best model included live basal area, temperature, and precipitation.
+
+\subsection{Add interactions, quadratics, and both}
+<<echo=FALSE>>=
+r_int<-glmmTMB(recruits1 ~ 1
+                      + (BALIVE + PPT_yr_norm + T_yr_norm)^2 
+                      + offset(log(CENSUS_INTERVAL))
+                      + offset(log(PIEDadults1)), # various alternatives for this offset
+                      ziformula = ~ 1,
+                      data = rdata.scaled, 
+                      family = "poisson")
+r_q<-glmmTMB(recruits1 ~ 1
+                      + BALIVE + I(BALIVE^2)
+                      + PPT_yr_norm + I(PPT_yr_norm^2)
+                      + T_yr_norm + I(T_yr_norm^2)
+                      + offset(log(CENSUS_INTERVAL))
+                      + offset(log(PIEDadults1)), # various alternatives for this offset
+                      ziformula = ~ 1,
+                      data = rdata.scaled, 
+                      family = "poisson")
+r_int_q<-glmmTMB(recruits1 ~ 1
+                      + (BALIVE + PPT_yr_norm + T_yr_norm)^2 
+                      + I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2)
+                      + offset(log(CENSUS_INTERVAL))
+                      + offset(log(PIEDadults1)), # various alternatives for this offset
+                      ziformula = ~ 1,
+                      data = rdata.scaled, 
+                      family = "poisson")
+mod.comp_int_q<-model.sel(r_balive_clim,r_int_q,r_int,r_q)
+@
+
+<<>>=
+mod.comp_int_q
+@
+
+The model including both interactions and quadratics was the best ($\Delta AIC = 12.29$), and the model with only quadratics was better than the model with only interactions ($\Delta AIC = 20.48$).
+
+\subsection{Model selection summary}
+<<echo=FALSE>>=
+rmodel_zip3seasTint <- glmmTMB(recruits1 ~ 1
+                            + (BALIVE + PPT_yr_norm + T_wd_norm + T_c_norm + T_m_norm)^2
+                            + I(BALIVE^2) + I(PPT_yr_norm^2)
+                            + I(T_wd_norm^2) + I(T_m_norm^2) + I(T_c_norm^2)
+                            + offset(log(CENSUS_INTERVAL))
+                            + offset(log(PIEDadults1)), 
+                            ziformula = ~ 1,
+                            data = rdata.scaled, 
+                            family = "poisson")
+@
+
+The best model that came out of the model selection process (see \emph{./Code/Recruitment/modelSelection.R}) included live basal area; annual precipitation norms; warm/dry, cold, and monsoon season temperature norms; their interactions; and quadratics:
+
+<<>>=
+summary(rmodel_zip3seasTint)
+@
+
+The models I will export for use in the IPMs are:
+\begin{enumerate}
+\item{recr \~{} balive + ppt + temp}
+\item{recr \~{} balive \** ppt \** temp}
+\item{recr \~{} balive + ppt + temp + balive\textsuperscript{2} + ppt\textsuperscript{2} + temp\textsuperscript{2}}
+\item{recr \~{} balive \** ppt \** temp + balive\textsuperscript{2} + ppt\textsuperscript{2} + temp\textsuperscript{2}}
+\item{recr \~{} balive \** ppt \** temp\_wd \** temp\_c \** temp\_m \** balive\textsuperscript{2} + ppt\textsuperscript{2} + temp\_wd\textsuperscript{2} + temp\_c\textsuperscript{2} + temp\_m\textsuperscript{2}}
+\end{enumerate}
+
+The effects plots for these models are below.
+
+\section{Effects plots}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("BALIVE", r_balive_clim))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPT_yr_norm", r_balive_clim))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("T_yr_norm", r_balive_clim))
+@
+  \end{minipage}
+\caption{Effects plots for model with only first-order main effects.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("BALIVE", r_int))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPT_yr_norm", r_int))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("T_yr_norm", r_int))
+@
+  \end{minipage}
+\caption{Effects plots for model with main effects and pairwise interaction.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("BALIVE", r_q))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPT_yr_norm", r_q))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("T_yr_norm", r_q))
+@
+  \end{minipage}
+\caption{Effects plots for model with main effects and quadratics.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("BALIVE", r_int_q))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPT_yr_norm", r_int_q))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("T_yr_norm", r_int_q))
+@
+  \end{minipage}
+\caption{Effects plots for model with main effects, pairwise interactions, and quadratics.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("BALIVE", rmodel_zip3seasTint))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPT_yr_norm", rmodel_zip3seasTint))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("T_wd_norm", rmodel_zip3seasTint))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("T_c_norm", rmodel_zip3seasTint))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("T_m_norm", rmodel_zip3seasTint))
+@
+  \end{minipage}
+\caption{Effects plots for ``best" model.}
+\end{figure}
+
+\end{document}

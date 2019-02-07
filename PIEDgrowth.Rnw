@@ -1,0 +1,345 @@
+\documentclass{article}
+
+\title{PIED growth models}
+
+\usepackage{float}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\maketitle
+
+<<echo=FALSE>>=
+library(ggeffects)
+library(ggplot2)
+library(coefplot)
+library(cowplot)
+library(effects)
+
+# Read data
+# start with the same data file that is used for analysis of survival/mortality
+grdata <- read.csv("./Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
+
+# Only keep trees that didn't die
+grdata <- subset(grdata, STATUSCD == 1) #18204
+
+# Create increment columns
+# note that growth increments need to be moved to the positive realm (by adding a constant)
+# IF log transform is used
+grdata$AGB_INCR <- grdata$DRYBIO_AG_DIFF / grdata$CENSUS_INTERVAL
+grdata$DIA_INCR <- grdata$DIA_DIFF / grdata$CENSUS_INTERVAL
+grdata$BA_INCR <- grdata$BA_DIFF / grdata$CENSUS_INTERVAL
+@
+
+\section{Overview}
+After playing around with the vital rate models, we decided to take the following approach to model selection:
+\begin{enumerate}
+\item{Select best response variable}
+\item{Select best size predictor (diameter versus basal area)}
+\item{Select other main effects (balive, precipitation, temperature)}
+\item{Add pairwise interactions}
+\item{Add quadratics}
+\item{Add both pairwise interactions}
+\item{Try more thorough model selection, including seasonal climate variables, climate anomalies, etc.}
+\end{enumerate}
+
+Additional model selection can then be done at the map stage to determine how increasing the complexity of the models to get lower $AIC$ affects projected distributions.
+
+\section{Histograms}
+\begin{figure}[H]
+<<fig=TRUE, echo=FALSE>>=
+par(mfrow=c(2,2))
+hist(grdata$PREVDIA)
+hist(grdata$BALIVE)
+hist(log(grdata$BALIVE)) 
+@
+\end{figure}
+
+\begin{figure}[H]
+<<fig=TRUE, echo=FALSE>>=
+par(mfrow=c(2,2))
+hist(grdata$PPT_yr) 
+hist(log(grdata$PPT_yr))
+hist(grdata$T_yr)
+@
+\end{figure}
+
+\begin{figure}[H]
+<<fig=TRUE,echo=FALSE>>=
+par(mfrow=c(1,2))
+hist(grdata$DIA_INCR)
+hist(grdata$DIA_INCR, breaks = c(seq(-2.5, 1.75, by = 0.01)), xlim = c(-0.5, 0.5))
+@
+\end{figure}
+
+\section{Models}
+<<echo=FALSE>>=
+library(dplyr)
+grdata.scaled <- grdata %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
+                                                    -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
+                                                    -CENSUS_INTERVAL,
+                                                    -AGB_INCR, -DIA_INCR, -BA_INCR))
+
+
+library(lme4)
+library(lmerTest)
+library(MuMIn) # use MuMin to choose between models (AICc)
+library(DHARMa) # use DHARMa to check residuals
+@
+
+\subsection{Compare different response variables (AGB, DIA, BA)}
+<<echo=FALSE>>=
+gmodel.AGB <- lmer(AGB_INCR ~ PREV_DRYBIO_AG + I(PREV_DRYBIO_AG^2) + BALIVE + PPT_c + PPT_wd + PPT_m + VPD_c + VPD_wd + VPD_m + (1|PLT_CN), data = grdata.scaled)
+gmodel.DIA <- lmer(DIA_INCR ~ PREVDIA + I(PREVDIA^2) + BALIVE + PPT_c + PPT_wd + PPT_m + VPD_c + VPD_wd + VPD_m + (1|PLT_CN), data = grdata.scaled)
+gmodel.BA <- lmer(BA_INCR ~ BAt1 + I(BAt1^2) + BALIVE + PPT_c + PPT_wd + PPT_m + VPD_c + VPD_wd + VPD_m + (1|PLT_CN), data = grdata.scaled)
+mod.comp <- model.sel(gmodel.AGB, gmodel.DIA, gmodel.BA)
+@
+
+<<>>=
+mod.comp
+@
+
+DIA\_INCR resulted in the best residuals, so we proceeded with that as our response variable.
+
+\subsection{Compare different size predictors}
+<<echo=FALSE>>=
+gmodel.1a <- lmer(DIA_INCR ~ BAt1 + I(BAt1^2) + (1|PLT_CN), data = grdata.scaled)
+gmodel.1b <- lmer(DIA_INCR ~ PREVDIA + I(PREVDIA^2) + (1|PLT_CN), data = grdata.scaled)
+gmodel.1c <- lmer(DIA_INCR ~ PREV_DRYBIO_AG + I(PREV_DRYBIO_AG^2) + (1|PLT_CN), data = grdata.scaled)
+@
+
+The residuals looked good for PREVDIA, so we proceeded with that.
+
+\subsection{Compare additional basic predictors (balive, ppt, temp)}
+<<echo=FALSE>>=
+gmodel_balive <- lmer(DIA_INCR ~ PREVDIA + BALIVE + I(PREVDIA^2) + (1|PLT_CN), data = grdata.scaled)
+gmodel_ppt <- lmer(DIA_INCR ~ PREVDIA + PPT_yr + I(PREVDIA^2) + (1|PLT_CN), data = grdata.scaled)
+gmodel_t <- lmer(DIA_INCR ~ PREVDIA + T_yr + I(PREVDIA^2) + (1|PLT_CN), data = grdata.scaled)
+gmodel_clim <- lmer(DIA_INCR ~ PREVDIA + PPT_yr + T_yr + I(PREVDIA^2) + (1|PLT_CN), data = grdata.scaled)
+gmodel_balive_clim <- lmer(DIA_INCR ~ PREVDIA + BALIVE + PPT_yr + T_yr + I(PREVDIA^2) + (1|PLT_CN), data = grdata.scaled)
+mod.comp1<-model.sel(gmodel.1b,gmodel_balive,gmodel_ppt,gmodel_t,gmodel_clim,gmodel_balive_clim)
+@
+
+<<>>=
+mod.comp1
+@
+
+The best model included live basal area, temperature, and precipitation.
+
+\subsection{Add interactions, quadratics and both}
+<<echo=FALSE>>=
+gmodel_int <- lmer(DIA_INCR ~ (PREVDIA + BALIVE + PPT_yr + T_yr)^2 + I(PREVDIA^2) + (1|PLT_CN), data = grdata.scaled)
+gmodel_q <- lmer(DIA_INCR ~ PREVDIA + I(PREVDIA^2) + BALIVE + I(BALIVE^2) +
+                   PPT_yr + I(PPT_yr^2) + T_yr + I(T_yr^2) + 
+                   (1|PLT_CN), data = grdata.scaled)
+gmodel_int_q<- lmer(DIA_INCR ~ (PREVDIA + BALIVE + PPT_yr + T_yr)^2 
+                 + I(PREVDIA^2) + I(BALIVE^2) + I(PPT_yr^2) + I(T_yr^2) + (1|PLT_CN), data = grdata.scaled)
+mod.comp_int_q <- model.sel(gmodel_balive_clim,gmodel_int, gmodel_q, gmodel_int_q)
+@
+
+<<>>=
+mod.comp_int_q
+@
+
+The best model included quadratics, but no interactions ($\Delta AIC = 21.48$). There was really no support for including interactions at all. Both models including interactions were worse than the model without interactions or quadratics.
+
+\subsection{Model selection summary}
+The best model that came out of the more thorough model selection was simply the model above with live basal area, annual precipitation, and temperature as predictors, including quadratics.
+
+<<>>=
+summary(gmodel_q)
+@
+
+The models I will export for use in the IPMs are:
+\begin{enumerate}
+\item{grow \~{} dia + balive + ppt + temp}
+\item{grow \~{} dia \** balive \** ppt \** temp}
+\item{grow \~{} dia + balive + ppt + temp + dia\textsuperscript{2} + balive\textsuperscript{2} + ppt\textsuperscript{2} + temp\textsuperscript{2}}
+\item{grow \~{} dia \** balive \** ppt \** temp + dia\textsuperscript{2} + balive\textsuperscript{2} + ppt\textsuperscript{2} + temp\textsuperscript{2}}
+\end{enumerate}
+
+The effects plots for these models are below.
+
+\section{Effects plots}
+\begin{figure}[H]
+\begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", gmodel_balive_clim))
+@
+  \end{minipage}%
+\begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", gmodel_balive_clim))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_yr", gmodel_balive_clim))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr", gmodel_balive_clim))
+@
+  \end{minipage}
+\caption{Effects plots for model with only first-order main effects.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", gmodel_int))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", gmodel_int))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_yr", gmodel_int))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr", gmodel_int))
+@
+  \end{minipage}
+\caption{Effects plots for model with main effects and pairwise interaction.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", gmodel_q))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", gmodel_q))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_yr", gmodel_q))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr", gmodel_q))
+@
+  \end{minipage}
+\caption{Effects plots for model with main effects and quadratics.}
+\end{figure}
+
+<<echo=FALSE>>=
+g_fun_dia<-function(dia,coef,ba,ppt,t){
+  return(coef[1]+coef[2]*dia+coef[3]*(dia^2)+coef[4]*ba+coef[5]*(ba^2)+coef[6]*ppt+coef[7]*(ppt^2)+
+           coef[8]*t+coef[9]*(t^2))
+}
+g_fun_ba<-function(ba,dia,coef,ppt,t){
+  return(coef[1]+coef[2]*dia+coef[3]*(dia^2)+coef[4]*ba+coef[5]*(ba^2)+coef[6]*ppt+coef[7]*(ppt^2)+
+           coef[8]*t+coef[9]*(t^2))
+}
+g_fun_ppt<-function(ppt,dia,coef,ba,t){
+  return(coef[1]+coef[2]*dia+coef[3]*(dia^2)+coef[4]*ba+coef[5]*(ba^2)+coef[6]*ppt+coef[7]*(ppt^2)+
+           coef[8]*t+coef[9]*(t^2))
+}
+g_fun_t<-function(t,dia,coef,ba,ppt){
+  return(coef[1]+coef[2]*dia+coef[3]*(dia^2)+coef[4]*ba+coef[5]*(ba^2)+coef[6]*ppt+coef[7]*(ppt^2)+
+           coef[8]*t+coef[9]*(t^2))
+}
+g_dia_plot<-ggplot(data=grdata.scaled,aes(x=PREVDIA,y=DIA_INCR))+
+  geom_point(alpha=0.7)+
+  stat_function(fun=g_fun_dia,args=list(coef=fixef(gmodel_q),ba=mean(grdata.scaled$BALIVE),
+                                    ppt=mean(grdata.scaled$PPT_yr),t=mean(grdata.scaled$T_yr)),
+                col="red")
+
+g_ba_plot<-ggplot(data=grdata.scaled,aes(x=BALIVE,y=DIA_INCR))+
+  geom_point(alpha=0.7)+
+  stat_function(fun=g_fun_ba,args=list(coef=fixef(gmodel_q),dia=mean(grdata.scaled$PREVDIA),
+                                    ppt=mean(grdata.scaled$PPT_yr),t=mean(grdata.scaled$T_yr)),
+                col="red")
+g_ppt_plot<-ggplot(data=grdata.scaled,aes(x=PPT_yr,y=DIA_INCR))+
+  geom_point(alpha=0.7)+
+  stat_function(fun=g_fun_ppt,args=list(coef=fixef(gmodel_q),ba=mean(grdata.scaled$BALIVE),
+                                    dia=mean(grdata.scaled$PREVDIA),t=mean(grdata.scaled$T_yr)),
+                col="red")
+g_t_plot<-ggplot(data=grdata.scaled,aes(x=T_yr,y=DIA_INCR))+
+  geom_point(alpha=0.7)+
+  stat_function(fun=g_fun_t,args=list(coef=fixef(gmodel_q),ba=mean(grdata.scaled$BALIVE),
+                                    ppt=mean(grdata.scaled$PPT_yr),dia=mean(grdata.scaled$PREVDIA)),
+                col="red")
+@
+
+<<echo=FALSE>>=
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+@
+
+\begin{figure}[H]
+<<fig=TRUE,echo=FALSE>>=
+multiplot(g_dia_plot,g_ppt_plot,g_ba_plot,g_t_plot,cols=2)
+@
+\caption{Effects plots for model with main effects and quadratics, plotted over raw data.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", gmodel_int_q))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", gmodel_int_q))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_yr", gmodel_int_q))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr", gmodel_int_q))
+@
+  \end{minipage}
+\caption{Effects plots for model with main effects, pairwise interactions, and quadratics.}
+\end{figure}
+
+\end{document}

@@ -4,9 +4,10 @@ library(ggeffects)
 library(cowplot)
 library(dplyr)
 library(effects)
+library(DHARMa)
 
 # Read in data
-survData <- read.csv("C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
+survData <- read.csv("./Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
 
 # Create increment columns
 # not needed for survival/mort analysis
@@ -30,6 +31,9 @@ hist(survData$T_yr_norm) # looks normal
 hist(survData$BALIVE) # not too bad...Poisson-ish but with a large mean count
 hist(log(survData$BALIVE)) # log transform has a heavy left tail
 
+survData$log.size <- log(survData$PREVDIA)
+survData$log.BALIVE <- log(survData$BALIVE)
+
 # Recode status
 survData$surv <- ifelse(survData$STATUSCD == 2, 0, 1)
 survData$mort <- ifelse(survData$STATUSCD == 1, 0, 1)
@@ -42,31 +46,33 @@ survData.2 <- subset(survData, BALIVE > 0) # goes from 20329 to 20161
 survData.3 <- survData[!(survData$DSTRBCD1 %in% c(30, 31, 32, 80)), ] # goes from 20329 to 19867
 
 # standardize covariates
+#ELS update: no AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3 in dataframe, so I removed them from the following code
 survData.scaled <- survData %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
                                                           -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
-                                                          -CENSUS_INTERVAL, 
+                                                          -CENSUS_INTERVAL,
+                                                          AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3,
                                                           -AGB_INCR, -DIA_INCR, -BA_INCR,
-                                                          -surv, -mort,
-                                                          -AGENTCD, -DSTRBCD1, -DSTRBCD2, -DSTRBCD3))
+                                                          -surv, -mort))
 
 survData2.scaled <- survData.2 %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
                                                               -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
-                                                              -CENSUS_INTERVAL, 
+                                                              -CENSUS_INTERVAL,
+                                                              AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3,
                                                               -AGB_INCR, -DIA_INCR, -BA_INCR,
-                                                              -surv, -mort,
-                                                              -AGENTCD, -DSTRBCD1, -DSTRBCD2, -DSTRBCD3))
+                                                              -surv, -mort))
 
 survData3.scaled <- survData.3 %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
                                                                  -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
-                                                                 -CENSUS_INTERVAL, 
+                                                                 -CENSUS_INTERVAL,
+                                                                 AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3,
                                                                  -AGB_INCR, -DIA_INCR, -BA_INCR,
-                                                                 -surv, -mort,
-                                                                 -AGENTCD, -DSTRBCD1, -DSTRBCD2, -DSTRBCD3))
+                                                                 -surv, -mort))
 
 
 library(lme4)
 # model with PREVDIA instead of BAt1
 # AIC = 17318.9
+#ELS update: AIC = 19908.3
 smodel1 <- glmer(mort ~ PREVDIA + I(PREVDIA^2) + BALIVE + 
                    PPT_yr_norm + PPT_dr_anom + T_yr_norm + T_dr_anom + 
                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -84,12 +90,14 @@ plotResiduals(survData.scaled$PPT_yr_norm, res$scaledResiduals, quantreg = T, ma
 plotResiduals(survData.scaled$T_yr_norm, res$scaledResiduals, quantreg = T, main = "T_yr_norm") # looks good
 
 # not updated: remove T_dr_anom and delta AIC = 5 (17387.6)
+#ELS update: AIC = 19911.3
 smodel1.a <- glmer(mort ~ PREVDIA + I(PREVDIA^2) + BALIVE + 
                    PPT_yr_norm + PPT_dr_anom + T_yr_norm + 
                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                  family = binomial(link = cloglog), data = survData.scaled,
                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # with quadratic terms, AIC = 17268.0
+#ELS update: AIC = 19852.7
 smodel1.q <- glmer(mort ~ PREVDIA + I(PREVDIA^2) + BALIVE + I(BALIVE^2) +
                      PPT_yr_norm + I(PPT_yr_norm^2) +
                      PPT_dr_anom + I(PPT_dr_anom^2) + 
@@ -100,6 +108,7 @@ smodel1.q <- glmer(mort ~ PREVDIA + I(PREVDIA^2) + BALIVE + I(BALIVE^2) +
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 
 # remove PPT anomaly; AIC = 17265.8
+#ELS update: AIC = 19852.1
 smodel2.q <- glmer(mort ~ PREVDIA + I(PREVDIA^2) + BALIVE + I(BALIVE^2) +
                      PPT_yr_norm + I(PPT_yr_norm^2) +
                      T_yr_norm + I(T_yr_norm^2) + 
@@ -109,6 +118,7 @@ smodel2.q <- glmer(mort ~ PREVDIA + I(PREVDIA^2) + BALIVE + I(BALIVE^2) +
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 
 # remove T anomaly; AIC = 17265.1
+#ELS update: AIC = 19850.6
 smodel3.q <- glmer(mort ~ PREVDIA + I(PREVDIA^2) + BALIVE + I(BALIVE^2) +
                      PPT_yr_norm + I(PPT_yr_norm^2) +
                      T_yr_norm + I(T_yr_norm^2) +  
@@ -116,6 +126,7 @@ smodel3.q <- glmer(mort ~ PREVDIA + I(PREVDIA^2) + BALIVE + I(BALIVE^2) +
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # AIC = 16781.1 (no trees killed by fire, harvest)
+#ELS update: AIC = 19499.5
 smodel3 <- glmer(mort ~ PREVDIA + I(PREVDIA^2) + BALIVE + I(BALIVE^2) +
                      PPT_yr_norm + I(PPT_yr_norm^2) +
                      T_yr_norm + I(T_yr_norm^2) +  
@@ -124,6 +135,7 @@ smodel3 <- glmer(mort ~ PREVDIA + I(PREVDIA^2) + BALIVE + I(BALIVE^2) +
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 
 # remove BALIVE; AIC = 17282.9
+# ELS update: AIC = 19875.0
 smodel4.q <- glmer(mort ~ PREVDIA + I(PREVDIA^2) +
                      PPT_yr_norm + I(PPT_yr_norm^2) +
                      T_yr_norm + I(T_yr_norm^2) +  
@@ -132,6 +144,7 @@ smodel4.q <- glmer(mort ~ PREVDIA + I(PREVDIA^2) +
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 
 # remove trees killed by fire or harvest; AIC = 16805.0
+# ELS update: AIC = 19498.5
 smodel4 <- glmer(mort ~ PREVDIA + I(PREVDIA^2) +
                      PPT_yr_norm + I(PPT_yr_norm^2) +
                      T_yr_norm + I(T_yr_norm^2) +  
@@ -142,6 +155,7 @@ plot(allEffects(smodel4))
 
 
 # interactions, AIC = 17335.7
+# ELS update: AIC = 19835.2
 smodel6 <- glmer(mort ~ (PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm)^2 + 
                    I(PREVDIA^2) + I(BALIVE^2) + I(T_yr_norm^2) + I(PPT_yr_norm^2) +
                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -151,8 +165,9 @@ smodel6 <- glmer(mort ~ (PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm)^2 +
 # this is after filtering the BALIVE = 0 data points
 # needs to be updated - rerun with PREVDIA as size
 # AIC = 17096.5
-smodel12 <- glmer(mort ~ (log.size + log.BALIVE + PPT_yr_norm + PPT_dr_anom + T_yr_norm)^2 + 
-                    I(log.size^2) + I(log.BALIVE^2) + I(T_yr_norm^2) +
+# ELS update: Changed to PREVDIA and BALIVE (istead of log.BALIVE), AIC = 19660.6 
+smodel12 <- glmer(mort ~ (PREVDIA + BALIVE + PPT_yr_norm + PPT_dr_anom + T_yr_norm)^2 + 
+                    I(PREVDIA^2) + I(BALIVE^2) + I(T_yr_norm^2) +
                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                   family = binomial(link = cloglog), data = survData2.scaled,
                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
@@ -169,6 +184,7 @@ plotResiduals(survData2.scaled$T_yr_norm, res$scaledResiduals, quantreg = T, mai
 
 
 # AIC = 17169.1 
+# ELS update: AIC = 19659.4
 smodel1.alt <- glmer(mort ~ PREVDIA + I(PREVDIA^2) + BALIVE + I(BALIVE^2) +
                      PPT_yr_norm + I(PPT_yr_norm^2) +
                      PPT_dr_anom + I(PPT_dr_anom^2) + 
@@ -186,6 +202,7 @@ plotResiduals(survData2.scaled$PPT_yr_norm, res$scaledResiduals, quantreg = T, m
 plotResiduals(survData2.scaled$T_yr_norm, res$scaledResiduals, quantreg = T, main = "T_yr_norm")
 
 # AIC = 17167.4
+# ELS update: AIC = 19658.1
 smodel2 <- glmer(mort ~ PREVDIA + I(PREVDIA^2) + 
                        PPT_yr_norm + I(PPT_yr_norm^2) +
                        T_yr_norm + I(T_yr_norm^2) + 
@@ -195,6 +212,7 @@ smodel2 <- glmer(mort ~ PREVDIA + I(PREVDIA^2) +
 plot(allEffects(smodel2))
 
 # AIC = 17164.6
+# ELS update: AIC = 19652.7
 smodel3 <- glmer(mort ~ (PREVDIA + PPT_yr_norm + T_yr_norm)^2 + 
                    I(PREVDIA^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) + 
                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -210,6 +228,7 @@ plotResiduals(survData2.scaled$T_yr_norm, res$scaledResiduals, quantreg = T, mai
 
 # use log-transformed size and BALIVE
 # AIC = 17098.8
+# ELS update: AIC = 19640.1
 smodel1.log <- glmer(mort ~ log.size + I(log.size^2) + log.BALIVE + I(log.BALIVE^2) +
                        PPT_yr_norm + I(PPT_yr_norm^2) +
                        PPT_dr_anom + I(PPT_dr_anom^2) + 
@@ -228,6 +247,7 @@ plotResiduals(survData2.scaled$T_yr_norm, res$scaledResiduals, quantreg = T, mai
 
 ### try model with PREVDIA as predictor of mortality (tree size)
 # AIC = 17276.7
+# ELS update: AIC = 19869.4
 smodel4 <- glmer(mort ~ (PREVDIA + PPT_yr_norm + T_yr_norm)^2 + 
                    I(PREVDIA^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) + 
                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -245,6 +265,7 @@ plotResiduals(survData2.scaled$T_yr_norm, res$scaledResiduals, quantreg = T, mai
 ####################################################################################
 # without log transform (two filters)
 # AIC = 17139.4
+# ELS update: AIC = 19564.2
 smodel12.3nolog <- glmer(mort ~ (BAt1 + BALIVE + PPT_yr_norm + PPT_dr_anom + T_yr_norm)^2 + 
                       I(BAt1^2) + I(BALIVE^2) + I(T_yr_norm^2) +
                       (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -262,6 +283,7 @@ plotResiduals(survData3.scaled$PPT_yr_norm, res$scaledResiduals, quantreg = T, m
 plotResiduals(survData3.scaled$T_yr_norm, res$scaledResiduals, quantreg = T, main = "v")
 
 # remove precip anomaly (which is NS); AIC = 17139.6
+# ELS update: AIC = 19567.9
 smodel13.3nolog <- glmer(mort ~ (BAt1 + BALIVE + PPT_yr_norm + T_yr_norm)^2 + 
                            I(BAt1^2) + I(BALIVE^2) + I(T_yr_norm^2) +
                            (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -269,6 +291,7 @@ smodel13.3nolog <- glmer(mort ~ (BAt1 + BALIVE + PPT_yr_norm + T_yr_norm)^2 +
                          control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 
 # remove BALIVE (which is NS); AIC = 17140.6 
+# ELS update: AIC = 19572.8
 smodel14.3nolog <- glmer(mort ~ (BAt1 + PPT_yr_norm + T_yr_norm)^2 + 
                            I(BAt1^2) + I(T_yr_norm^2) +
                            (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -276,6 +299,7 @@ smodel14.3nolog <- glmer(mort ~ (BAt1 + PPT_yr_norm + T_yr_norm)^2 +
                          control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 
 # add quadratic on PPT_yr_norm; AIC = 17127.3
+# ELS update: AIC = 19558.2
 smodel15.3nolog <- glmer(mort ~ (BAt1 + PPT_yr_norm + T_yr_norm)^2 + 
                            I(BAt1^2) + I(T_yr_norm^2) + I(PPT_yr_norm^2) + 
                            (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -293,6 +317,7 @@ plotResiduals(survData3.scaled$T_yr_norm, res$scaledResiduals, quantreg = T, mai
 
 # add in PPT quadratic with (ns) BALIVE - just for visualization of effects
 # AIC = 17126.6
+# ELS update: AIC = 19553.3
 smodel16.3nolog <- glmer(mort ~ (BAt1 + BALIVE + PPT_yr_norm + T_yr_norm)^2 + 
                            I(BAt1^2) + I(BALIVE^2) + I(T_yr_norm^2) + I(PPT_yr_norm^2) + 
                            (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -303,6 +328,7 @@ plot(allEffects(smodel16.3nolog))
 
 # competing models that have only quadratic terms, no interactions
 # AIC = 17132.9
+# ELS update: AIC = 19565
 smodel1.3alt <- glmer(mort ~ BAt1 + I(BAt1^2) + BALIVE + I(BALIVE^2) +
                        PPT_yr_norm + I(PPT_yr_norm^2) +
                        PPT_dr_anom + I(PPT_dr_anom^2) + 
@@ -313,6 +339,7 @@ smodel1.3alt <- glmer(mort ~ BAt1 + I(BAt1^2) + BALIVE + I(BALIVE^2) +
                      control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 plot(allEffects(smodel1.3alt))
 
+# ELS update: AIC = 19563.8
 smodel2.3alt <- glmer(mort ~ BAt1 + I(BAt1^2) +
                         PPT_yr_norm + I(PPT_yr_norm^2) +
                         T_yr_norm + I(T_yr_norm^2) + 
@@ -323,6 +350,8 @@ plot(allEffects(smodel2.3alt))
 
 # use log-transformed size and BALIVE
 # AIC = 17068.8
+# ELS update: getting an error here - Error: Invalid grouping factor specification, PLT_CN
+# Not sure why because PLT_CN is used as a grouping factor in other models with no problem
 smodel1.3log <- glmer(mort ~ log.size + I(log.size^2) + log.BALIVE + I(log.BALIVE^2) +
                        PPT_yr_norm + I(PPT_yr_norm^2) +
                        PPT_dr_anom + I(PPT_dr_anom^2) + 
@@ -331,7 +360,7 @@ smodel1.3log <- glmer(mort ~ log.size + I(log.size^2) + log.BALIVE + I(log.BALIV
                        (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                      family = binomial(link = cloglog), data = survData3.scaled,
                      control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
-plot(allEffects(smodel1.3log))
+ plot(allEffects(smodel1.3log))
 
 res = simulateResiduals(smodel1.3log)
 
@@ -350,6 +379,7 @@ plotResiduals(survData3.scaled$T_yr_norm, res$scaledResiduals, quantreg = T, mai
 
 
 # AIC = 17844.7
+# ELS update: AIC = 20495.6
 smodel.q2 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + I(BALIVE^2) +
                      PPT_yr_norm + I(PPT_yr_norm^2) +
                      PPT_dr_anom + I(PPT_dr_anom^2) + 
@@ -358,6 +388,7 @@ smodel.q2 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + I(BALIVE^2) +
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # AIC = 17843.6
+# ELS update: AIC = 20496.2
 smodel.q3 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + I(BALIVE^2) +
                      PPT_yr_norm + I(PPT_yr_norm^2) +
                      PPT_dr_anom + I(PPT_dr_anom^2) + 
@@ -366,6 +397,7 @@ smodel.q3 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + I(BALIVE^2) +
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # AIC = 17847.9
+# ELS update: AIC = 20497.7
 smodel.q4 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + I(BALIVE^2) +
                      PPT_yr_norm + I(PPT_yr_norm^2) +
                      PPT_dr_anom + I(PPT_dr_anom^2) + 
@@ -374,6 +406,7 @@ smodel.q4 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + I(BALIVE^2) +
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # AIC = 17847.2
+# ELS update: AIC = 20495.7
 smodel.q5 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + I(BALIVE^2) +
                      PPT_yr_norm + I(PPT_yr_norm^2) +
                      PPT_dr_anom + I(PPT_dr_anom^2) + 
@@ -382,6 +415,7 @@ smodel.q5 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + I(BALIVE^2) +
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # AIC = 17847.7
+# ELS update: AIC = 20497.5; this model is the same as the previous
 smodel.q6 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + I(BALIVE^2) +
                      PPT_yr_norm + I(PPT_yr_norm^2) +
                      PPT_dr_anom + I(PPT_dr_anom^2) + 
@@ -390,6 +424,7 @@ smodel.q6 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + I(BALIVE^2) +
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # AIC = 17847.4
+# ELS update: AIC = 20495.2
 smodel.q7 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + I(BALIVE^2) +
                      PPT_yr_norm + I(PPT_yr_norm^2) +
                      PPT_dr_anom + I(PPT_dr_anom^2) + 
@@ -398,6 +433,7 @@ smodel.q7 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + I(BALIVE^2) +
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # AIC = 17847.9
+# ELS update: AIC = 20497.6
 smodel.q8 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + I(BALIVE^2) +
                      PPT_yr_norm + I(PPT_yr_norm^2) +
                      PPT_dr_anom + I(PPT_dr_anom^2) + 
@@ -409,84 +445,98 @@ smodel.q8 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + I(BALIVE^2) +
 
 # narrow down which season drought anomaly is important
 # cool season? AIC = 17897
+# ELS update: AIC = 20549.7
 smodel1.b <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + 
                    PPT_yr_norm + PPT_c_dr_anom + T_yr_norm + T_dr_anom + 
                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                  family = binomial(link = cloglog), data = survData.scaled,
                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # monsoon? AIC = 17897
+# ELS update: AIC = 20627.00
 smodel1.c <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + 
                      PPT_yr_norm + PPT_m_dr_anom + T_yr_norm + T_dr_anom + 
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # foresummer? AIC = 17892
+# ELS update: AIC = 20545.5
 smodel1.d <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + 
                      PPT_yr_norm + PPT_fs_dr_anom + T_yr_norm + T_dr_anom + 
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # previous fall? AIC = 17885
+# ELS update: AIC = 20539.8
 smodel1.e <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + 
                      PPT_yr_norm + PPT_pf_dr_anom + T_yr_norm + T_dr_anom + 
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # cool season? AIC = 17901
+# ELS update: AIC = 20544.3
 smodel1.f <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + 
                      PPT_yr_norm + PPT_c_anom + T_yr_norm + T_dr_anom + 
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # monsoon? AIC = 17899
+# ELS update: AIC = 20555.8
 smodel1.g <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + 
                      PPT_yr_norm + PPT_m_anom + T_yr_norm + T_dr_anom + 
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # foresummer? AIC = 17901
+# ELS update: AIC = 20543.4
 smodel1.h <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + 
                      PPT_yr_norm + PPT_fs_anom + T_yr_norm + T_dr_anom + 
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # BEST SO FAR previous fall AIC = 17873
+# ELS update: AIC = 20539.7; model failed to converge, nearly unidentifiable
 smodel1.i <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + 
                      PPT_yr_norm + PPT_pf_anom + T_yr_norm + T_dr_anom + 
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # cool season? AIC = 17897
+# ELS update: AIC = 20552.7
 smodel1.j <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + 
                      PPT_yr_norm + PPT_c_dr + T_yr_norm + T_dr_anom + 
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # monsoon? AIC = 17891
+# ELS update: AIC = 20546.5
 smodel1.k <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + 
                      PPT_yr_norm + PPT_m_dr + T_yr_norm + T_dr_anom + 
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # foresummer? AIC = 17898
+# ELS update: AIC = 20548
 smodel1.l <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + 
                      PPT_yr_norm + PPT_fs_dr + T_yr_norm + T_dr_anom + 
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # previous fall? AIC = 17892
+# ELS update: AIC = 20549.2
 smodel1.m <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + 
                      PPT_yr_norm + PPT_pf_dr + T_yr_norm + T_dr_anom + 
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # AIC = 17884 no improvement
+# ELS update: AIC = 20535.2
 smodel2 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + 
                    PPT_c_norm + PPT_wd_norm + PPT_m_norm + PPT_dr_anom + T_yr_norm + T_dr_anom + 
                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                  family = binomial(link = cloglog), data = survData.scaled,
                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # doesn't like the following model, failed to converge, "nearly unidentifiable"
+# ELS update: AIC = 20536.1
 smodel3 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + 
                    PPT_c + PPT_wd + PPT_m + PPT_dr_anom + T_yr_norm + T_dr_anom + 
                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -494,12 +544,15 @@ smodel3 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE +
                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 
 # AIC = 17895
+# ELS update: AIC = 20551.2
 smodel4 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + 
                    PPT_drought + T_yr_norm + T_dr_anom + 
                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                  family = binomial(link = cloglog), data = survData.scaled,
                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # doesn't like this model, failed to converge, "nearly unidentifiable"
+# ELS update: didn't have convergence problem
+# ELS update: AIC = 20551.6
 smodel5 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE + 
                    PPT_drought + T_yr_norm + 
                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -507,11 +560,13 @@ smodel5 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE +
                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 
 # AIC = 17918
+# ELS update: AIC = 20578.9
 smodel20 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE +
                 PPT_c + PPT_wd + PPT_m + VPD_c + VPD_wd + VPD_m +
                   (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                 family = binomial(link = cloglog), data = survData.scaled,
                 control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+# ELS update: AIC = 20523.4
 smodel21 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE +
                     PPT_c + PPT_wd + PPT_m + T_c + T_wd + T_m +
                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -520,6 +575,7 @@ smodel21 <- glmer(surv ~ BAt1 + I(BAt1^2) + BALIVE +
 
 
 # AIC = 17863 (got rid of T_dr_anom)
+# ELS update: AIC = 20508.7
 smodel7 <- glmer(surv ~ (BAt1 + BALIVE + PPT_yr_norm + PPT_dr_anom + T_yr_norm)^2 + 
                    I(BAt1^2) +
                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -529,12 +585,14 @@ smodel7 <- glmer(surv ~ (BAt1 + BALIVE + PPT_yr_norm + PPT_dr_anom + T_yr_norm)^
 
 # add quadratic terms into (nearly) best model with 2-way interactions
 # this won't run...failed to converge and model is nearly unidentifiable
+# ELS update: AIC = 20473.6, didn't have convergence problem
 smodel7.b <- glmer(surv ~ (BAt1 + BALIVE + PPT_yr_norm + PPT_dr_anom + T_yr_norm)^2 + 
                    I(BAt1^2) + I(BALIVE^2) + I(PPT_yr_norm^2) + I(PPT_dr_anom^2) + I(T_yr_norm^2) +
                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                  family = binomial(link = cloglog), data = survData.scaled,
                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # not worse, and effect of BALIVE^2 is significant (AIC = 17844.2)
+# ELS update: AIC = 20486.1
 smodel7.c <- glmer(surv ~ (BAt1 + BALIVE + PPT_yr_norm + PPT_dr_anom + T_yr_norm)^2 + 
                      I(BAt1^2) + I(BALIVE^2) +
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -543,6 +601,7 @@ smodel7.c <- glmer(surv ~ (BAt1 + BALIVE + PPT_yr_norm + PPT_dr_anom + T_yr_norm
 # 10 AIC units better! 17834.2
 # AIC = 17800.3 after removing largest BAt1 values
 # model elicits warnings after removing smallest BALIVE values
+# ELS update: AIC = 20473.6
 smodel7.d <- glmer(surv ~ (BAt1 + BALIVE + PPT_yr_norm + PPT_dr_anom + T_yr_norm)^2 + 
                      I(BAt1^2) + I(BALIVE^2) + I(T_yr_norm^2) +
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -551,12 +610,14 @@ smodel7.d <- glmer(surv ~ (BAt1 + BALIVE + PPT_yr_norm + PPT_dr_anom + T_yr_norm
 plot(allEffects(smodel7.d), cex = 0.5)
 # AIC = 17753.6 (after removing BAt1 outliers)
 # AIC = 17549.9 (after also removing 168 cases where log.BALIVE < 0)
+# ELS update: AIC = 20419.4
 smodel11 <- glmer(surv ~ (log.size + BALIVE + PPT_yr_norm + PPT_dr_anom + T_yr_norm)^2 + 
                      I(log.size^2) + I(BALIVE^2) + I(T_yr_norm^2) +
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                    family = binomial(link = cloglog), data = survData.scaled,
                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # AIC = 17539.9
+# ELS update: Error: Invalid grouping factor specification, PLT_CN
 smodel12 <- glmer(surv ~ (log.size + log.BALIVE + PPT_yr_norm + PPT_dr_anom + T_yr_norm)^2 + 
                     I(log.size^2) + I(log.BALIVE^2) + I(T_yr_norm^2) +
                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -570,6 +631,7 @@ plot(effect("PPT_yr_norm", smodel12))
 ## THIS IS THE BEST MODEL AS OF 7/26/2018 (smodel12)
 
 # slightly worse, AIC = 17835.5; PPT_dr_anom^2 is not significant
+# ELS update: AIC = 20474.8
 smodel7.e <- glmer(surv ~ (BAt1 + BALIVE + PPT_yr_norm + PPT_dr_anom + T_yr_norm)^2 + 
                      I(BAt1^2) + I(BALIVE^2) + I(T_yr_norm^2) + I(PPT_dr_anom^2) +
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -578,6 +640,7 @@ smodel7.e <- glmer(surv ~ (BAt1 + BALIVE + PPT_yr_norm + PPT_dr_anom + T_yr_norm
 # two warnings, not sure this model can be trusted...
 # AIC is 3 units lower, and it says PPT_yr_norm^2 is significant
 # maybe worth investigating with a GAM?
+# ELS update: AIC = 20471.7
 smodel7.f <- glmer(surv ~ (BAt1 + BALIVE + PPT_yr_norm + PPT_dr_anom + T_yr_norm)^2 + 
                      I(BAt1^2) + I(BALIVE^2) + I(T_yr_norm^2) + I(PPT_yr_norm^2) +
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -587,6 +650,7 @@ smodel7.f <- glmer(surv ~ (BAt1 + BALIVE + PPT_yr_norm + PPT_dr_anom + T_yr_norm
 
 
 # doesn't like this model, failed to converge, "nearly unidentifiable"
+# ELS update: AIC = 20523.7
 smodel8 <- glmer(surv ~ (BAt1 + BALIVE + PPT_yr_norm + PPT_pf_anom + T_yr_norm)^2 + 
                    I(BAt1^2) +
                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -595,6 +659,7 @@ smodel8 <- glmer(surv ~ (BAt1 + BALIVE + PPT_yr_norm + PPT_pf_anom + T_yr_norm)^
 
 
 # support for 3 seasons (PPT)? AIC = 17854
+# ELS update: AIC = 20492.7
 smodel9 <- glmer(surv ~ (BAt1 + BALIVE + 
                           PPT_c_norm + PPT_wd_norm + PPT_m_norm + PPT_dr_anom + 
                   T_yr_norm + T_dr_anom)^2 + 
@@ -603,6 +668,7 @@ smodel9 <- glmer(surv ~ (BAt1 + BALIVE +
                 family = binomial(link = cloglog), data = survData.scaled,
                 control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 # AIC = 17854.7
+# ELS update: AIC = 20493.2
 smodel10 <- glmer(surv ~ (BAt1 + BALIVE + 
                            PPT_c_norm + PPT_wd_norm + PPT_m_norm + PPT_dr_anom + 
                            T_yr_norm)^2 + 

@@ -1,0 +1,374 @@
+\documentclass{article}
+
+\title{PIED survival models}
+
+\usepackage{float}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\maketitle
+
+\section{Overview}
+After playing around with the vital rate models, we decided to take the following approach to model selection:
+\begin{enumerate}
+\item{Select best size predictor (diameter versus basal area)}
+\item{Select other main effects (balive, precipitation, temperature)}
+\item{Add pairwise interactions}
+\item{Add quadratics}
+\item{Add both pairwise interactions}
+\item{Try more thorough model selection, including seasonal climate variables, climate anomalies, etc.}
+\end{enumerate}
+
+Additional model selection can then be done at the map stage to determine how increasing the complexity of the models to get lower $AIC$ affects projected distributions.
+
+<<echo=FALSE>>=
+library(ggeffects)
+library(ggplot2)
+library(coefplot)
+library(cowplot)
+library(effects)
+library(MuMIn)
+library(dplyr)
+library(DHARMa)
+library(lme4)
+
+# Read data
+survData <- read.csv("./Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
+
+# Create increment columns
+# not needed for survival/mort analysis
+survData$AGB_INCR <- survData$DRYBIO_AG_DIFF / survData$CENSUS_INTERVAL
+survData$DIA_INCR <- survData$DIA_DIFF / survData$CENSUS_INTERVAL
+survData$BA_INCR <- survData$BA_DIFF / survData$CENSUS_INTERVAL
+
+survData$log.size <- log(survData$PREVDIA)
+survData$log.BALIVE <- log(survData$BALIVE)
+
+# Recode status
+survData$surv <- ifelse(survData$STATUSCD == 2, 0, 1)
+survData$mort <- ifelse(survData$STATUSCD == 1, 0, 1)
+
+# remove cases where BALIVE at time 1 = zero (should be impossible)
+# survData <- subset(survData, log.BALIVE > 0) 
+survData.2 <- subset(survData, BALIVE > 0) # goes from 20329 to 20161
+
+# remove conditions where fire or harvest occurred
+survData.3 <- survData[!(survData$DSTRBCD1 %in% c(30, 31, 32, 80)), ] # goes from 20329 to 19867
+
+# standardize covariates
+#ELS update: no AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3 in dataframe, so I removed them from the following code
+survData.scaled <- survData %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
+                                                              -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
+                                                              -CENSUS_INTERVAL,
+                                                              AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3,
+                                                              -AGB_INCR, -DIA_INCR, -BA_INCR,
+                                                              -surv, -mort))
+
+survData2.scaled <- survData.2 %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
+                                                                 -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
+                                                                 -CENSUS_INTERVAL,
+                                                                 AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3,
+                                                                 -AGB_INCR, -DIA_INCR, -BA_INCR,
+                                                                 -surv, -mort))
+
+survData3.scaled <- survData.3 %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
+                                                                 -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
+                                                                 -CENSUS_INTERVAL,
+                                                                 AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3,
+                                                                 -AGB_INCR, -DIA_INCR, -BA_INCR,
+                                                                 -surv, -mort))
+@
+
+\section{Histograms}
+<<echo=FALSE>>=
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+@
+
+<<fig=TRUE, echo=FALSE>>=
+par(mfrow=c(2,2))
+hist(survData$PREVDIA)
+hist(survData$BAt1, breaks = c(seq(0, 1220, by = 10)), xlim = c(0, 1200))
+hist(log(survData$BAt1)) # not quite lognormal, but worth trying in the models below (heavy in the left tail)
+@
+
+<<fig=TRUE, echo=FALSE>>=
+par(mfrow=c(2,2))
+hist(survData$PPT_yr) # not too bad...Poisson-ish but with a large mean count
+hist(survData$T_yr) # looks normal
+hist(log(survData$PPT_yr)) # more normal-looking
+@
+
+\section{Models}
+\subsection{Compare different size predictors}
+<<echo=FALSE>>=
+sbase_dia<-glmer(mort ~ PREVDIA + 
+                   (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                 family = binomial(link = cloglog), data = survData3.scaled,
+                 control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+
+sbase_ba<-glmer(mort ~ BAt1 + 
+                  (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                family = binomial(link = cloglog), data = survData3.scaled,
+                control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+mod.comp_size<-model.sel(sbase_dia,sbase_ba) #Diameter better
+@
+
+<<>>=
+mod.comp_size
+@
+
+The model using diameter as the size predictor had a lower $AIC$ than the model using basal area. The residuals looked similar and good for both models, so I proceeding with diameter as the size predictor.
+
+\subsection{Compare additional basic predictors (balive, ppt, temp)}
+<<echo=FALSE>>=
+sbase_balive<-glmer(mort ~ PREVDIA + BALIVE + 
+               (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+             family = binomial(link = cloglog), data = survData3.scaled,
+             control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+sbase_ppt<-glmer(mort ~ PREVDIA + PPT_yr + 
+               (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+             family = binomial(link = cloglog), data = survData3.scaled,
+             control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+sbase_t<-glmer(mort ~ PREVDIA + T_yr + 
+               (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+             family = binomial(link = cloglog), data = survData3.scaled,
+             control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+sbase_clim<-glmer(mort ~ PREVDIA + PPT_yr + T_yr + 
+               (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+             family = binomial(link = cloglog), data = survData3.scaled,
+             control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+sbase_balive_clim<-glmer(mort ~ PREVDIA + BALIVE + PPT_yr + T_yr + 
+                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                  family = binomial(link = cloglog), data = survData3.scaled,
+                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+
+mod.comp1<-model.sel(sbase_dia,sbase_balive,sbase_ppt,sbase_t,sbase_clim,sbase_balive_clim)
+@
+
+<<>>=
+mod.comp1
+@
+
+The best models were the ones including temperature only, both climate variables and live basal area, and both climate variables. I know Margaret has been back and forth about including basal area in the survival model and ultimately thought she wanted it in there. Because the model including basal area along with the two climate variables was one of the best models, I proceeded with that model.
+
+\subsection{Add interactions,quadratics, and both}
+<<echo=FALSE>>=
+sbase_int<-glmer(mort ~ (PREVDIA + BALIVE + PPT_yr + T_yr)^2 + 
+                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                  family = binomial(link = cloglog), data = survData3.scaled,
+                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+
+sbase_q<-glmer(mort ~ PREVDIA + BALIVE + PPT_yr + T_yr + 
+                         I(PREVDIA^2) + I(BALIVE^2) + I(PPT_yr^2) + I(T_yr^2) + 
+                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                  family = binomial(link = cloglog), data = survData3.scaled,
+                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+
+sbase_int_q<-glmer(mort ~ (PREVDIA + BALIVE + PPT_yr + T_yr)^2 + 
+                      I(PREVDIA^2) + I(BALIVE^2) + I(PPT_yr^2) + I(T_yr^2) + 
+                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                  family = binomial(link = cloglog), data = survData3.scaled,
+                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+
+mod.comp_int_q<-model.sel(sbase_balive_clim,sbase_int_q,sbase_int,sbase_q)
+@
+
+<<>>=
+mod.comp_int_q
+@
+
+The model including both interactions and quadratics was the best ($\Delta AIC = 7.94$), but the model with only quadratics was definitively better than the model with only interactions ($\Delta AIC = 73.5$).
+
+\subsection{Model selection summary}
+<<echo=FALSE>>=
+sbase_int_mar<-glmer(mort ~ PREVDIA + BALIVE + PPT_m + T_fs + PPT_pf_dr_anom + T_c_anom 
+                     + I(PREVDIA^2) +I(BALIVE^2) +I(PPT_m^2) +I(T_fs^2) + I(PPT_pf_dr_anom^2)                             + PREVDIA:BALIVE + PREVDIA:PPT_m + PREVDIA:T_c_anom + BALIVE:T_c_anom 
+                     + T_fs:PPT_pf_dr_anom + 
+                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                     family = binomial(link = cloglog), data = survData3.scaled,
+                     control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+@
+
+The best model that came out of the model selection process (see \emph{./Code/Recruitment/modelSelection.R}) included live basal area; monsoon precipitation; previous fall precipitation anomaly; foresummer temperature, cool season temperature anomaly; quadratics; and some interactions:
+
+<<>>=
+summary(sbase_int_mar)
+@
+
+The models I will export for use in the IPMs are:
+\begin{enumerate}
+\item{surv \~{} dia + balive + ppt + temp}
+\item{surv \~{} dia \** balive \** ppt \** temp}
+\item{surv \~{} dia + balive + ppt + temp + dia\textsuperscript{2} + balive\textsuperscript{2} + ppt\textsuperscript{2} + temp\textsuperscript{2}}
+\item{surv \~{} dia \** balive \** ppt \** temp + dia\textsuperscript{2} + balive\textsuperscript{2} + ppt\textsuperscript{2} + temp\textsuperscript{2}}
+\end{enumerate}
+
+The effects plots for these models are below.
+
+\section{Effects plots}
+\begin{figure}[H]
+\begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", sbase_balive_clim))
+@
+  \end{minipage}%
+\begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", sbase_balive_clim))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_yr", sbase_balive_clim))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr", sbase_balive_clim))
+@
+  \end{minipage}
+\caption{Effects plots for model with only first-order main effects.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", sbase_int))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", sbase_int))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_yr", sbase_int))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr", sbase_int))
+@
+  \end{minipage}
+\caption{Effects plots for model with main effects and pairwise interaction.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", sbase_q))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", sbase_q))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_yr", sbase_q))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr", sbase_q))
+@
+  \end{minipage}
+\caption{Effects plots for model with main effects and quadratics.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", sbase_int_q))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", sbase_int_q))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_yr", sbase_int_q))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr", sbase_int_q))
+@
+  \end{minipage}
+\caption{Effects plots for model with main effects, pairwise interactions, and quadratics.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", sbase_int_mar))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", sbase_int_mar))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_m", sbase_int_mar))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_pf_dr_anom", sbase_int_mar))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_fs", sbase_int_mar))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_c_anom", sbase_int_mar))
+@
+  \end{minipage}
+\caption{Effects plots for ``best" model.}
+\end{figure}
+
+\end{document}
