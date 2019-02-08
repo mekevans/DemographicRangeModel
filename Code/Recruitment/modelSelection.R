@@ -374,11 +374,52 @@ plot(Effect.glmmTMB("BALIVE:PPT_yr_norm", rmodel_zip3seasTint)) # doesn't work
 plotResiduals(rdata.scaled$PPT_c_window_25, res$scaledResiduals, quantreg = T, main = "PPT_yr")
 plotResiduals(rdata.scaled$T_c_window_25, res$scaledResiduals, quantreg = T, main = "BALIVE")
 
+### Models to export
+r_balive_clim<-glmmTMB(recruits1 ~ 1
+                       + BALIVE + PPT_yr_norm + T_yr_norm 
+                       + offset(log(CENSUS_INTERVAL))
+                       + offset(log(PIEDadults1)), # various alternatives for this offset
+                       ziformula = ~ 1,
+                       data = rdata.scaled, 
+                       family = "poisson")
+r_int<-glmmTMB(recruits1 ~ 1
+               + (BALIVE + PPT_yr_norm + T_yr_norm)^2 
+               + offset(log(CENSUS_INTERVAL))
+               + offset(log(PIEDadults1)), # various alternatives for this offset
+               ziformula = ~ 1,
+               data = rdata.scaled, 
+               family = "poisson")
+r_q<-glmmTMB(recruits1 ~ 1
+             + BALIVE + I(BALIVE^2)
+             + PPT_yr_norm + I(PPT_yr_norm^2)
+             + T_yr_norm + I(T_yr_norm^2)
+             + offset(log(CENSUS_INTERVAL))
+             + offset(log(PIEDadults1)), # various alternatives for this offset
+             ziformula = ~ 1,
+             data = rdata.scaled, 
+             family = "poisson")
+r_int_q<-glmmTMB(recruits1 ~ 1
+                 + (BALIVE + PPT_yr_norm + T_yr_norm)^2 
+                 + I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2)
+                 + offset(log(CENSUS_INTERVAL))
+                 + offset(log(PIEDadults1)), # various alternatives for this offset
+                 ziformula = ~ 1,
+                 data = rdata.scaled, 
+                 family = "poisson")
+rmodel_zip3seasTint <- glmmTMB(recruits1 ~ 1
+                               + (BALIVE + PPT_yr_norm + T_wd_norm + T_c_norm + T_m_norm)^2
+                               + I(BALIVE^2) + I(PPT_yr_norm^2)
+                               + I(T_wd_norm^2) + I(T_m_norm^2) + I(T_c_norm^2)
+                               + offset(log(CENSUS_INTERVAL))
+                               + offset(log(PIEDadults1)), 
+                               ziformula = ~ 1,
+                               data = rdata.scaled, 
+                               family = "poisson")
 
 ### dealing with std'ized covariates
 
 # specify the predictors in the "best" model (or candidate best)
-r.predictors <- c("T_yr_norm", "PPT_yr_norm", "BALIVE") # rmodel_zipoiss
+r.predictors <- c("T_yr_norm", "PPT_yr_norm", "T_wd_norm", "T_c_norm", "T_m_norm", "BALIVE") # rmodel_zipoiss
 # eventually rewrite this so that it can handle alternative "best" models
 #r.predictors <- c("T_wd_norm", "T_c_norm", "T_m_norm", "PPT_wd_norm", "PPT_c_norm", "PPT_m_norm", "BALIVE") # rmodel_zip3seas
 #r.predictors <- c("T_wd_norm", "T_c_norm", "T_m_norm", "PPT_yr_norm", "BALIVE") # rmodel_zip3seasTint
@@ -400,4 +441,4 @@ for (i in r.predictors) {
 }
 
 # export model for coefficients and scaling information -------------------
-save(rmodel_zipoiss, r.scaling, file = "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Code/IPM/RecruitRescaling.Rdata")
+save(r_balive_clim,r_int,r_q,r_int_q,rmodel_zip3seasTint, r.scaling, file = "./Code/IPM/RecruitRescaling.Rdata")

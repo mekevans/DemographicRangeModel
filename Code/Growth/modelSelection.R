@@ -150,13 +150,25 @@ gmodel.8 <- lmer(DIA_INCR ~ (PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm)^2
                  + I(PREVDIA^2) + I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) + (1|PLT_CN), data = grdata.scaled)
 mod.comp5 <- model.sel(gmodel.3a, gmodel.4a, gmodel.5, gmodel.6, gmodel.7, gmodel.8)
 
+### Models to export
+gmodel_balive_clim <- lmer(DIA_INCR ~ PREVDIA + BALIVE + PPT_yr + T_yr + I(PREVDIA^2) + (1|PLT_CN), data = grdata.scaled)
+gmodel_int <- lmer(DIA_INCR ~ (PREVDIA + BALIVE + PPT_yr + T_yr)^2 + I(PREVDIA^2) + (1|PLT_CN), data = grdata.scaled)
+gmodel_q <- lmer(DIA_INCR ~ PREVDIA + I(PREVDIA^2) + BALIVE + I(BALIVE^2) +
+                   PPT_yr + I(PPT_yr^2) + T_yr + I(T_yr^2) + 
+                   (1|PLT_CN), data = grdata.scaled)
+gmodel_int_q<- lmer(DIA_INCR ~ (PREVDIA + BALIVE + PPT_yr + T_yr)^2 
+                    + I(PREVDIA^2) + I(BALIVE^2) + I(PPT_yr^2) + I(T_yr^2) + (1|PLT_CN), data = grdata.scaled)
+
 # growSD is used for building IPM (see BuildIPM.R)
-growSD <- sd(resid(gmodel.7))
+growSD_balive_clim <- sd(resid(gmodel_balive_clim))
+growSD_int <- sd(resid(gmodel_int))
+growSD_q <- sd(resid(gmodel_q))
+growSD_int_q <- sd(resid(gmodel_int_q))
 
 ### dealing with std'ized covariates
 
 # specify the predictors in the "best" model (or candidate best)
-gr.predictors <- c("PREVDIA", "T_yr_norm", "PPT_yr_norm", "BALIVE") 
+gr.predictors <- c("PREVDIA", "T_yr", "PPT_yr", "BALIVE") 
 # eventually rewrite this so that it can handle alternative "best" models
 
 get_scale = function(data, predictors) {
@@ -176,4 +188,6 @@ for (i in gr.predictors) {
 }
 
 # export model for coefficients and scaling information -------------------
-save(gmodel.7, gr.scaling, growSD, file = "./Code/IPM/GrRescaling.Rdata")
+#save(gmodel.7, gr.scaling, growSD, file = "./Code/IPM/GrRescaling.Rdata")
+save(gmodel_balive_clim,gmodel_int,gmodel_q,gmodel_int_q, gr.scaling, growSD_balive_clim,growSD_int,
+     growSD_q,growSD_int_q, file = "./Code/IPM/GrRescaling.Rdata")

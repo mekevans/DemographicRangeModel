@@ -683,9 +683,38 @@ plot(allEffects(smodel1))
 #### NEW STUFF 10/25/18
 ### dealing with std'ized covariates
 
+# Models to export:
+sbase_balive_clim<-glmer(mort ~ PREVDIA + BALIVE + PPT_yr + T_yr + 
+                           (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                         family = binomial(link = cloglog), data = survData3.scaled,
+                         control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+
+sbase_int<-glmer(mort ~ (PREVDIA + BALIVE + PPT_yr + T_yr)^2 + 
+                   (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                 family = binomial(link = cloglog), data = survData3.scaled,
+                 control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+
+sbase_q<-glmer(mort ~ PREVDIA + BALIVE + PPT_yr + T_yr + 
+                 I(PREVDIA^2) + I(BALIVE^2) + I(PPT_yr^2) + I(T_yr^2) + 
+                 (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+               family = binomial(link = cloglog), data = survData3.scaled,
+               control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+
+sbase_int_q<-glmer(mort ~ (PREVDIA + BALIVE + PPT_yr + T_yr)^2 + 
+                     I(PREVDIA^2) + I(BALIVE^2) + I(PPT_yr^2) + I(T_yr^2) + 
+                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+
+sbase_best<-glmer(mort ~ (PREVDIA + BALIVE + PPT_m + T_fs + PPT_pf_dr_anom + T_c_anom)^2 
+                  + I(PREVDIA^2) +I(BALIVE^2) +I(PPT_m^2) +I(T_fs^2) + I(PPT_pf_dr_anom^2)                             + (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                  family = binomial(link = cloglog), data = survData3.scaled,
+                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+
 # specify the predictors in the "best" model (or candidate best)
 #surv.predictors <- c("PREVDIA", "T_yr_norm", "PPT_yr_norm")
-surv.predictors <- c("PREVDIA", "T_yr_norm", "PPT_yr_norm", "BALIVE")
+surv.predictors <- c("PREVDIA", "T_yr", "PPT_yr", "BALIVE", "PPT_m", "T_fs", "PPT_pf_dr_anom",
+                     "T_c_anom")
 # eventually rewrite this so that it can handle alternative "best" models
 
 get_scale = function(data, predictors) {
@@ -706,5 +735,6 @@ for (i in surv.predictors) {
 
 # export model for coefficients and scaling information -------------------
 #save(smodel4.q, surv.scaling, file = "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Code/IPM/SurvRescaling.Rdata")
-save(smodel4, surv.scaling, file = "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Code/IPM/SurvRescalingNoFire.Rdata")
-save(smodel3, surv.scaling, file = "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Code/IPM/SurvRescalingBA.Rdata")
+#save(smodel4, surv.scaling, file = "./Code/IPM/SurvRescalingNoFire.Rdata")
+#save(smodel3, surv.scaling, file = "./Code/IPM/SurvRescalingBA.Rdata")
+save(sbase_balive_clim,sbase_int,sbase_q,sbase_int_q,sbase_best, surv.scaling, file = "./Code/IPM/SurvRescalingNoFire.Rdata")

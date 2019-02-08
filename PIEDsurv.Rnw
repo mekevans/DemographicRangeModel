@@ -216,18 +216,16 @@ The model including both interactions and quadratics was the best ($\Delta AIC =
 
 \subsection{Model selection summary}
 <<echo=FALSE>>=
-sbase_int_mar<-glmer(mort ~ PREVDIA + BALIVE + PPT_m + T_fs + PPT_pf_dr_anom + T_c_anom 
-                     + I(PREVDIA^2) +I(BALIVE^2) +I(PPT_m^2) +I(T_fs^2) + I(PPT_pf_dr_anom^2)                             + PREVDIA:BALIVE + PREVDIA:PPT_m + PREVDIA:T_c_anom + BALIVE:T_c_anom 
-                     + T_fs:PPT_pf_dr_anom + 
-                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+sbase_best<-glmer(mort ~ (PREVDIA + BALIVE + PPT_m + T_fs + PPT_pf_dr_anom + T_c_anom)^2 
+                     + I(PREVDIA^2) +I(BALIVE^2) +I(PPT_m^2) +I(T_fs^2) + I(PPT_pf_dr_anom^2)                             + (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                      family = binomial(link = cloglog), data = survData3.scaled,
                      control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 @
 
-The best model that came out of the model selection process (see \emph{./Code/Recruitment/modelSelection.R}) included live basal area; monsoon precipitation; previous fall precipitation anomaly; foresummer temperature, cool season temperature anomaly; quadratics; and some interactions:
+The best model that came out of the model selection process (see \emph{./Code/Recruitment/modelSelection.R}) included live basal area; monsoon precipitation; previous fall precipitation anomaly; foresummer temperature, cool season temperature anomaly; quadratics; and interactions:
 
 <<>>=
-summary(sbase_int_mar)
+summary(sbase_best)
 @
 
 The models I will export for use in the IPMs are:
@@ -236,6 +234,7 @@ The models I will export for use in the IPMs are:
 \item{surv \~{} dia \** balive \** ppt \** temp}
 \item{surv \~{} dia + balive + ppt + temp + dia\textsuperscript{2} + balive\textsuperscript{2} + ppt\textsuperscript{2} + temp\textsuperscript{2}}
 \item{surv \~{} dia \** balive \** ppt \** temp + dia\textsuperscript{2} + balive\textsuperscript{2} + ppt\textsuperscript{2} + temp\textsuperscript{2}}
+\item{surv \~{} dia \** balive \** ppt\_m \** temp\_fs \** ppt\_pf\_dr\_anom \** t\_c\_anom + dia\textsuperscript{2} + balive\textsuperscript{2} + ppt\_m\textsuperscript{2} + temp\_fs\textsuperscript{2} + ppt\_pf\_dr\_anom\textsuperscript{2}}
 \end{enumerate}
 
 The effects plots for these models are below.
@@ -340,32 +339,32 @@ plot(effect("T_yr", sbase_int_q))
 \begin{figure}[H]
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("PREVDIA", sbase_int_mar))
+plot(effect("PREVDIA", sbase_best))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("BALIVE", sbase_int_mar))
+plot(effect("BALIVE", sbase_best))
 @
   \end{minipage}
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("PPT_m", sbase_int_mar))
+plot(effect("PPT_m", sbase_best))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("PPT_pf_dr_anom", sbase_int_mar))
+plot(effect("PPT_pf_dr_anom", sbase_best))
 @
   \end{minipage}
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("T_fs", sbase_int_mar))
+plot(effect("T_fs", sbase_best))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("T_c_anom", sbase_int_mar))
+plot(effect("T_c_anom", sbase_best))
 @
   \end{minipage}
 \caption{Effects plots for ``best" model.}
