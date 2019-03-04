@@ -370,4 +370,134 @@ plot(Effect.glmmTMB("T_m_norm", rmodel_zip3seasTint))
 \caption{Effects plots for ``best" model.}
 \end{figure}
 
+<<echo=FALSE>>=
+r_fun_ba<-function(ba,coef,ppt,t_wd,t_c,t_m){
+  return(exp(coef[1]+coef[2]*ba+coef[7]*(ba^2)+coef[3]*ppt+coef[8]*(ppt^2)+
+           coef[4]*t_wd+coef[9]*(t_wd^2)+coef[5]*t_c+coef[11]*(t_c^2)+coef[6]*t_m+coef[10]*(t_m^2)+
+           coef[12]*ba*ppt+coef[13]*ba*t_wd+coef[14]*ba*t_c+coef[15]*ba*t_m+
+           coef[16]*ppt*t_wd+coef[17]*ppt*t_c+coef[18]*ppt*t_m+coef[19]*t_wd*t_c+
+           coef[20]*t_wd*t_m+coef[21]*t_c*t_m + mean(log(rdata.scaled$CENSUS_INTERVAL))+ 
+           mean(log(rdata.scaled$PIEDadults1))))
+}
+r_fun_ppt<-function(ppt,coef,ba,t_wd,t_c,t_m){
+  return(exp(coef[1]+coef[2]*ba+coef[7]*(ba^2)+coef[3]*ppt+coef[8]*(ppt^2)+
+           coef[4]*t_wd+coef[9]*(t_wd^2)+coef[5]*t_c+coef[11]*(t_c^2)+coef[6]*t_m+coef[10]*(t_m^2)+
+           coef[12]*ba*ppt+coef[13]*ba*t_wd+coef[14]*ba*t_c+coef[15]*ba*t_m+
+           coef[16]*ppt*t_wd+coef[17]*ppt*t_c+coef[18]*ppt*t_m+coef[19]*t_wd*t_c+
+           coef[20]*t_wd*t_m+coef[21]*t_c*t_m + mean(log(rdata.scaled$CENSUS_INTERVAL))+ 
+           mean(log(rdata.scaled$PIEDadults1))))
+}
+r_fun_t_wd<-function(t_wd,coef,ba,ppt,t_c,t_m){
+  return(exp(coef[1]+coef[2]*ba+coef[7]*(ba^2)+coef[3]*ppt+coef[8]*(ppt^2)+
+           coef[4]*t_wd+coef[9]*(t_wd^2)+coef[5]*t_c+coef[11]*(t_c^2)+coef[6]*t_m+coef[10]*(t_m^2)+
+           coef[12]*ba*ppt+coef[13]*ba*t_wd+coef[14]*ba*t_c+coef[15]*ba*t_m+
+           coef[16]*ppt*t_wd+coef[17]*ppt*t_c+coef[18]*ppt*t_m+coef[19]*t_wd*t_c+
+           coef[20]*t_wd*t_m+coef[21]*t_c*t_m + mean(log(rdata.scaled$CENSUS_INTERVAL))+ 
+           mean(log(rdata.scaled$PIEDadults1))))
+}
+r_fun_t_c<-function(t_c,coef,ba,ppt,t_wd,t_m){
+  return(exp(coef[1]+coef[2]*ba+coef[7]*(ba^2)+coef[3]*ppt+coef[8]*(ppt^2)+
+           coef[4]*t_wd+coef[9]*(t_wd^2)+coef[5]*t_c+coef[11]*(t_c^2)+coef[6]*t_m+coef[10]*(t_m^2)+
+           coef[12]*ba*ppt+coef[13]*ba*t_wd+coef[14]*ba*t_c+coef[15]*ba*t_m+
+           coef[16]*ppt*t_wd+coef[17]*ppt*t_c+coef[18]*ppt*t_m+coef[19]*t_wd*t_c+
+           coef[20]*t_wd*t_m+coef[21]*t_c*t_m + mean(log(rdata.scaled$CENSUS_INTERVAL))+ 
+           mean(log(rdata.scaled$PIEDadults1))))
+}
+r_fun_t_m<-function(t_m,coef,ba,ppt,t_wd,t_c){
+  return(exp(coef[1] + coef[2]*ba + coef[7]*(ba^2) + coef[3]*ppt + coef[8]*(ppt^2) + 
+           coef[4]*t_wd + coef[9]*(t_wd^2) + coef[5]*t_c + coef[11]*(t_c^2) + coef[6]*t_m + 
+           coef[10]*(t_m^2)+ coef[12]*ba*ppt + coef[13]*ba*t_wd + coef[14]*ba*t_c + coef[15]*ba*t_m +
+           coef[16]*ppt*t_wd + coef[17]*ppt*t_c + coef[18]*ppt*t_m + coef[19]*t_wd*t_c + 
+           coef[20]*t_wd*t_m + coef[21]*t_c*t_m + mean(log(rdata.scaled$CENSUS_INTERVAL))+ 
+           mean(log(rdata.scaled$PIEDadults1))))
+}
+
+r_ba_plot<-ggplot(data=rdata.scaled,aes(x=BALIVE,y=recruits1))+
+  geom_point(alpha=0.7)+
+  stat_function(fun=r_fun_ba,args=list(coef=fixef(rmodel_zip3seasTint)$cond,
+                                       ppt=mean(rdata.scaled$PPT_yr_norm),
+                                       t_wd=mean(rdata.scaled$T_wd_norm),
+                                       t_c=mean(rdata.scaled$T_c_norm),
+                                       t_m=mean(rdata.scaled$T_m_norm)),
+                col="red")
+
+r_ppt_plot<-ggplot(data=rdata.scaled,aes(x=PPT_yr_norm,y=recruits1))+
+  geom_point(alpha=0.7)+
+  stat_function(fun=r_fun_ppt,args=list(coef=fixef(rmodel_zip3seasTint)$cond,
+                                        ba=mean(rdata.scaled$BALIVE),
+                                        t_wd=mean(rdata.scaled$T_wd_norm),
+                                        t_c=mean(rdata.scaled$T_c_norm),
+                                        t_m=mean(rdata.scaled$T_m_norm)),
+                col="red")
+r_t_wd_plot<-ggplot(data=rdata.scaled,aes(x=T_wd_norm,y=recruits1))+
+  geom_point(alpha=0.7)+
+  stat_function(fun=r_fun_t_wd,args=list(coef=fixef(rmodel_zip3seasTint)$cond,
+                                         ba=mean(rdata.scaled$BALIVE),
+                                         ppt=mean(rdata.scaled$PPT_yr_norm),
+                                         t_c=mean(rdata.scaled$T_c_norm),
+                                         t_m=mean(rdata.scaled$T_m_norm)),
+                col="red")
+r_t_c_plot<-ggplot(data=rdata.scaled,aes(x=T_c_norm,y=recruits1))+
+  geom_point(alpha=0.7)+
+  stat_function(fun=r_fun_t_c,args=list(coef=fixef(rmodel_zip3seasTint)$cond,
+                                        ba=mean(rdata.scaled$BALIVE),
+                                        ppt=mean(rdata.scaled$PPT_yr_norm),
+                                        t_wd=mean(rdata.scaled$T_wd_norm),
+                                        t_m=mean(rdata.scaled$T_m_norm)),
+                col="red")
+r_t_m_plot<-ggplot(data=rdata.scaled,aes(x=T_m_norm,y=recruits1))+
+  geom_point(alpha=0.7)+
+  stat_function(fun=r_fun_t_m,args=list(coef=fixef(rmodel_zip3seasTint)$cond,
+                                        ba=mean(rdata.scaled$BALIVE),
+                                        ppt=mean(rdata.scaled$PPT_yr_norm),
+                                        t_wd=mean(rdata.scaled$T_wd_norm),
+                                        t_c=mean(rdata.scaled$T_c_norm)),
+                col="red")
+@
+
+<<echo=FALSE>>=
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+@
+
+\begin{figure}[H]
+<<fig=TRUE,echo=FALSE>>=
+multiplot(r_ba_plot,r_t_wd_plot,r_t_m_plot,r_ppt_plot,r_t_c_plot,cols=2)
+@
+\caption{Effects plots for model with main effects and quadratics, plotted over raw data.}
+\end{figure}
+
 \end{document}

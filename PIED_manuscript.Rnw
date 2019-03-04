@@ -1,0 +1,28 @@
+\documentclass{article}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\section{Introduction}
+
+Anthropogenic climate change is affecting the geographic distributions of species across the tree of life and the globe (Parmesan & Yohe 2003; Parmesan 2006; Chen et al. 2011). Forests show indications of this change, including large-scale, drought-induced mortality events (Allen et al. 2010, 2015), productivity changes indicative of biome shifts (Beck et al. 2011), and range contractions for many tree species (Zhu et al. 2012) . Many North American tree species have been found to respond negatively to the environmental and biotic consequences of contemporary climate change (e.g. Breshears et al. 2005, 2009; van Mantgem et al. 2009; Chen et al. 2016; Hansen et al. 2016). Given the extensive ecosystem services forests provide (Costanza et al. 1997), assessing the future of forests under climate change is essential for managing these ecosystems (Millar et al. 2007).
+
+Though elucidating the causes of species’ ranges has been a central question in ecology and evolutionary biology for decades (MacArthur 1984; Brown et al. 1996; Holt 2003; Sexton et al. 2009), the question has not been answered for a single species. Dobzhansky (1950) and MacArthur (1972) both suggested that species' ranges are limited by abiotic stress at high latitudes and/or elevations, and limited by biotic stress (competition) at low latitudes and/or elevations. Their relative contributions are not clear (Brooker et al. 2007; Sexton et al. 2009), including for tree species (Ettinger et al. 2011; Ettinger & HilleRisLambers 2013; HilleRisLambers et al. 2013). \textbf{Elaborate more on this}
+
+Whereas modeling the geographic distributions of species is typically done using correlative approaches based on presence (or presence-absence) and climate data (so-called species distribution models or SDMs; Elith & Leathwick 2009), projections of the forest biome are most often based on process-based approaches representing underlying physiological relationships, particularly photosynthesis (dynamic global vegetation models [DGVMs] or terrestrial biosphere models; Bonan et al. 2003; Sitch et al. 2008). SDMs are often criticized for problems with inference, e.g. when extrapolating to non-analog climates (Fitzpatrick & Hargrove 2009), while DGVMs suffer uncertainty deriving from a variety of assumptions, including the representation of mortality (Joetzjer et al. 2014), phenology (Jeong et al. 2012), and responses to CO2 fertilization (Thornton et al. 2007). \textbf{Connect this back to previous paragraph. Maybe combine with the next paragraph and condense.}
+
+Demographic models strike a middle ground between these correlative and process-based approaches. In demographic range models (DRMs ), population dynamics are represented from a process-based perspective in the sense that growth, mortality, and reproduction modeled explicitly. However, the response of each of these vital rates to environmental drivers - e.g., climatic factors like temperature and precipitation - is correlative. Here we adopt a demographic approach to try to better understand what factors shape the geographic range of a single species. 
+
+Here, we use DRMs to investigate what factors shape the geographic range of common pinyon pine (Pinus edulis; PIED). PIED is a tree species characteristic of the lower-elevation limit of the forest biome in the southwestern United States. Its distribution follows the Colorado Plateau in the Four Corners region where the states of Colorado, Utah, Arizona, and New Mexico meet. Within its range, PIED co-mingles with various species of juniper to form pinon-juniper woodlands. PIED suffered extensive mortality in 2002 and 2003 due to warm ("global change-type") drought conditions coupled with bark beetle infestation (Breshears et al. 2005, 2009; Shaw et al. 2005; Clifford et al. 2013). As a result, it has become a model organism for the study of drought-induced mortality, with both experimental studies (Adams et al. 2009) and climate projections suggesting the potential for further die-offs (Seager et al. 2007). 
+
+Pinus edulis' range forms an elevational band below which is found juniper woodland or grassland and above which is found Ponderosa pine (Pinus ponderosa) forest, providing an excellent opportunity to examine the factors driving species’ distributions. The consequence of this elevational banding is a reversal of the above Dobzhansky-MacArthur predictions about abiotic vs. biotic drivers of range limits.  In the case of PIED, it is at its lower-elevation boundary that the distribution is most likely limited by climate stress and at its upper-elevation boundary that it may be limited by competition. Alternatively, the low density of pinyon-juniper woodlands may render competition less important than climate across PIED’s range. This leads to two hypotheses:
+
+\begin{enumerate}
+\item{Climate defines the lower range limit of PIED; competition defines the upper range limit of PIED.}
+\item{Climate alone defines the range limits of PIED.}
+\end{enumerate}
+
+We attempt to address these alternative hypotheses for PIED's geographic distribution by parameterizing competing demographic models and evaluating their performance at predicting the observed distribution of PIED.
+
+
+\end{document}

@@ -370,4 +370,131 @@ plot(effect("T_c_anom", sbase_best))
 \caption{Effects plots for ``best" model.}
 \end{figure}
 
+<<echo=FALSE>>=
+ncuts=50
+chopsize_dia<-cut(survData3.scaled$PREVDIA,ncuts)
+chopsize_ba<-cut(survData3.scaled$BALIVE,ncuts)
+chopsize_PPTm<-cut(survData3.scaled$PPT_m,ncuts)
+chopsize_Tfs<-cut(survData3.scaled$T_fs,ncuts)
+chopsize_PPTanom<-cut(survData3.scaled$PPT_pf_dr_anom,ncuts)
+chopsize_Tanom<-cut(survData3.scaled$T_c_anom,ncuts)
+surv_binned_dia<-as.vector(sapply(split(survData3.scaled$mort,chopsize_dia),mean))
+dia_binned<-as.vector(sapply(split(survData3.scaled$PREVDIA,chopsize_dia),mean))
+surv_binned_ba<-as.vector(sapply(split(survData3.scaled$mort,chopsize_ba),mean))
+ba_binned<-as.vector(sapply(split(survData3.scaled$BALIVE,chopsize_ba),mean))
+surv_binned_PPTm<-as.vector(sapply(split(survData3.scaled$mort,chopsize_PPTm),mean))
+PPTm_binned<-as.vector(sapply(split(survData3.scaled$PPT_m,chopsize_PPTm),mean))
+surv_binned_Tfs<-as.vector(sapply(split(survData3.scaled$mort,chopsize_Tfs),mean))
+Tfs_binned<-as.vector(sapply(split(survData3.scaled$T_fs,chopsize_Tfs),mean))
+surv_binned_PPTanom<-as.vector(sapply(split(survData3.scaled$mort,chopsize_PPTanom),mean))
+PPTanom_binned<-as.vector(sapply(split(survData3.scaled$PPT_pf_dr_anom,chopsize_PPTanom),mean))
+surv_binned_Tanom<-as.vector(sapply(split(survData3.scaled$mort,chopsize_Tanom),mean))
+Tanom_binned<-as.vector(sapply(split(survData3.scaled$T_c_anom,chopsize_Tanom),mean))
+
+s_binned<-as.data.frame(cbind(surv_binned_dia,surv_binned_ba,surv_binned_PPTm,
+                              surv_binned_Tfs,surv_binned_PPTanom,surv_binned_Tanom,dia_binned,
+                              ba_binned,PPTm_binned,Tfs_binned,PPTanom_binned,Tanom_binned))
+names(s_binned)<-c("mort_dia","mort_ba","mort_PPTm","mort_Tfs","mort_PPTanom","mort_Tanom",
+                   "PREVDIA","BALIVE","PPT_m","T_fs","PPT_pf_dr_anom","T_c_anom")
+
+dia_seq<-seq(min(survData3.scaled$PREVDIA,na.rm=T),max(survData3.scaled$PREVDIA,na.rm=T),length=50)
+dia_pred<-predict(sbase_best, 
+                  newdata = data.frame(PREVDIA=dia_seq,
+                      BALIVE=median(survData3.scaled$BALIVE,na.rm=T),
+                      PPT_m=median(survData3.scaled$PPT_m,na.rm=T),
+                      T_fs=median(survData3.scaled$T_fs,na.rm=T),
+                      PPT_pf_dr_anom=median(survData3.scaled$PPT_pf_dr_anom,na.rm=T),
+                      T_c_anom=median(survData3.scaled$T_c_anom,na.rm=T),
+                      CENSUS_INTERVAL=median(survData3.scaled$CENSUS_INTERVAL,na.rm=T)), 
+                  type = "response", re.form = NA)
+
+ba_seq<-seq(min(survData3.scaled$BALIVE,na.rm=T),max(survData3.scaled$BALIVE,na.rm=T),length=50)
+ba_pred<-predict(sbase_best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
+                      BALIVE=ba_seq,
+                      PPT_m=median(survData3.scaled$PPT_m,na.rm=T),
+                      T_fs=median(survData3.scaled$T_fs,na.rm=T),
+                      PPT_pf_dr_anom=median(survData3.scaled$PPT_pf_dr_anom,na.rm=T),
+                      T_c_anom=median(survData3.scaled$T_c_anom,na.rm=T),
+                      CENSUS_INTERVAL=median(survData3.scaled$CENSUS_INTERVAL,na.rm=T)), 
+                 type = "response", re.form = NA)
+
+PPTm_seq<-seq(min(survData3.scaled$PPT_m,na.rm=T),max(survData3.scaled$PPT_m,na.rm=T),length=50)
+PPTm_pred<-predict(sbase_best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
+                      BALIVE=median(survData3.scaled$BALIVE,na.rm=T),
+                      PPT_m=PPTm_seq,
+                      T_fs=median(survData3.scaled$T_fs,na.rm=T),
+                      PPT_pf_dr_anom=median(survData3.scaled$PPT_pf_dr_anom,na.rm=T),
+                      T_c_anom=median(survData3.scaled$T_c_anom,na.rm=T),
+                      CENSUS_INTERVAL=median(survData3.scaled$CENSUS_INTERVAL,na.rm=T)), 
+                   type = "response", re.form = NA)
+
+Tfs_seq<-seq(min(survData3.scaled$T_fs,na.rm=T),max(survData3.scaled$T_fs,na.rm=T),length=50)
+Tfs_pred<-predict(sbase_best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
+                      BALIVE=median(survData3.scaled$BALIVE,na.rm=T),
+                      PPT_m=median(survData3.scaled$PPT_m,na.rm=T),
+                      T_fs=Tfs_seq,
+                      PPT_pf_dr_anom=median(survData3.scaled$PPT_pf_dr_anom,na.rm=T),
+                      T_c_anom=median(survData3.scaled$T_c_anom,na.rm=T),
+                      CENSUS_INTERVAL=median(survData3.scaled$CENSUS_INTERVAL,na.rm=T)), 
+                  type = "response", re.form = NA)
+
+PPTanom_seq<-seq(min(survData3.scaled$PPT_pf_dr_anom,na.rm=T),
+                 max(survData3.scaled$PPT_pf_dr_anom,na.rm=T),length=50)
+PPTanom_pred<-predict(sbase_best, newdata=data.frame(
+                      PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
+                      BALIVE=median(survData3.scaled$BALIVE,na.rm=T),
+                      PPT_m=median(survData3.scaled$PPT_m,na.rm=T),
+                      T_fs=median(survData3.scaled$T_fs,na.rm=T),
+                      PPT_pf_dr_anom=PPTanom_seq,
+                      T_c_anom=median(survData3.scaled$T_c_anom,na.rm=T),
+                      CENSUS_INTERVAL=median(survData3.scaled$CENSUS_INTERVAL,na.rm=T)), 
+                      type = "response", re.form = NA)
+
+Tanom_seq<-seq(min(survData3.scaled$T_c_anom,na.rm=T),
+               max(survData3.scaled$T_c_anom,na.rm=T),length=50)
+Tanom_pred<-predict(sbase_best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
+                      BALIVE=median(survData3.scaled$BALIVE,na.rm=T),
+                      PPT_m=median(survData3.scaled$PPT_m,na.rm=T),
+                      T_fs=median(survData3.scaled$T_fs,na.rm=T),
+                      PPT_pf_dr_anom=median(survData3.scaled$PPT_pf_dr_anom,na.rm=T),
+                      T_c_anom=Tanom_seq,
+                      CENSUS_INTERVAL=median(survData3.scaled$CENSUS_INTERVAL,na.rm=T)), 
+                    type = "response", re.form = NA)
+
+s_pred<-as.data.frame(cbind(dia_seq,dia_pred,ba_seq,ba_pred,PPTm_seq,PPTm_pred,Tfs_seq,Tfs_pred,
+                            PPTanom_seq,PPTanom_pred,Tanom_seq,Tanom_pred))
+
+s_dia_plot<-ggplot(data=s_binned,aes(x=PREVDIA,y=mort_dia))+
+  geom_point(alpha=0.7)+
+  geom_line(data=s_pred,aes(x=dia_seq,y=dia_pred),col="red")
+
+s_ba_plot<-ggplot(data=s_binned,aes(x=BALIVE,y=mort_ba))+
+  geom_point(alpha=0.7)+
+  geom_line(data=s_pred,aes(x=ba_seq,y=ba_pred),col="red")
+
+s_PPTm_plot<-ggplot(data=s_binned,aes(x=PPT_m,y=mort_PPTm))+
+  geom_point(alpha=0.7)+
+  geom_line(data=s_pred,aes(x=PPTm_seq,y=PPTm_pred),col="red")
+
+s_Tfs_plot<-ggplot(data=s_binned,aes(x=T_fs,y=mort_Tfs))+
+  geom_point(alpha=0.7)+
+  geom_line(data=s_pred,aes(x=Tfs_seq,y=Tfs_pred),col="red")
+
+s_PPTanom_plot<-ggplot(data=s_binned,aes(x=PPT_pf_dr_anom,y=mort_PPTanom))+
+  geom_point(alpha=0.7)+
+  geom_line(data=s_pred,aes(x=PPTanom_seq,y=PPTanom_pred),col="red")
+
+s_Tanom_plot<-ggplot(data=s_binned,aes(x=T_c_anom,y=mort_Tanom))+
+  geom_point(alpha=0.7)+
+  geom_line(data=s_pred,aes(x=Tanom_seq,y=Tanom_pred),col="red")
+@
+
+
+\begin{figure}[H]
+<<fig=TRUE,echo=FALSE>>=
+multiplot(s_dia_plot,s_ba_plot,s_PPTm_plot,s_Tfs_plot,s_PPTanom_plot,s_Tanom_plot,cols=2)
+@
+\caption{Effects plots for "best" model, plotted over raw data.}
+\end{figure}
+
 \end{document}
