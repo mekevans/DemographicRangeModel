@@ -1,5 +1,11 @@
 ##Evaluate PIED integral projection model
 
+library(raster)
+library(rgdal)
+library(rgeos)
+library(dplyr)
+library(glmmTMB)
+
 # Load vital rate and IPM functions
 source("./Code/IPM/BuildIPM.R")
 
@@ -45,11 +51,11 @@ spFIA = SpatialPointsDataFrame(spFIA, FIA)
 #s.x(size.x = c(8.4, 8.4, 8.4), Tann = c(2.0, 8.9, 15.0), PPTann = c(395, 395, 395), interval = 10)
 # look at survival as a function of PPTann (ave-sized tree, ave Tann...)
 data_test<-data.frame(PPT_yr=seq(1, 1000, length.out = 100),BALIVE=110,T_yr=8.9)
-test = s.x(model = sbase_int, size.x = 8.4, data = data_test, interval = 10)
+test = s.x(model = smodel.clim, size.x = 8.4, data = data_test, interval = 10)
 plot(seq(1, 1000, length.out = 100), test)
 # look at survival as a function of Tann
 data_test<-data.frame(PPT_yr=395,BALIVE=110,T_yr=seq(-4, 30, length.out = 100))
-test = s.x(model = sbase_int, size.x = 8.4, data = data_test, interval = 10)
+test = s.x(model = smodel.clim, size.x = 8.4, data = data_test, interval = 10)
 plot(seq(-4, 30, length.out = 100), test)
 # look at survival as a function of balive, if balive is in mort model
 data_test<-data.frame(PPT_yr=395,BALIVE=seq(0, 360, length.out = 100),T_yr=8.9)
@@ -63,7 +69,7 @@ abline(v = 239) # 239 is the maximum value in Michiel's interpolated BALIVE; 360
 dx<-0.1
 y=seq(min(FIA$PREVDIA,na.rm=T),(max(FIA$PREVDIA,na.rm=T)+5),dx)
 data_test<-data.frame(PPT_yr=395,BALIVE=110,T_yr=8.9)
-d_growth <- g.yx(model = gmodel_int, growSD = growSD_int, y, 39, data = data_test) # time step = 1 year
+d_growth <- g.yx(model = gmodel.clim, growSD = growSD.clim, y, 39, data = data_test) # time step = 1 year
 plot(y, d_growth, type = "l", ylab = "density", xlim = c(30,40))
 sum(d_growth)*dx
 # sum of d_growth should = 1.0 (but isn't)
@@ -71,7 +77,7 @@ sum(d_growth)*dx
 
 # look at mean growth as a function of PPTann (ave-sized tree, ave Tann...)
 data_test<-data.frame(BALIVE = 110, T_yr = 8.9, PPT_yr = seq(1, 1500, length.out = 100))
-test = g.mean(model = gmodel_q, size.x = 8.4, data = data_test, interval = 10)
+test = g.mean(model = gmodel.clim, size.x = 8.4, data = data_test, interval = 10)
 plot(seq(1, 1000, length.out = 100), test, ylab = "10-yr growth incr (in)", xlab = "mean annual precipitation (mm)")
 abline(v = min(FIA$PPT_yr_norm)); abline(v = max(FIA$PPT_yr_norm)) # extrapolation lines
 # look at mean growth as a function of Tann
@@ -151,8 +157,8 @@ for (i in 1:nrow(ppt_yr_raster)) {
       next
     }
     # Calculate lambda
-    K<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel_q, smodel=sbase_q, 
-               rmodel=r_q, gSD=growSD_q,
+    K<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.clim, smodel=smodel.clim, 
+               rmodel=rmodel.clim, gSD=growSD.clim,
                data=pred_data)
     lambda_val <- Re(eigen(K)$values[1])
     print(lambda_val)

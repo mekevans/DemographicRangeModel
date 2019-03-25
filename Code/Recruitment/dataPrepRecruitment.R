@@ -413,38 +413,46 @@ for (j in lags) {
     print(i)
 # cool season (pNov-Mar)
     rData[i, paste0("PPT_c_window_", lagLength)] <- rowMeans(ppt.extr[i, paste0("PPT_c_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("PPTex_c_window_", lagLength)] <- min(ppt.extr[i, paste0("PPT_c_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
     rData[i, paste0("T_c_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_c_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
-    rData[i, paste0("Tex_c_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_c_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
+    rData[i, paste0("Tex_c_window_", lagLength)] <- max(tmp.extr[i, paste0("T_c_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
     rData[i, paste0("VPD_c_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_c_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
-    rData[i, paste0("VPDex_c_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_c_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
+    rData[i, paste0("VPDex_c_window_", lagLength)] <- max(vpd.extr[i, paste0("VPD_c_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
 # monsoon (Jul-Aug)    
     rData[i, paste0("PPT_m_window_", lagLength)] <- rowMeans(ppt.extr[i, paste0("PPT_m_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("PPTex_m_window_", lagLength)] <- min(ppt.extr[i, paste0("PPT_m_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
     rData[i, paste0("T_m_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_m_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
-    rData[i, paste0("Tex_m_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_m_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("Tex_m_window_", lagLength)] <- max(tmp.extr[i, paste0("T_m_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
     rData[i, paste0("VPD_m_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_m_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
-    rData[i, paste0("VPDex_m_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_m_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
+    rData[i, paste0("VPDex_m_window_", lagLength)] <- max(vpd.extr[i, paste0("VPD_m_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
 # previous fall (pSep-pOct)    
     rData[i, paste0("PPT_pf_window_", lagLength)] <- rowMeans(ppt.extr[i, paste0("PPT_pf_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("PPTex_pf_window_", lagLength)] <- min(ppt.extr[i, paste0("PPT_pf_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
     rData[i, paste0("T_pf_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_pf_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
-    rData[i, paste0("Tex_pf_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_pf_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("Tex_pf_window_", lagLength)] <- max(tmp.extr[i, paste0("T_pf_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
     rData[i, paste0("VPD_pf_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_pf_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
-    rData[i, paste0("VPDex_pf_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_pf_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
+    rData[i, paste0("VPDex_pf_window_", lagLength)] <- max(vpd.extr[i, paste0("VPD_pf_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
 # foresummer (Apr-Jun)
     rData[i, paste0("PPT_fs_window_", lagLength)] <- rowMeans(ppt.extr[i, paste0("PPT_fs_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("PPTex_fs_window_", lagLength)] <- min(ppt.extr[i, paste0("PPT_fs_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
     rData[i, paste0("T_fs_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_fs_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
-    rData[i, paste0("Tex_fs_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_fs_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("Tex_fs_window_", lagLength)] <- max(tmp.extr[i, paste0("T_fs_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
     rData[i, paste0("VPD_fs_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_fs_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
-    rData[i, paste0("VPDex_fs_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_fs_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
+    rData[i, paste0("VPDex_fs_window_", lagLength)] <- max(vpd.extr[i, paste0("VPD_fs_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
 # warm dry months (pSep-pOct + Apr-Jun)    
     rData[i, paste0("PPT_wd_window_", lagLength)] <- rowMeans(ppt.extr[i, paste0("PPT_wd_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("PPTex_wd_window_", lagLength)] <- min(ppt.extr[i, paste0("PPT_wd_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
     rData[i, paste0("T_wd_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_wd_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
-    rData[i, paste0("Tex_wd_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_wd_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("Tex_wd_window_", lagLength)] <- max(tmp.extr[i, paste0("T_wd_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
     rData[i, paste0("VPD_wd_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_wd_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
-    rData[i, paste0("VPDex_wd_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_wd_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
+    rData[i, paste0("VPDex_wd_window_", lagLength)] <- max(vpd.extr[i, paste0("VPD_wd_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])    
 # water year  
     rData[i, paste0("PPT_yr_window_", lagLength)] <- rowMeans(ppt.extr[i, paste0("PPT_yr_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("PPTex_yr_window_", lagLength)] <- min(ppt.extr[i, paste0("PPT_yr_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
     rData[i, paste0("T_yr_window_", lagLength)] <- rowMeans(tmp.extr[i, paste0("T_yr_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("Tex_yr_window_", lagLength)] <- max(tmp.extr[i, paste0("T_yr_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
     rData[i, paste0("VPD_yr_window_", lagLength)] <- rowMeans(vpd.extr[i, paste0("VPD_yr_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
+    rData[i, paste0("VPDex_yr_window_", lagLength)] <- max(vpd.extr[i, paste0("VPD_yr_", (rData[i, "measYear"]-lagLength):(rData[i, "measYear"]-1))])
   }
 }
 
@@ -470,37 +478,104 @@ rData$VPDex_c_anom <- rData$VPDex_c_window_20 - rData$VPD_c_norm
 rData$PPT_pf_anom <- rData$PPT_pf_window_20 - rData$PPT_pf_norm # no change
 rData$T_pf_anom <- rData$T_pf_window_20 - rData$T_pf_norm # positive
 rData$VPD_pf_anom <- rData$VPD_pf_window_20 - rData$VPD_pf_norm # positive
-#rData$PPTex_pf_anom <- rData$PPTex_pf_window_20 - rData$PPT_pf_norm # negative
+rData$PPTex_pf_anom <- rData$PPTex_pf_window_20 - rData$PPT_pf_norm # negative
 rData$Tex_pf_anom <- rData$Tex_pf_window_20 - rData$T_pf_norm # positive
 rData$VPDex_pf_anom <- rData$VPDex_pf_window_20 - rData$VPD_pf_norm # positive
 # foresummer (Apr-Jun)
 rData$PPT_fs_anom <- rData$PPT_fs_window_20 - rData$PPT_fs_norm # negative!
 rData$T_fs_anom <- rData$T_fs_window_20 - rData$T_fs_norm # positive
 rData$VPD_fs_anom <- rData$VPD_fs_window_20 - rData$VPD_fs_norm # positive
-#rData$PPTex_fs_anom <- rData$PPTex_fs_window_20 - rData$PPT_fs_norm # centered on zero
+rData$PPTex_fs_anom <- rData$PPTex_fs_window_20 - rData$PPT_fs_norm # centered on zero
 rData$Tex_fs_anom <- rData$Tex_fs_window_20 - rData$T_fs_norm # positive
 rData$VPDex_fs_anom <- rData$VPDex_fs_window_20 - rData$VPD_fs_norm # positive
 # warm dry months (pSep-pOct + Apr-Jun)
 rData$PPT_wd_anom <- rData$PPT_wd_window_20 - rData$PPT_wd_norm # negative
 rData$T_wd_anom <- rData$T_wd_window_20 - rData$T_wd_norm
 rData$VPD_wd_anom <- rData$VPD_wd_window_20 - rData$VPD_wd_norm
-#rData$PPTex_wd_anom <- rData$PPTex_wd_window_20 - rData$PPT_wd_norm # positive!
+rData$PPTex_wd_anom <- rData$PPTex_wd_window_20 - rData$PPT_wd_norm # positive!
 rData$Tex_wd_anom <- rData$Tex_wd_window_20 - rData$T_wd_norm
 rData$VPDex_wd_anom <- rData$VPDex_wd_window_20 - rData$VPD_wd_norm
 # monsoon (Jul-Aug)
 rData$PPT_m_anom <- rData$PPT_m_window_20 - rData$PPT_m_norm # negative
 rData$T_m_anom <- rData$T_m_window_20 - rData$T_m_norm
 rData$VPD_m_anom <- rData$VPD_m_window_20 - rData$VPD_m_norm
-#rData$PPTex_m_anom <- rData$PPTex_m_window_20 - rData$PPT_m_norm # centered on zero
+rData$PPTex_m_anom <- rData$PPTex_m_window_20 - rData$PPT_m_norm # centered on zero
 rData$Tex_m_anom <- rData$Tex_m_window_20 - rData$T_m_norm
 rData$VPDex_m_anom <- rData$VPDex_m_window_20 - rData$VPD_m_norm
 # water year (pSept - Aug)
 rData$PPT_yr_anom <- rData$PPT_yr_window_20 - rData$PPT_yr_norm # negative
 rData$T_yr_anom <- rData$T_yr_window_20 - rData$T_yr_norm
 rData$VPD_yr_anom <- rData$VPD_yr_window_20 - rData$VPD_yr_norm
-#rData$PPTex_yr_anom <- rData$PPTex_yr_window_20 - rData$PPT_yr_norm
+rData$PPTex_yr_anom <- rData$PPTex_yr_window_20 - rData$PPT_yr_norm
 rData$Tex_yr_anom <- rData$Tex_yr_window_20 - rData$T_yr_norm  # Tex_yr_window_20 does not exist
 rData$VPDex_yr_anom <- rData$VPDex_yr_window_20 - rData$VPD_yr_norm  # VPDex_yr_window_20 does not exist
+
+#### add climate variables specific to the drought period (previous fall 2000 through previous fall 2004)
+### cumulative precip during 2000-2003 drought
+rData$PPT_drought <- rowSums(ppt.extr[, c("PPT_pf_2000", "PPT_pf_2001", "PPT_pf_2002", "PPT_pf_2003", "PPT_pf_2004",
+                                                  "PPT_c_2000", "PPT_c_2001", "PPT_c_2002", "PPT_c_2003",
+                                                  "PPT_fs_2000", "PPT_fs_2001", "PPT_fs_2002", "PPT_fs_2003",
+                                                  "PPT_m_2000", "PPT_m_2001", "PPT_m_2002", "PPT_m_2003")])
+# expected cum precip for this 50-month period
+rData$PPT_50mo_norm <- 4*rowSums(rData[, c("PPT_pf_norm", "PPT_c_norm", "PPT_fs_norm", "PPT_m_norm")]) + rData$PPT_pf_norm
+
+# 2000-2003 precip anomaly
+rData$PPT_dr_anom <- rData$PPT_drought - rData$PPT_50mo_norm
+
+# 2000-2003 monsoon precip may have been critical?
+rData$PPT_m_dr <- rowSums(ppt.extr[, c("PPT_m_2000", "PPT_m_2001", "PPT_m_2002", "PPT_m_2003")])
+
+rData$PPT_4m_norm <- 4*rData$PPT_m_norm
+rData$PPT_m_dr_anom <- rData$PPT_m_dr - rData$PPT_4m_norm
+
+# compare against effect of 2000-2003 cool season precip (=conventional wisdom)
+rData$PPT_c_dr <- rowSums(ppt.extr[, c("PPT_c_2000", "PPT_c_2001", "PPT_c_2002", "PPT_c_2003")])
+
+rData$PPT_4c_norm <- 4*rData$PPT_c_norm
+rData$PPT_c_dr_anom <- rData$PPT_c_dr - rData$PPT_4c_norm
+
+# previous fall
+rData$PPT_pf_dr <- rowSums(ppt.extr[, c("PPT_pf_2000", "PPT_pf_2001", "PPT_pf_2002", "PPT_pf_2003")])
+
+rData$PPT_4pf_norm <- 4*rData$PPT_pf_norm
+rData$PPT_pf_dr_anom <- rData$PPT_pf_dr - rData$PPT_4pf_norm
+
+# foresummer
+rData$PPT_fs_dr <- rowSums(ppt.extr[, c("PPT_fs_2000", "PPT_fs_2001", "PPT_fs_2002", "PPT_fs_2003")])
+
+rData$PPT_4fs_norm <- 4*rData$PPT_fs_norm
+rData$PPT_fs_dr_anom <- rData$PPT_fs_dr - rData$PPT_4fs_norm
+
+# T mean during 50 months of 2000-2003 drought
+rData$Tmean_drought <- (tmp.extr$tmp_199909 + tmp.extr$tmp_199910 + tmp.extr$tmp_199911 + tmp.extr$tmp_199912 +
+                                  tmp.extr$tmp_200001 + tmp.extr$tmp_200002 + tmp.extr$tmp_200003 + tmp.extr$tmp_200004 + tmp.extr$tmp_200005 + tmp.extr$tmp_200006 +
+                                  tmp.extr$tmp_200007 + tmp.extr$tmp_200008 + tmp.extr$tmp_200009 + tmp.extr$tmp_200010 + tmp.extr$tmp_200011 + tmp.extr$tmp_200012 +  
+                                  tmp.extr$tmp_200101 + tmp.extr$tmp_200102 + tmp.extr$tmp_200103 + tmp.extr$tmp_200104 + tmp.extr$tmp_200105 + tmp.extr$tmp_200106 +
+                                  tmp.extr$tmp_200107 + tmp.extr$tmp_200108 + tmp.extr$tmp_200109 + tmp.extr$tmp_200110 + tmp.extr$tmp_200111 + tmp.extr$tmp_200112 +  
+                                  tmp.extr$tmp_200201 + tmp.extr$tmp_200202 + tmp.extr$tmp_200203 + tmp.extr$tmp_200204 + tmp.extr$tmp_200205 + tmp.extr$tmp_200206 +
+                                  tmp.extr$tmp_200207 + tmp.extr$tmp_200208 + tmp.extr$tmp_200209 + tmp.extr$tmp_200210 + tmp.extr$tmp_200211 + tmp.extr$tmp_200212 +  
+                                  tmp.extr$tmp_200301 + tmp.extr$tmp_200302 + tmp.extr$tmp_200303 + tmp.extr$tmp_200304 + tmp.extr$tmp_200305 + tmp.extr$tmp_200306 +
+                                  tmp.extr$tmp_200307 + tmp.extr$tmp_200308 + tmp.extr$tmp_200309 + tmp.extr$tmp_200310)/50  
+
+# expected T mean during an equivalent 50-month window
+rData$T_50mo_norm <- (4*rowSums(tmp.norm.extr[, c("tmp_1", "tmp_2", "tmp_3", "tmp_4",
+                                                          "tmp_5", "tmp_6", "tmp_7", "tmp_8",
+                                                          "tmp_9", "tmp_10", "tmp_11", "tmp_12")]) +
+                                tmp.norm.extr[,9] + tmp.norm.extr[,10])/50
+
+# anomaly (different for each plot)                                              
+rData$T_dr_anom <- rData$Tmean_drought - rData$T_50mo_norm
+
+# cumulative Tmean anomaly during 2000-2003 drought
+rData$cum_T_anom <- ((tmp.extr$tmp_199909 - tmp.norm.extr[,9]) + (tmp.extr$tmp_199910 - tmp.norm.extr[,10]) + (tmp.extr$tmp_199911 - tmp.norm.extr[,11]) + (tmp.extr$tmp_199912 - tmp.norm.extr[,12]) +
+                               (tmp.extr$tmp_200001 - tmp.norm.extr[,1]) + (tmp.extr$tmp_200002 - tmp.norm.extr[,2]) + (tmp.extr$tmp_200003 - tmp.norm.extr[,3]) + (tmp.extr$tmp_200004 - tmp.norm.extr[,4]) +  (tmp.extr$tmp_200005 - tmp.norm.extr[,5]) + (tmp.extr$tmp_200006 - tmp.norm.extr[,6]) +
+                               (tmp.extr$tmp_200007 - tmp.norm.extr[,7]) + (tmp.extr$tmp_200008 - tmp.norm.extr[,8]) + (tmp.extr$tmp_200009 - tmp.norm.extr[,9]) + (tmp.extr$tmp_200010 - tmp.norm.extr[,10]) + (tmp.extr$tmp_200011 - tmp.norm.extr[,11]) + (tmp.extr$tmp_200012 - tmp.norm.extr[,12]) +  
+                               (tmp.extr$tmp_200101 - tmp.norm.extr[,1]) + (tmp.extr$tmp_200102 - tmp.norm.extr[,2]) + (tmp.extr$tmp_200103 - tmp.norm.extr[,3]) + (tmp.extr$tmp_200104 - tmp.norm.extr[,4]) +  (tmp.extr$tmp_200105 - tmp.norm.extr[,5]) + (tmp.extr$tmp_200106 - tmp.norm.extr[,6]) +
+                               (tmp.extr$tmp_200107 - tmp.norm.extr[,7]) + (tmp.extr$tmp_200108 - tmp.norm.extr[,8]) + (tmp.extr$tmp_200109 - tmp.norm.extr[,9]) + (tmp.extr$tmp_200110 - tmp.norm.extr[,10]) + (tmp.extr$tmp_200111 - tmp.norm.extr[,11]) + (tmp.extr$tmp_200112 - tmp.norm.extr[,12]) +  
+                               (tmp.extr$tmp_200201 - tmp.norm.extr[,1]) + (tmp.extr$tmp_200202 - tmp.norm.extr[,2]) + (tmp.extr$tmp_200203 - tmp.norm.extr[,3]) + (tmp.extr$tmp_200204 - tmp.norm.extr[,4]) +  (tmp.extr$tmp_200205 - tmp.norm.extr[,5]) + (tmp.extr$tmp_200206 - tmp.norm.extr[,6]) +
+                               (tmp.extr$tmp_200207 - tmp.norm.extr[,7]) + (tmp.extr$tmp_200208 - tmp.norm.extr[,8]) + (tmp.extr$tmp_200209 - tmp.norm.extr[,9]) + (tmp.extr$tmp_200210 - tmp.norm.extr[,10]) + (tmp.extr$tmp_200211 - tmp.norm.extr[,11]) + (tmp.extr$tmp_200212 - tmp.norm.extr[,12]) +  
+                               (tmp.extr$tmp_200301 - tmp.norm.extr[,1]) + (tmp.extr$tmp_200302 - tmp.norm.extr[,2]) + (tmp.extr$tmp_200303 - tmp.norm.extr[,3]) + (tmp.extr$tmp_200304 - tmp.norm.extr[,4]) +  (tmp.extr$tmp_200305 - tmp.norm.extr[,5]) + (tmp.extr$tmp_200306 - tmp.norm.extr[,6]) +
+                               (tmp.extr$tmp_200307 - tmp.norm.extr[,7]) + (tmp.extr$tmp_200308 - tmp.norm.extr[,8]) + (tmp.extr$tmp_200309 - tmp.norm.extr[,9]) + (tmp.extr$tmp_200310 - tmp.norm.extr[,10]))  
 
 
 ### last thing that needs to be done for recruitment subkernel

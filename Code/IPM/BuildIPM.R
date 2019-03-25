@@ -9,11 +9,8 @@ s.x <- function(model, size.x, data, interval = 1, perturb = 0) {
   # on the RH side is the name of the variable in this function (s.x)
   sdata <- data.frame(PREVDIA = size.x, 
                       BALIVE = data$BALIVE,
-                      # T_yr_norm = Tann, 
-                      #T_yr_norm = ifelse(Tann < 12, Tann, 12), # clamp response where Tann > 12
-                      #PPT_yr_norm = PPTann
-                      T_yr = ifelse(data$T_yr < 12, data$T_yr, 12), # clamp response where Tann > 12
-                      PPT_yr = data$PPT_yr)  
+                      T_yr_norm = ifelse(data$T_yr < 12, data$T_yr, 12), # clamp response where Tann > 12
+                      PPT_yr_norm = data$PPT_yr)  
   # rescaled data
   scaled.sdata = data.frame(scale(sdata, 
                                   scale = surv.scaling$scale[match(names(sdata), names(surv.scaling$scale))], # match assures that variables are matched up
@@ -43,11 +40,9 @@ g.yx <- function(model, growSD, size.y, size.x, data, interval = 1, perturb = 0)
   # raw (unscaled) data
   gdata <- data.frame(#PREVDIA = size.x,
     PREVDIA = ifelse(size.x < 26, size.x, 26),
-    #BALIVE = balive,
     BALIVE = ifelse(data$BALIVE < 190, data$BALIVE, 190),
-    PPT_yr = data$PPT_yr,
-    #T_yr = data$T_yr
-    T_yr = ifelse(data$T_yr < 12, data$T_yr, 12))
+    PPT_yr_norm = data$PPT_yr,
+    T_yr_norm = ifelse(data$T_yr < 12, data$T_yr, 12))
   # rescaled data
   scaled.gdata = data.frame(scale(gdata, 
                                   scale = gr.scaling$scale[match(names(gdata), names(gr.scaling$scale))], 
@@ -67,11 +62,9 @@ g.mean <- function(model, size.x, data, interval = 1, perturb = 0) {
   # raw (unscaled) data
   gdata <- data.frame(#PREVDIA = size.x,
     PREVDIA = ifelse(size.x < 26, size.x, 26),
-    #BALIVE = balive,
     BALIVE = ifelse(data$BALIVE < 190, data$BALIVE, 190),
-    PPT_yr = data$PPT_yr,
-    #T_yr = data$T_yr
-    T_yr = ifelse(data$T_yr < 12, data$T_yr, 12))
+    PPT_yr_norm = data$PPT_yr,
+    T_yr_norm = ifelse(data$T_yr < 12, data$T_yr, 12))
   # rescaled data
   scaled.gdata = data.frame(scale(gdata, 
                                   scale = gr.scaling$scale[match(names(gdata), names(gr.scaling$scale))], 

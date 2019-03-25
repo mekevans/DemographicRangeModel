@@ -124,302 +124,311 @@ res = simulateResiduals(rmodel_zip_PIEDBA)
 plot(res, quantreg = T) # significant deviation: p = 0.00022
 #ELS update: p = 0.00028
 
-# instead of climate normals
-# best guesses as to time interval relevant for actual recruitment
-rmodel_zip25 <- glmmTMB(recruits1 ~ 1
-                           + BALIVE + I(BALIVE^2)
-                           + PPT_yr_window_25 + I(PPT_yr_window_25^2)
-                           + T_yr_window_25 + I(T_yr_window_25^2)
-                           + offset(log(CENSUS_INTERVAL))
-                           + offset(log(PIEDadults1)), 
-                           ziformula = ~ 1 
-                           + PPT_yr_norm + I(PPT_yr_norm^2)  
-                           + T_yr_norm + I(T_yr_norm^2)
-                           + BALIVE + I(BALIVE^2),
-                           data = rdata.scaled, 
-                           family = "poisson")
-summary(rmodel_zip25) # AIC = 4343.9
-#ELS update: 4979.3
-res = simulateResiduals(rmodel_zip25)
-plot(res, quantreg = T) # deviation of the residuals is NOT significant (p = 0.08891)
-#ELS update: p = 0.16122
+# Proceeding with PIEDadults1 as the offset
+# (don't need to choose size predictor - this is independent of adult size)
 
-# time frame for Poisson = 20 yrs
-rmodel_zip20 <- glmmTMB(recruits1 ~ 1
-                          + BALIVE + I(BALIVE^2)
-                          + PPT_yr_window_20 + I(PPT_yr_window_20^2)
-                          + T_yr_window_20 + I(T_yr_window_20^2)
-                          + offset(log(CENSUS_INTERVAL))
-                          + offset(log(PIEDadults1)), 
-                          ziformula = ~ 1 
-                          + PPT_yr_norm + I(PPT_yr_norm^2)  
-                          + T_yr_norm + I(T_yr_norm^2)
-                          + BALIVE + I(BALIVE^2),
-                          data = rdata.scaled, 
-                          family = "poisson")
-summary(rmodel_zip20) # AIC = 4342.1
-#ELS update: 4978.2
-res = simulateResiduals(rmodel_zip20)
-plot(res, quantreg = T) # deviation is NS: p = 0.09852
-#ELS update: p = 0.17992
+# Demonstrate the effect of quadratics
+rmodel.lin <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_yr_norm + T_yr_norm + 
+                      offset(log(CENSUS_INTERVAL)) + 
+                      offset(log(PIEDadults1)), # various alternatives for this offset
+                    ziformula = ~ 1,
+                    data = rdata.scaled, family = "poisson")
+rmodel.q <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_yr_norm + T_yr_norm + 
+        I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) + 
+        offset(log(CENSUS_INTERVAL)) + 
+        offset(log(PIEDadults1)), # various alternatives for this offset
+        ziformula = ~ 1,
+        data = rdata.scaled, family = "poisson")
 
+mod.comp0<-model.sel(rmodel.lin,rmodel.q)
+# strong preference for quadratics (delta AIC = 26.81)
+
+#Compare norms to different time windows
+rmodel.1a <- glmmTMB(recruits1 ~ 1
+                        + BALIVE + I(BALIVE^2)
+                        + PPT_yr_window_25 + I(PPT_yr_window_25^2)
+                        + T_yr_window_25 + I(T_yr_window_25^2)
+                        + offset(log(CENSUS_INTERVAL))
+                        + offset(log(PIEDadults1)), 
+                        ziformula = ~ 1,
+                        data = rdata.scaled, 
+                        family = "poisson")
+rmodel.1b <- glmmTMB(recruits1 ~ 1
+                        + BALIVE + I(BALIVE^2)
+                        + PPT_yr_window_20 + I(PPT_yr_window_20^2)
+                        + T_yr_window_20 + I(T_yr_window_20^2)
+                        + offset(log(CENSUS_INTERVAL))
+                        + offset(log(PIEDadults1)), 
+                        ziformula = ~ 1,
+                        data = rdata.scaled, 
+                        family = "poisson")
 # 15 yrs (Poisson)
-rmodel_zip15 <- glmmTMB(recruits1 ~ 1
+rmodel.1c <- glmmTMB(recruits1 ~ 1
                         + BALIVE + I(BALIVE^2)
                         + PPT_yr_window_15 + I(PPT_yr_window_15^2)
                         + T_yr_window_15 + I(T_yr_window_15^2)
                         + offset(log(CENSUS_INTERVAL))
                         + offset(log(PIEDadults1)), 
-                        ziformula = ~ 1 
-                        + PPT_yr_norm + I(PPT_yr_norm^2)  
-                        + T_yr_norm + I(T_yr_norm^2)
-                        + BALIVE + I(BALIVE^2),
+                        ziformula = ~ 1,
                         data = rdata.scaled, 
                         family = "poisson")
-summary(rmodel_zip15) # AIC = 4344.8
-#ELS update: 4979.9
-res = simulateResiduals(rmodel_zip15)
-plot(res, quantreg = T) # deviation is NS: p = 0.05795
-#ELS update: p = 0.16915
+mod.comp1 <- model.sel(rmodel.q,rmodel.1a, rmodel.1b,rmodel.1c)
+#No difference, will proceed with norms for consistency with other vital rate models
 
-# use PIPO basal area, AIC = 5615.8
-#ELS update: 5171.0
-rmodel_zipoiss <- glmmTMB(recruits1 ~ 1
-                          + BA.PIPO + I(BA.PIPO^2)
-                          + PPT_yr_window_20 + I(PPT_yr_window_20^2)
-                          + T_yr_window_20 + I(T_yr_window_20^2)
-                          + offset(log(CENSUS_INTERVAL))
-                          + offset(log(PIEDadults1)), 
-                          ziformula = ~ 1 
-                          + PPT_yr_norm + I(PPT_yr_norm^2)  
-                          + T_yr_norm + I(T_yr_norm^2)
-                          + BALIVE + I(BALIVE^2),
-                          data = rdata.scaled, 
-                          family = "poisson")
+# compare annual vs. 3 vs. 4 seasons...likes 3-season better 
+rmodel.2a <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                       T_c_norm + T_wd_norm + T_m_norm + 
+                      I(BALIVE^2) + 
+                      I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                      I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) +
+                      offset(log(CENSUS_INTERVAL)) + 
+                      offset(log(PIEDadults1)), # various alternatives for this offset
+                    ziformula = ~ 1,
+                    data = rdata.scaled, family = "poisson")
+rmodel.2b <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_norm + + PPT_pf_norm + PPT_fs_norm + PPT_m_norm + 
+                       T_c_norm + T_pf_norm + T_fs_norm + T_m_norm + 
+                       I(BALIVE^2) + 
+                       I(PPT_c_norm^2) + I(PPT_pf_norm^2) + I(PPT_fs_norm^2) + I(PPT_m_norm^2) + 
+                      I(T_c_norm^2) + I(T_pf_norm^2) + I(T_fs_norm^2) + (T_m_norm^2) + 
+                      offset(log(CENSUS_INTERVAL)) + 
+                      offset(log(PIEDadults1)), # various alternatives for this offset
+                    ziformula = ~ 1,
+                    data = rdata.scaled, family = "poisson")
 
-# use non-PIED basal area, AIC = 5640.7
-#ELS update: 5182.9
-rmodel_zipoiss <- glmmTMB(recruits1 ~ 1
-                          + BA.notPIED + I(BA.notPIED^2)
-                          + PPT_yr_window_20 + I(PPT_yr_window_20^2)
-                          + T_yr_window_20 + I(T_yr_window_20^2)
-                          + offset(log(CENSUS_INTERVAL))
-                          + offset(log(PIEDadults1)), 
-                          ziformula = ~ 1 
-                          + PPT_yr_norm + I(PPT_yr_norm^2)  
-                          + T_yr_norm + I(T_yr_norm^2)
-                          + BA.notPIED + I(BA.notPIED^2), # ns
-                          data = rdata.scaled, 
-                          family = "poisson")
+mod.comp2 <- model.sel(rmodel.q, rmodel.2a, rmodel.2b)
 
-# used basal area of juniper, AIC = 5643.2
-#ELS update: 5185.1
-rmodel_zipoiss <- glmmTMB(recruits1 ~ 1
-                          + BA.juniper + I(BA.juniper^2)
-                          + PPT_yr_window_20 + I(PPT_yr_window_20^2)
-                          + T_yr_window_20 + I(T_yr_window_20^2)
-                          + offset(log(CENSUS_INTERVAL))
-                          + offset(log(PIEDadults1)), 
-                          ziformula = ~ 1 
-                          + PPT_yr_norm + I(PPT_yr_norm^2)  
-                          + T_yr_norm + I(T_yr_norm^2)
-                          + BA.juniper + I(BA.juniper^2),
-                          data = rdata.scaled, 
-                          family = "poisson")
+# compare normals vs. anomalies...census interval is best
+rmodel.3a <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_yr_anom + T_yr_anom + I(BALIVE^2) + 
+                       I(PPT_yr_anom^2) + I(T_yr_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.3b <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_anom + PPT_wd_anom + PPT_m_anom + 
+                       T_c_anom + T_wd_anom + T_m_anom + I(BALIVE^2) + 
+                       I(PPT_c_anom^2) + I(PPT_wd_anom^2) + I(PPT_m_anom^2) + 
+                       I(T_c_anom^2) + I(T_wd_anom^2) + (T_m_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.3c <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_yr_anom + T_yr_anom + PPT_yr_norm + T_yr_norm + 
+                       I(BALIVE^2) + 
+                       I(PPT_yr_anom^2) + I(T_yr_anom^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.3d <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                       T_c_norm + T_wd_norm + T_m_norm + I(BALIVE^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPT_c_anom + PPT_wd_anom + PPT_m_anom + 
+                       T_c_anom + T_wd_anom + T_m_anom + 
+                       I(PPT_c_anom^2) + I(PPT_wd_anom^2) + I(PPT_m_anom^2) + 
+                       I(T_c_anom^2) + I(T_wd_anom^2) + (T_m_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.3e <- glmmTMB(recruits1 ~ 1 + BALIVE + PPTex_yr_anom + Tex_yr_anom + I(BALIVE^2) + 
+                       I(PPTex_yr_anom^2) + I(Tex_yr_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.3f <- glmmTMB(recruits1 ~ 1 + BALIVE + PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + I(BALIVE^2) + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.3g <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_yr_norm + T_yr_norm + I(BALIVE^2) + 
+                       I(PPT_yr_norm^2) + I(T_yr_norm^2) + PPTex_yr_anom + Tex_yr_anom + 
+                       I(PPTex_yr_anom^2) + I(Tex_yr_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.3h <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                       T_c_norm + T_wd_norm + T_m_norm + I(BALIVE^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
 
+mod.comp3 <- model.sel(rmodel.2a, rmodel.3a, rmodel.3b, rmodel.3c, rmodel.3d, rmodel.3e, rmodel.3f,
+                       rmodel.3g, rmodel.3h)
+# rmodel.3h is best among these 
 
-# model reduction...can remove PPT, then T, then BALIVE from Bernoulli, with little change in AIC
-# AIC = 4343.7, 4340.9, 5439.1
-#ELS update: 4977.5 (full), 5036.5 (remove PPT), 5036.1 (then T), 5238.2 (then BALIVE)
-# remove PPT from Bernoulli
-rmodel_zipoiss <- glmmTMB(recruits1 ~ 1
-                          + BALIVE + I(BALIVE^2)
-                          + PPT_yr_norm + I(PPT_yr_norm^2)
-                          + T_yr_norm + I(T_yr_norm^2)
-                          + offset(log(CENSUS_INTERVAL))
-                          + offset(log(PIEDadults1)),
-                          ziformula = ~ 1   
-                          + T_yr_norm + I(T_yr_norm^2)
-                          + BALIVE + I(BALIVE^2),
-                          data = rdata.scaled, 
-                          family = "poisson")
-summary(rmodel_zipoiss)
-res = simulateResiduals(rmodel_zipoiss) 
-# deviation ns: p = 0.09159 (without PPT)
-# deviation ns: p = 0.09159 (without PPT or T)
-#ELS update: p = 0.16915
+# add drought anomalies
+rmodel.4a <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                       T_c_norm + T_wd_norm + T_m_norm + 
+                       PPT_drought + Tmean_drought + I(BALIVE^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       I(PPT_drought^2) + I(Tmean_drought^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.4b <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                       T_c_norm + T_wd_norm + T_m_norm + 
+                       PPT_pf_dr + PPT_c_dr + PPT_fs_dr + PPT_m_dr + Tmean_drought + I(BALIVE^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       I(PPT_pf_dr_anom^2) + I(PPT_c_dr^2) + I(PPT_fs_dr^2) + I(PPT_m_dr^2) + I(Tmean_drought^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.4c <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                       T_c_norm + T_wd_norm + T_m_norm + 
+                       PPT_dr_anom + T_dr_anom + I(BALIVE^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       I(PPT_dr_anom^2) + I(T_dr_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.4d <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                       T_c_norm + T_wd_norm + T_m_norm + 
+                       PPT_pf_dr_anom + PPT_c_dr_anom + PPT_fs_dr_anom + PPT_m_dr_anom + T_dr_anom + 
+                       I(BALIVE^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       I(PPT_pf_dr_anom^2) + I(PPT_c_dr_anom^2) + I(PPT_fs_dr_anom^2) + I(PPT_m_dr_anom^2) + I(T_dr_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
 
-# this model is no different from models with predictors on the Bernoulli
-# AIC = 4343.4
-#ELS update: 4980.6
-# residuls do not deviate significanty from expectation (p = 0.0801)
-#ELS update: p = 0.19231
-rmodel_zipoiss <- glmmTMB(recruits1 ~ 1
-                          + BALIVE + I(BALIVE^2)
-                          + PPT_yr_norm + I(PPT_yr_norm^2)
-                          + T_yr_norm + I(T_yr_norm^2)
-                          + offset(log(CENSUS_INTERVAL))
-                          + offset(log(PIEDadults1)),
-                          ziformula = ~ 1,
-                          data = rdata.scaled, 
-                          family = "poisson")
-res = simulateResiduals(rmodel_zipoiss)
-plot(res, quantreg = T)
+mod.comp4<-model.sel(rmodel.3h,rmodel.4a,rmodel.4b,rmodel.4c,rmodel.4d)
+# rmodel.3h and 4c are the best - proceeding with 3h because it is simpler
 
-# try model with 2-way interacions
-# AIC = 4335.0
-#ELS update: 4968.2
-rmodel_zip.int <- glmmTMB(recruits1 ~ 1
-                          + (BALIVE + PPT_yr_norm + T_yr_norm)^2
-                          + I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) 
-                          + offset(log(CENSUS_INTERVAL))
-                          + offset(log(PIEDadults1)),
-                          ziformula = ~ 1,
-                          data = rdata.scaled, 
-                          family = "poisson")
-res = simulateResiduals(rmodel_zip.int)
-plot(res, quantreg = T) # p = 0.07203
-#ELS update: p = 0.28427
+# add 2-way interactions, excluding quadratics
+rmodel.5a <- glmmTMB(recruits1 ~ 1 + (BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                                        T_c_norm + T_wd_norm + T_m_norm + 
+                                        PPT_dr_anom + T_dr_anom)^2 + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.5b <- glmmTMB(recruits1 ~ 1 + (BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                                        T_c_norm + T_wd_norm + T_m_norm)^2 + I(BALIVE^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
 
+mod.comp5 <- model.sel(rmodel.3h, rmodel.5a, rmodel.5b)
+# rmodel.5b is best
 
-# try models with seasonal climate normals
-# THIS IS THE BEST MODEL AS OF 9/19/18
-# AIC = 4317.7; support for breaking climate into 3 seasons
-#ELS update: 4950.0
-rmodel_zip3seas <- glmmTMB(recruits1 ~ 1
-                       + BALIVE + I(BALIVE^2)
-                       + PPT_wd_norm + I(PPT_wd_norm^2)
-                       + PPT_m_norm + I(PPT_m_norm^2)
-                       + PPT_c_norm + I(PPT_c_norm^2)
-                       + T_wd_norm + I(T_wd_norm^2)
-                       + T_m_norm + I(T_m_norm^2)
-                       + T_c_norm + I(T_c_norm^2)
+# Try different basal area predictors
+rmodel.6a <- glmmTMB(recruits1 ~ 1 + (BA.PIPO + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                                        T_c_norm + T_wd_norm + T_m_norm)^2 + I(BA.PIPO^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.6b <- glmmTMB(recruits1 ~ 1 + (BA.notPIED + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                                        T_c_norm + T_wd_norm + T_m_norm)^2 + I(BA.notPIED^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.6c <- glmmTMB(recruits1 ~ 1 + (BA.juniper + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                                        T_c_norm + T_wd_norm + T_m_norm)^2 + I(BA.juniper^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+mod.comp6<-model.sel(rmodel.5b,rmodel.6a,rmodel.6b,rmodel.6c)
+# 5b is by far the best
+
+res = simulateResiduals(rmodel.5b)
+plot(res, quantreg = T) # ns: p = 0.44424
+
+### Models to export
+rmodel.clim<-glmmTMB(recruits1 ~ 1
+                       + PPT_yr_norm + T_yr_norm 
+                       + I(PPT_yr_norm^2) + I(T_yr_norm^2) 
                        + offset(log(CENSUS_INTERVAL))
-                       + offset(log(PIEDadults1)), 
+                       + offset(log(PIEDadults1)), # various alternatives for this offset
                        ziformula = ~ 1,
                        data = rdata.scaled, 
                        family = "poisson")
-res = simulateResiduals(rmodel_zip3seas)
-plot(res, quantreg = T) # second best p value so far: p = 0.10428
-#ELS update:p = 0.20541
-plot(Effect.glmmTMB("BALIVE", rmodel_zip3seas))
-plot(Effect.glmmTMB("PPT_c_norm", rmodel_zip3seas))
-plot(Effect.glmmTMB("T_m_norm", rmodel_zip3seas))
-
-#AIC 4319.0; no loss of fit to data when PPT data are 12-month rather than 3 seasons
-#ELS update: 4949.8
-rmodel_zip3seasT <- glmmTMB(recruits1 ~ 1
-                             + BALIVE + I(BALIVE^2)
-                             + PPT_yr_norm + I(PPT_yr_norm^2)
-                             + T_wd_norm + I(T_wd_norm^2)
-                             + T_m_norm + I(T_m_norm^2)
-                             + T_c_norm + I(T_c_norm^2)
-                             + offset(log(CENSUS_INTERVAL))
-                             + offset(log(PIEDadults1)), 
-                             ziformula = ~ 1,
-                             data = rdata.scaled, 
-                             family = "poisson")
-res = simulateResiduals(rmodel_zip3seasT)
-plot(res, quantreg = T)
-# residuals of this model do not differ significantly from expectation (p = 0.07646)
-#ELS update: p = 0.18692
-plot(Effect.glmmTMB("BALIVE", rmodel_zip3seasT))
-plot(Effect.glmmTMB("PPT_yr_norm", rmodel_zip3seasT))
-
-# this model is worse, AIC = 4334.9
-#ELS update: 4973.1
-rmodel_zip3seasPPT <- glmmTMB(recruits1 ~ 1
-                            + BALIVE + I(BALIVE^2)
-                            + T_yr_norm + I(T_yr_norm^2)
-                            + PPT_wd_norm + I(PPT_wd_norm^2)
-                            + PPT_m_norm + I(PPT_m_norm^2)
-                            + PPT_c_norm + I(PPT_c_norm^2)
-                            + offset(log(CENSUS_INTERVAL))
-                            + offset(log(PIEDadults1)), 
-                            ziformula = ~ 1,
-                            data = rdata.scaled, 
-                            family = "poisson")
-res = simulateResiduals(rmodel_zip3seasPPT)
-plot(res, quantreg = T)
-# residuals of this model do not differ significantly from expectation (p = 0.08494)
-#ELS update: p = 0.17949
-plot(Effect.glmmTMB("BALIVE", rmodel_zip3seasPPT))
-plot(Effect.glmmTMB("PPT_wd_norm", rmodel_zip3seasPPT))
-plot(Effect.glmmTMB("PPT_m_norm", rmodel_zip3seasPPT))
-
-
-# try this model with interactions
-# THIS IS THE BEST MODEL AS OF 10/04/18
-# AIC = 4297.9
-#ELS update: 4922.1
-rmodel_zip3seasTint <- glmmTMB(recruits1 ~ 1
-                            + (BALIVE + PPT_yr_norm + T_wd_norm + T_c_norm + T_m_norm)^2
-                            + I(BALIVE^2) + I(PPT_yr_norm^2)
-                            + I(T_wd_norm^2) + I(T_m_norm^2) + I(T_c_norm^2)
-                            + offset(log(CENSUS_INTERVAL))
-                            + offset(log(PIEDadults1)), 
-                            ziformula = ~ 1,
-                            data = rdata.scaled, 
-                            family = "poisson")
-res = simulateResiduals(rmodel_zip3seasTint)
-plot(res, quantreg = T) # best p value I've seen so far: p=0.14391
-#ELS update: p = 0.35657
-plot(Effect.glmmTMB("BALIVE", rmodel_zip3seasTint))
-plot(Effect.glmmTMB("PPT_yr_norm", rmodel_zip3seasTint))
-plot(Effect.glmmTMB("T_m_norm", rmodel_zip3seasTint))
-plot(Effect.glmmTMB("BALIVE:PPT_yr_norm", rmodel_zip3seasTint)) # doesn't work
-
-
-#plotResiduals(rdata.scaled$BALIVE, res$scaledResiduals, quantreg = T, main = "PREVDIA")
-plotResiduals(rdata.scaled$PPT_c_window_25, res$scaledResiduals, quantreg = T, main = "PPT_yr")
-plotResiduals(rdata.scaled$T_c_window_25, res$scaledResiduals, quantreg = T, main = "BALIVE")
-
-### Models to export
-r_balive_clim<-glmmTMB(recruits1 ~ 1
+rmodel.clim.comp<-glmmTMB(recruits1 ~ 1
                        + BALIVE + PPT_yr_norm + T_yr_norm 
                        + offset(log(CENSUS_INTERVAL))
                        + offset(log(PIEDadults1)), # various alternatives for this offset
                        ziformula = ~ 1,
                        data = rdata.scaled, 
                        family = "poisson")
-r_int<-glmmTMB(recruits1 ~ 1
+rmodel.int<-glmmTMB(recruits1 ~ 1
                + (BALIVE + PPT_yr_norm + T_yr_norm)^2 
                + offset(log(CENSUS_INTERVAL))
                + offset(log(PIEDadults1)), # various alternatives for this offset
                ziformula = ~ 1,
                data = rdata.scaled, 
                family = "poisson")
-r_q<-glmmTMB(recruits1 ~ 1
-             + BALIVE + I(BALIVE^2)
-             + PPT_yr_norm + I(PPT_yr_norm^2)
-             + T_yr_norm + I(T_yr_norm^2)
-             + offset(log(CENSUS_INTERVAL))
-             + offset(log(PIEDadults1)), # various alternatives for this offset
-             ziformula = ~ 1,
-             data = rdata.scaled, 
-             family = "poisson")
-r_int_q<-glmmTMB(recruits1 ~ 1
-                 + (BALIVE + PPT_yr_norm + T_yr_norm)^2 
-                 + I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2)
-                 + offset(log(CENSUS_INTERVAL))
-                 + offset(log(PIEDadults1)), # various alternatives for this offset
-                 ziformula = ~ 1,
-                 data = rdata.scaled, 
-                 family = "poisson")
-rmodel_zip3seasTint <- glmmTMB(recruits1 ~ 1
-                               + (BALIVE + PPT_yr_norm + T_wd_norm + T_c_norm + T_m_norm)^2
-                               + I(BALIVE^2) + I(PPT_yr_norm^2)
-                               + I(T_wd_norm^2) + I(T_m_norm^2) + I(T_c_norm^2)
-                               + offset(log(CENSUS_INTERVAL))
-                               + offset(log(PIEDadults1)), 
-                               ziformula = ~ 1,
-                               data = rdata.scaled, 
-                               family = "poisson")
+rmodel.best<-rmodel.5b
 
 ### dealing with std'ized covariates
 
 # specify the predictors in the "best" model (or candidate best)
-r.predictors <- c("T_yr_norm", "PPT_yr_norm", "T_wd_norm", "T_c_norm", "T_m_norm", "BALIVE") # rmodel_zipoiss
+r.predictors <- c("T_yr_norm", "PPT_yr_norm", "BALIVE", 
+                  "PPT_wd_norm", "PPT_c_norm", "PPT_m_norm", "T_wd_norm", "T_c_norm", "T_m_norm",
+                  "PPTex_wd_anom", "PPTex_c_anom", "PPTex_m_anom", "Tex_wd_anom", "Tex_c_anom", "Tex_m_anom") # rmodel_zipoiss
 # eventually rewrite this so that it can handle alternative "best" models
 #r.predictors <- c("T_wd_norm", "T_c_norm", "T_m_norm", "PPT_wd_norm", "PPT_c_norm", "PPT_m_norm", "BALIVE") # rmodel_zip3seas
 #r.predictors <- c("T_wd_norm", "T_c_norm", "T_m_norm", "PPT_yr_norm", "BALIVE") # rmodel_zip3seasTint
@@ -441,4 +450,4 @@ for (i in r.predictors) {
 }
 
 # export model for coefficients and scaling information -------------------
-save(r_balive_clim,r_int,r_q,r_int_q,rmodel_zip3seasTint, r.scaling, file = "./Code/IPM/RecruitRescaling.Rdata")
+save(rmodel.clim,rmodel.clim.comp,rmodel.int,rmodel.best, r.scaling, file = "./Code/IPM/RecruitRescaling.Rdata")
