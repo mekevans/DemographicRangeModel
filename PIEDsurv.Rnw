@@ -9,18 +9,36 @@
 
 \maketitle
 
-\section{Overview}
-After playing around with the vital rate models, we decided to take the following approach to model selection:
 \begin{enumerate}
 \item{Select best size predictor (diameter versus basal area)}
-\item{Select other main effects (balive, precipitation, temperature)}
-\item{Add pairwise interactions}
-\item{Add quadratics}
-\item{Add both pairwise interactions}
-\item{Try more thorough model selection, including seasonal climate variables, climate anomalies, etc.}
 \end{enumerate}
 
-Additional model selection can then be done at the map stage to determine how increasing the complexity of the models to get lower $AIC$ affects projected distributions.
+To test between the climate-only approach typically used in climate envelope modeling and including competition, as motivated by DMB, we created two different models:
+
+\begin{enumerate}
+\item{Climate only (simple): using temp and ppt norms + quadratics}
+\item{Climate + competition (simple): same as climate only, but with BALIVE (and quadratic) added}
+\end{enumerate}
+
+We then created two more complex models to test how increasing model complexity, which generally improves AIC at the vital rate level, changes our predicted distributions. 
+
+\begin{enumerate}
+\item Climate + competition (interactions): climate + competition, but includes 2-way interactions between linear predictors
+\item Climate + competition (complex):
+\begin{enumerate}
+ \item Test between temperature and vpd
+ \item Compare annual, 3-season, and 4-season
+ \item Compare normals, census interval, anomalies, and anomalies + norms
+ \item Add drought anomalies
+ \begin{enumerate}
+	\item total ppt and mean temp during drought
+	\item 3-season ppt and mean temp during drought
+	\item total ppt and temp anomalies during drought
+	\item 3-season ppt and temp anomalies during drought
+ \end{enumerate}  
+ \item Add interactions (interactions without quadratics vs interactions + quadratics)
+ \end{enumerate}
+\end{enumerate}
 
 <<echo=FALSE>>=
 library(ggeffects)
@@ -154,315 +172,567 @@ mod.comp_size
 
 The model using diameter as the size predictor had a lower $AIC$ than the model using basal area. The residuals looked similar and good for both models, so I proceeding with diameter as the size predictor.
 
-\subsection{Compare additional basic predictors (balive, ppt, temp)}
+\subsection{Show the effect of addng quadratics}
 <<echo=FALSE>>=
-sbase_balive<-glmer(mort ~ PREVDIA + BALIVE + 
-               (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
-             family = binomial(link = cloglog), data = survData3.scaled,
-             control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
-sbase_ppt<-glmer(mort ~ PREVDIA + PPT_yr + 
-               (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
-             family = binomial(link = cloglog), data = survData3.scaled,
-             control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
-sbase_t<-glmer(mort ~ PREVDIA + T_yr + 
-               (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
-             family = binomial(link = cloglog), data = survData3.scaled,
-             control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
-sbase_clim<-glmer(mort ~ PREVDIA + PPT_yr + T_yr + 
-               (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
-             family = binomial(link = cloglog), data = survData3.scaled,
-             control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
-sbase_balive_clim<-glmer(mort ~ PREVDIA + BALIVE + PPT_yr + T_yr + 
-                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+smodel.lin <- glmer(mort ~ PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm + (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                    family = binomial(link = cloglog), data = survData3.scaled,
+                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.q <- glmer(mort ~ PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm + 
+                    I(PREVDIA^2) + I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) + (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
                   family = binomial(link = cloglog), data = survData3.scaled,
                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+mod.comp0<-model.sel(smodel.lin,smodel.q)
+@
 
-mod.comp1<-model.sel(sbase_dia,sbase_balive,sbase_ppt,sbase_t,sbase_clim,sbase_balive_clim)
+<<>>=
+mod.comp0
+@
+
+There was a strong preference for including quadratics, which is why we decided quadratics should be included in the ``simple" climate models.
+
+\subsection{Compare temperature and VPD}
+<<echo=FALSE>>=
+smodel.1a <- glmer(mort ~ PREVDIA + BALIVE + PPT_yr_norm + VPD_yr_norm + 
+                    I(PREVDIA^2) + I(BALIVE^2) + I(PPT_yr_norm^2) + I(VPD_yr_norm^2) + (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                  family = binomial(link = cloglog), data = survData3.scaled,
+                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.1b <- glmer(mort ~ PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm + 
+                     I(PREVDIA^2) + I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) + 
+                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+mod.comp1<-model.sel(smodel.1a,smodel.1b)
 @
 
 <<>>=
 mod.comp1
 @
 
-The best models were the ones including temperature only, both climate variables and live basal area, and both climate variables. I know Margaret has been back and forth about including basal area in the survival model and ultimately thought she wanted it in there. Because the model including basal area along with the two climate variables was one of the best models, I proceeded with that model.
+There was a strong preference for temperature.
 
-\subsection{Add interactions,quadratics, and both}
+\subsection{Compare annual, 3-season, and 4-season}
 <<echo=FALSE>>=
-sbase_int<-glmer(mort ~ (PREVDIA + BALIVE + PPT_yr + T_yr)^2 + 
-                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
-                  family = binomial(link = cloglog), data = survData3.scaled,
-                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.2a <- glmer(mort ~ PREVDIA + BALIVE + PPT_c + PPT_wd + PPT_m + T_c + T_wd + T_m + 
+                     I(PREVDIA^2) + I(BALIVE^2) + I(PPT_c^2) + I(PPT_wd^2) + I(PPT_m^2) + 
+                     I(T_c^2) + I(T_wd^2) + (T_m^2) + (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.2b <- glmer(mort ~ PREVDIA + BALIVE + 
+                     PPT_c + PPT_pf + PPT_fs + PPT_m + T_c + T_pf + T_fs + T_m + 
+                     I(PREVDIA^2) + I(BALIVE^2) + 
+                     I(PPT_c^2) + I(PPT_pf^2) + I(PPT_fs^2) + I(PPT_m^2) + 
+                     I(T_c^2) + I(T_pf^2) + I(T_fs^2) + (T_m^2) + 
+                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 
-sbase_q<-glmer(mort ~ PREVDIA + BALIVE + PPT_yr + T_yr + 
-                         I(PREVDIA^2) + I(BALIVE^2) + I(PPT_yr^2) + I(T_yr^2) + 
-                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
-                  family = binomial(link = cloglog), data = survData3.scaled,
-                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
-
-sbase_int_q<-glmer(mort ~ (PREVDIA + BALIVE + PPT_yr + T_yr)^2 + 
-                      I(PREVDIA^2) + I(BALIVE^2) + I(PPT_yr^2) + I(T_yr^2) + 
-                    (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
-                  family = binomial(link = cloglog), data = survData3.scaled,
-                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
-
-mod.comp_int_q<-model.sel(sbase_balive_clim,sbase_int_q,sbase_int,sbase_q)
+mod.comp2 <- model.sel(smodel.1b, smodel.2a, smodel.2b)
 @
 
 <<>>=
-mod.comp_int_q
+mod.comp2
 @
 
-The model including both interactions and quadratics was the best ($\Delta AIC = 7.94$), but the model with only quadratics was definitively better than the model with only interactions ($\Delta AIC = 73.5$).
+The best model used 4-season climate predictors.
+
+\subsection{Compare normals vs census intervals vs anomalies}
+<<echo=FALSE>>=
+smodel.3a <- glmer(mort ~ PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm + I(PREVDIA^2) + I(BALIVE^2) + 
+                     I(PPT_yr_norm^2) + I(T_yr_norm^2) + (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.3b <- glmer(mort ~ PREVDIA + BALIVE + PPT_c_norm + PPT_pf_norm + PPT_fs_norm + PPT_m_norm + 
+                     T_c_norm + T_pf_norm + T_fs_norm + T_m_norm + I(PREVDIA^2) + I(BALIVE^2) + 
+                     I(PPT_c_norm^2) + I(PPT_pf_norm^2) + I(PPT_fs_norm^2) + I(PPT_m_norm^2) + 
+                     I(T_c_norm^2) + I(T_pf_norm^2) + I(T_fs_norm^2) + (T_m_norm^2) + (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.3c <- glmer(mort ~ PREVDIA + BALIVE + PPT_yr_anom + T_yr_anom + I(PREVDIA^2) + I(BALIVE^2) + 
+                     I(PPT_yr_anom^2) + I(T_yr_anom^2) + (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.3d <- glmer(mort ~ PREVDIA + BALIVE + PPT_c_anom + PPT_pf_anom + PPT_fs_anom + PPT_m_anom + 
+                     T_c_anom + T_pf_anom + T_fs_anom + T_m_anom + I(PREVDIA^2) + I(BALIVE^2) + 
+                     I(PPT_c_anom^2) + I(PPT_pf_anom^2) + I(PPT_fs_anom^2) + I(PPT_m_anom^2) + 
+                     I(T_c_anom^2) + I(T_pf_anom^2) + I(T_fs_anom^2) + (T_m_anom^2) + (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.3e <- glmer(mort ~ PREVDIA + BALIVE + PPT_yr_anom + T_yr_anom + PPT_yr_norm + T_yr_norm + 
+                     I(PREVDIA^2) + I(BALIVE^2) + 
+                     I(PPT_yr_anom^2) + I(T_yr_anom^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) + 
+                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.3f <- glmer(mort ~ PREVDIA + BALIVE + PPT_c_anom + PPT_pf_anom + PPT_fs_anom + PPT_m_anom + 
+                     T_c_anom + T_pf_anom + T_fs_anom + T_m_anom + I(PREVDIA^2) + I(BALIVE^2) + 
+                     I(PPT_c_anom^2) + I(PPT_pf_anom^2) + I(PPT_fs_anom^2) + I(PPT_m_anom^2) + 
+                     I(T_c_anom^2) + I(T_pf_anom^2) + I(T_fs_anom^2) + (T_m_anom^2) + 
+                     PPT_c_norm + PPT_pf_norm + PPT_fs_norm + PPT_m_norm + 
+                     T_c_norm + T_pf_norm + T_fs_norm + T_m_norm + 
+                     I(PPT_c_norm^2) + I(PPT_pf_norm^2) + I(PPT_fs_norm^2) + I(PPT_m_norm^2) + 
+                     I(T_c_norm^2) + I(T_pf_norm^2) + I(T_fs_norm^2) + (T_m_norm^2) + 
+                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.3g <- glmer(mort ~ PREVDIA + BALIVE + PPTex_yr_anom + Tex_yr_anom + I(PREVDIA^2) + I(BALIVE^2) + 
+                     I(PPTex_yr_anom^2) + I(Tex_yr_anom^2) + 
+                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.3h <- glmer(mort ~ PREVDIA + BALIVE + PPTex_c_anom + PPTex_pf_anom + PPTex_fs_anom + PPTex_m_anom + 
+                     Tex_c_anom + Tex_pf_anom + Tex_fs_anom + Tex_m_anom + I(PREVDIA^2) + I(BALIVE^2) + 
+                     I(PPTex_c_anom^2) + I(PPTex_pf_anom^2) + I(PPTex_fs_anom^2) + I(PPTex_m_anom^2) + 
+                     I(Tex_c_anom^2) + I(Tex_pf_anom^2) + I(Tex_fs_anom^2) + (Tex_m_anom^2) + (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.3i <- glmer(mort ~ PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm + I(PREVDIA^2) + I(BALIVE^2) + 
+                     I(PPT_yr_norm^2) + I(T_yr_norm^2) + PPTex_yr_anom + Tex_yr_anom + 
+                     I(PPTex_yr_anom^2) + I(Tex_yr_anom^2) + (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.3j <- glmer(mort ~ PREVDIA + BALIVE + PPTex_c_anom + PPTex_pf_anom + PPTex_fs_anom + PPTex_m_anom + 
+                     Tex_c_anom + Tex_pf_anom + Tex_fs_anom + Tex_m_anom + I(PREVDIA^2) + I(BALIVE^2) + 
+                     I(PPTex_c_anom^2) + I(PPTex_pf_anom^2) + I(PPTex_fs_anom^2) + I(PPTex_m_anom^2) + 
+                     I(Tex_c_anom^2) + I(Tex_pf_anom^2) + I(Tex_fs_anom^2) + (Tex_m_anom^2) + 
+                     PPT_c_norm + PPT_pf_norm + PPT_fs_norm + PPT_m_norm + 
+                     T_c_norm + T_pf_norm + T_fs_norm + T_m_norm + 
+                     I(PPT_c_norm^2) + I(PPT_pf_norm^2) + I(PPT_fs_norm^2) + I(PPT_m_norm^2) + 
+                     I(T_c_norm^2) + I(T_pf_norm^2) + I(T_fs_norm^2) + (T_m_norm^2) + 
+                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+
+mod.comp3 <- model.sel(smodel.2b, smodel.3a, smodel.3b, smodel.3c, smodel.3d, smodel.3e, smodel.3f, 
+                       smodel.3g, smodel.3h, smodel.3i, smodel.3j)
+# smodel.3j and smodel.3f were best among these, but gave warning message (In commonArgs(par, fn, control, environment()) :
+# maxfun < 10 * length(par)^2 is not recommended.), probably because model is so complex, so proceeding with 
+# the next best, smodel.3b (delta AIC = 9.56)
+@
+
+<<>>=
+mod.comp3
+@
+
+The models using both 4-season normals and anomalies were the best, but gave warning messages, probably because the models included so many predictors, so I proceeded with the next best model, smodel.3b, which used 4-season climate norms.
+
+\subsection{Add drought anomalies}
+There were convergence issues using 4-season climate data plus drought, so instead I am comparing annual plus drought to 4-season without drought, using annual norms and anomalies, which was the best annual model from mod.comp3.
+
+<<echo=FALSE>>=
+smodel.4a <- glmer(mort ~ PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm + PPT_yr_anom + T_yr_anom + 
+                     I(PREVDIA^2) + I(BALIVE^2) + PPT_drought + Tmean_drought + 
+                     I(PPT_yr_norm^2) + I(T_yr_norm^2) + I(PPT_yr_anom^2) + I(T_yr_anom^2) + 
+                     I(PPT_drought^2) + I(Tmean_drought^2) + (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.4b <- glmer(mort ~ PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm + PPT_yr_anom + T_yr_anom + 
+                     I(PREVDIA^2) + I(BALIVE^2) + 
+                     PPT_pf_dr + PPT_c_dr + PPT_fs_dr + PPT_m_dr + Tmean_drought + 
+                     I(PPT_yr_norm^2) + I(T_yr_norm^2) + I(PPT_yr_anom^2) + I(T_yr_anom^2) + 
+                     I(PPT_pf_dr^2) + I(PPT_c_dr^2) + I(PPT_fs_dr^2) + I(PPT_m_dr^2) + I(Tmean_drought^2) + 
+                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.4c <- glmer(mort ~ PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm + PPT_yr_anom + T_yr_anom + 
+                     I(PREVDIA^2) + I(BALIVE^2) + PPT_dr_anom + T_dr_anom + 
+                     I(PPT_yr_norm^2) + I(T_yr_norm^2) + I(PPT_yr_anom^2) + I(T_yr_anom^2) + 
+                     I(PPT_dr_anom^2) + I(T_dr_anom^2) + (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.4d <- glmer(mort ~ PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm + PPT_yr_anom + T_yr_anom + 
+                     I(PREVDIA^2) + I(BALIVE^2) + 
+                     PPT_pf_dr_anom + PPT_c_dr_anom + PPT_fs_dr_anom + PPT_m_dr_anom + T_dr_anom + 
+                     I(PPT_yr_norm^2) + I(T_yr_norm^2) + I(PPT_yr_anom^2) + I(T_yr_anom^2) + 
+                     I(PPT_pf_dr_anom^2) + I(PPT_c_dr_anom^2) + I(PPT_fs_dr_anom^2) + I(PPT_m_dr_anom^2) + I(T_dr_anom^2) + 
+                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+
+mod.comp4<-model.sel(smodel.3b,smodel.4a,smodel.4b,smodel.4c,smodel.4d)
+@
+
+<<>>=
+mod.comp4
+@
+
+There was no support for adding drought anomalies over using 4-season climate predictors.
+
+\subsection{Add interactions}
+There were convergence issues using 4-season climate data plus drought, so instead I am again comparing annual plus interactions to 4-season without interactions, using annual norms and anomalies, which was the best annual model from mod.comp3
+
+<<echo=FALSE>>=
+smodel.5a <- glmer(mort ~ (PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm + PPT_yr_anom + T_yr_anom)^2 + 
+                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.5b <- glmer(mort ~ (PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm + PPT_yr_anom + T_yr_anom)^2 + 
+                      I(PREVDIA^2) + I(BALIVE^2) + 
+                     I(PPT_yr_norm^2) + I(PPT_yr_anom^2) + I(T_yr_norm^2) + I(T_yr_anom^2) + 
+                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+
+mod.comp5 <- model.sel(smodel.3b, smodel.5a, smodel.5b)
+@
+
+<<>>=
+mod.comp5
+@
+
+There was no support for adding interactions over using 4-season climate predictors.
 
 \subsection{Model selection summary}
-<<echo=FALSE>>=
-sbase_best<-glmer(mort ~ (PREVDIA + BALIVE + PPT_m + T_fs + PPT_pf_dr_anom + T_c_anom)^2 
-                     + I(PREVDIA^2) +I(BALIVE^2) +I(PPT_m^2) +I(T_fs^2) + I(PPT_pf_dr_anom^2)                             + (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
-                     family = binomial(link = cloglog), data = survData3.scaled,
-                     control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
-@
 
-The best model that came out of the model selection process (see \emph{./Code/Recruitment/modelSelection.R}) included live basal area; monsoon precipitation; previous fall precipitation anomaly; foresummer temperature, cool season temperature anomaly; quadratics; and interactions:
+The best model that came out of the more thorough model selection used 4-season temperature and precipitation norms as the climate predictors, and included quadratics but no interactions.
 
 <<>>=
-summary(sbase_best)
+summary(smodel.3b)
 @
 
 The models I will export for use in the IPMs are:
 \begin{enumerate}
-\item{surv \~{} dia + balive + ppt + temp}
-\item{surv \~{} dia \** balive \** ppt \** temp}
-\item{surv \~{} dia + balive + ppt + temp + dia\textsuperscript{2} + balive\textsuperscript{2} + ppt\textsuperscript{2} + temp\textsuperscript{2}}
-\item{surv \~{} dia \** balive \** ppt \** temp + dia\textsuperscript{2} + balive\textsuperscript{2} + ppt\textsuperscript{2} + temp\textsuperscript{2}}
-\item{surv \~{} dia \** balive \** ppt\_m \** temp\_fs \** ppt\_pf\_dr\_anom \** t\_c\_anom + dia\textsuperscript{2} + balive\textsuperscript{2} + ppt\_m\textsuperscript{2} + temp\_fs\textsuperscript{2} + ppt\_pf\_dr\_anom\textsuperscript{2}}
+\item{grow \~{} dia + ppt.norm + temp.norm + dia\textsuperscript{2} + + ppt.norm\textsuperscript{2} + temp.norm\textsuperscript{2}}
+\item{grow \~{} dia + balive + ppt.norm + temp.norm + dia\textsuperscript{2} + balive\textsuperscript{2} + ppt.norm\textsuperscript{2} + temp.norm\textsuperscript{2}}
+\item{grow \~{} dia \** balive \** ppt.norm \** temp.norm + dia\textsuperscript{2} + balive\textsuperscript{2} + ppt.norm\textsuperscript{2} + temp.norm\textsuperscript{2}}
+\item{grow \~{} dia + balive + ppt.c.norm + ppt.pf.norm + ppt.fs.norm + ppt.m.norm +t.c.norm + t.pf.norm + t.fs.norm + t.m.norm + dia\textsuperscript{2} + balive\textsuperscript{2} + ppt.c.norm\textsuperscript{2} + ppt.pf.norm\textsuperscript{2} + ppt.fs.norm\textsuperscript{2} + ppt.m.norm\textsuperscript{2} + t.c.norm\textsuperscript{2} + t.pf.norm\textsuperscript{2} + t.fs.norm\textsuperscript{2} + t.m.norm\textsuperscript{2}}
 \end{enumerate}
 
 The effects plots for these models are below.
 
 \section{Effects plots}
+<<echo=false>>=
+smodel.clim <- glmer(mort ~ PREVDIA + PPT_yr_norm + T_yr_norm + I(PREVDIA^2) + 
+                      I(PPT_yr_norm^2) + I(T_yr_norm^2) + 
+                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.clim.comp <- glmer(mort ~ PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm + I(PREVDIA^2) + 
+                           I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) + 
+                           (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.int <- glmer(mort ~ (PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm)^2 + I(PREVDIA^2) + 
+                     I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) + 
+                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                   family = binomial(link = cloglog), data = survData3.scaled,
+                   control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+smodel.best<- smodel.3b
+@
+
 \begin{figure}[H]
 \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("PREVDIA", sbase_balive_clim))
-@
-  \end{minipage}%
-\begin{minipage}[b]{.5\linewidth}
-<<fig=TRUE,echo=false>>=
-plot(effect("BALIVE", sbase_balive_clim))
-@
-  \end{minipage}
-  \begin{minipage}[b]{.5\linewidth}
-<<fig=TRUE,echo=false>>=
-plot(effect("PPT_yr", sbase_balive_clim))
+plot(effect("PREVDIA", smodel.clim))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("T_yr", sbase_balive_clim))
+plot(effect("PPT_yr_norm", smodel.clim))
 @
   \end{minipage}
-\caption{Effects plots for model with only first-order main effects.}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr_norm", smodel.clim))
+@
+  \end{minipage}
+\caption{Effects plots for climate-only model.}
 \end{figure}
 
 \begin{figure}[H]
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("BALIVE", sbase_int))
+plot(effect("PREVDIA", smodel.clim.comp))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("BALIVE", sbase_int))
+plot(effect("BALIVE", smodel.clim.comp))
 @
   \end{minipage}
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("PPT_yr", sbase_int))
+plot(effect("PPT_yr_norm", smodel.clim.comp))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("T_yr", sbase_int))
+plot(effect("T_yr_norm", smodel.clim.comp))
 @
   \end{minipage}
-\caption{Effects plots for model with main effects and pairwise interaction.}
+\caption{Effects plots for climate and competition model, no interactions.}
 \end{figure}
 
 \begin{figure}[H]
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("PREVDIA", sbase_q))
+plot(effect("PREVDIA", smodel.int))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("BALIVE", sbase_q))
+plot(effect("BALIVE", smodel.int))
 @
   \end{minipage}
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("PPT_yr", sbase_q))
+plot(effect("PPT_yr_norm", smodel.int))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("T_yr", sbase_q))
+plot(effect("T_yr_norm", smodel.int))
 @
   \end{minipage}
-\caption{Effects plots for model with main effects and quadratics.}
+\caption{Effects plots for climate and competition model, with interactions.}
 \end{figure}
 
 \begin{figure}[H]
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("PREVDIA", sbase_int_q))
+plot(effect("PREVDIA", smodel.best))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("BALIVE", sbase_int_q))
+plot(effect("BALIVE", smodel.best))
 @
   \end{minipage}
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("PPT_yr", sbase_int_q))
+plot(effect("PPT_c_norm", smodel.best))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("T_yr", sbase_int_q))
+plot(effect("PPT_pf_norm", smodel.best))
 @
   \end{minipage}
-\caption{Effects plots for model with main effects, pairwise interactions, and quadratics.}
-\end{figure}
-
-\begin{figure}[H]
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("PREVDIA", sbase_best))
+plot(effect("PPT_fs_norm", smodel.best))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("BALIVE", sbase_best))
+plot(effect("PPT_m_norm", smodel.best))
 @
   \end{minipage}
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("PPT_m", sbase_best))
+plot(effect("T_c_norm", smodel.best))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("PPT_pf_dr_anom", sbase_best))
+plot(effect("T_pf_norm", smodel.best))
 @
   \end{minipage}
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("T_fs", sbase_best))
+plot(effect("T_fs_norm", smodel.best))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(effect("T_c_anom", sbase_best))
+plot(effect("T_m_norm", smodel.best))
 @
   \end{minipage}
-\caption{Effects plots for ``best" model.}
+\caption{Effects plots for "best" model.}
 \end{figure}
 
 <<echo=FALSE>>=
 ncuts=50
 chopsize_dia<-cut(survData3.scaled$PREVDIA,ncuts)
 chopsize_ba<-cut(survData3.scaled$BALIVE,ncuts)
-chopsize_PPTm<-cut(survData3.scaled$PPT_m,ncuts)
-chopsize_Tfs<-cut(survData3.scaled$T_fs,ncuts)
-chopsize_PPTanom<-cut(survData3.scaled$PPT_pf_dr_anom,ncuts)
-chopsize_Tanom<-cut(survData3.scaled$T_c_anom,ncuts)
+chopsize_PPTc<-cut(survData3.scaled$PPT_c_norm,ncuts)
+chopsize_PPTpf<-cut(survData3.scaled$PPT_pf_norm,ncuts)
+chopsize_PPTfs<-cut(survData3.scaled$PPT_fs_norm,ncuts)
+chopsize_PPTm<-cut(survData3.scaled$PPT_m_norm,ncuts)
+chopsize_Tc<-cut(survData3.scaled$T_c_norm,ncuts)
+chopsize_Tpf<-cut(survData3.scaled$T_pf_norm,ncuts)
+chopsize_Tfs<-cut(survData3.scaled$T_fs_norm,ncuts)
+chopsize_Tm<-cut(survData3.scaled$T_m_norm,ncuts)
 surv_binned_dia<-as.vector(sapply(split(survData3.scaled$mort,chopsize_dia),mean))
 dia_binned<-as.vector(sapply(split(survData3.scaled$PREVDIA,chopsize_dia),mean))
 surv_binned_ba<-as.vector(sapply(split(survData3.scaled$mort,chopsize_ba),mean))
 ba_binned<-as.vector(sapply(split(survData3.scaled$BALIVE,chopsize_ba),mean))
+surv_binned_PPTc<-as.vector(sapply(split(survData3.scaled$mort,chopsize_PPTc),mean))
+PPTc_binned<-as.vector(sapply(split(survData3.scaled$PPT_c_norm,chopsize_PPTc),mean))
+surv_binned_PPTpf<-as.vector(sapply(split(survData3.scaled$mort,chopsize_PPTpf),mean))
+PPTpf_binned<-as.vector(sapply(split(survData3.scaled$PPT_pf_norm,chopsize_PPTpf),mean))
+surv_binned_PPTfs<-as.vector(sapply(split(survData3.scaled$mort,chopsize_PPTfs),mean))
+PPTfs_binned<-as.vector(sapply(split(survData3.scaled$PPT_fs_norm,chopsize_PPTfs),mean))
 surv_binned_PPTm<-as.vector(sapply(split(survData3.scaled$mort,chopsize_PPTm),mean))
-PPTm_binned<-as.vector(sapply(split(survData3.scaled$PPT_m,chopsize_PPTm),mean))
+PPTm_binned<-as.vector(sapply(split(survData3.scaled$PPT_m_norm,chopsize_PPTm),mean))
+surv_binned_Tc<-as.vector(sapply(split(survData3.scaled$mort,chopsize_Tc),mean))
+Tc_binned<-as.vector(sapply(split(survData3.scaled$T_c_norm,chopsize_Tc),mean))
+surv_binned_Tpf<-as.vector(sapply(split(survData3.scaled$mort,chopsize_Tpf),mean))
+Tpf_binned<-as.vector(sapply(split(survData3.scaled$T_pf_norm,chopsize_Tpf),mean))
 surv_binned_Tfs<-as.vector(sapply(split(survData3.scaled$mort,chopsize_Tfs),mean))
-Tfs_binned<-as.vector(sapply(split(survData3.scaled$T_fs,chopsize_Tfs),mean))
-surv_binned_PPTanom<-as.vector(sapply(split(survData3.scaled$mort,chopsize_PPTanom),mean))
-PPTanom_binned<-as.vector(sapply(split(survData3.scaled$PPT_pf_dr_anom,chopsize_PPTanom),mean))
-surv_binned_Tanom<-as.vector(sapply(split(survData3.scaled$mort,chopsize_Tanom),mean))
-Tanom_binned<-as.vector(sapply(split(survData3.scaled$T_c_anom,chopsize_Tanom),mean))
+Tfs_binned<-as.vector(sapply(split(survData3.scaled$T_fs_norm,chopsize_Tfs),mean))
+surv_binned_Tm<-as.vector(sapply(split(survData3.scaled$mort,chopsize_Tm),mean))
+Tm_binned<-as.vector(sapply(split(survData3.scaled$T_m_norm,chopsize_Tm),mean))
 
-s_binned<-as.data.frame(cbind(surv_binned_dia,surv_binned_ba,surv_binned_PPTm,
-                              surv_binned_Tfs,surv_binned_PPTanom,surv_binned_Tanom,dia_binned,
-                              ba_binned,PPTm_binned,Tfs_binned,PPTanom_binned,Tanom_binned))
-names(s_binned)<-c("mort_dia","mort_ba","mort_PPTm","mort_Tfs","mort_PPTanom","mort_Tanom",
-                   "PREVDIA","BALIVE","PPT_m","T_fs","PPT_pf_dr_anom","T_c_anom")
+s_binned<-as.data.frame(cbind(surv_binned_dia,surv_binned_ba,surv_binned_PPTc,surv_binned_PPTpf,
+                              surv_binned_PPTfs,surv_binned_PPTm,surv_binned_Tc,surv_binned_Tpf,
+                              surv_binned_Tfs,surv_binned_Tm,dia_binned,ba_binned,
+                              PPTc_binned,PPTpf_binned,PPTfs_binned,PPTm_binned,
+                              Tc_binned,Tpf_binned,Tfs_binned,Tm_binned))
+names(s_binned)<-c("mort_dia","mort_ba","mort_PPTc","mort_PPTpf","mort_PPTfs","mort_PPTm",
+                   "mort_Tc","mort_Tpf","mort_Tfs","mort_Tm",
+                   "PREVDIA","BALIVE","PPT_c","PPT_pf","PPT_fs","PPT_m","T_c","T_pf","T_fs","T_m")
 
 dia_seq<-seq(min(survData3.scaled$PREVDIA,na.rm=T),max(survData3.scaled$PREVDIA,na.rm=T),length=50)
-dia_pred<-predict(sbase_best, 
+dia_pred<-predict(smodel.best, 
                   newdata = data.frame(PREVDIA=dia_seq,
                       BALIVE=median(survData3.scaled$BALIVE,na.rm=T),
-                      PPT_m=median(survData3.scaled$PPT_m,na.rm=T),
-                      T_fs=median(survData3.scaled$T_fs,na.rm=T),
-                      PPT_pf_dr_anom=median(survData3.scaled$PPT_pf_dr_anom,na.rm=T),
-                      T_c_anom=median(survData3.scaled$T_c_anom,na.rm=T),
+                      PPT_c_norm=median(survData3.scaled$PPT_c_norm,na.rm=T),
+                      PPT_pf_norm=median(survData3.scaled$PPT_pf_norm,na.rm=T),
+                      PPT_fs_norm=median(survData3.scaled$PPT_fs_norm,na.rm=T),
+                      PPT_m_norm=median(survData3.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(survData3.scaled$T_c_norm,na.rm=T),
+                      T_pf_norm=median(survData3.scaled$T_pf_norm,na.rm=T),
+                      T_fs_norm=median(survData3.scaled$T_fs_norm,na.rm=T),
+                      T_m_norm=median(survData3.scaled$T_m_norm,na.rm=T),
                       CENSUS_INTERVAL=median(survData3.scaled$CENSUS_INTERVAL,na.rm=T)), 
                   type = "response", re.form = NA)
 
 ba_seq<-seq(min(survData3.scaled$BALIVE,na.rm=T),max(survData3.scaled$BALIVE,na.rm=T),length=50)
-ba_pred<-predict(sbase_best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
+ba_pred<-predict(smodel.best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
                       BALIVE=ba_seq,
-                      PPT_m=median(survData3.scaled$PPT_m,na.rm=T),
-                      T_fs=median(survData3.scaled$T_fs,na.rm=T),
-                      PPT_pf_dr_anom=median(survData3.scaled$PPT_pf_dr_anom,na.rm=T),
-                      T_c_anom=median(survData3.scaled$T_c_anom,na.rm=T),
+                      PPT_c_norm=median(survData3.scaled$PPT_c_norm,na.rm=T),
+                      PPT_pf_norm=median(survData3.scaled$PPT_pf_norm,na.rm=T),
+                      PPT_fs_norm=median(survData3.scaled$PPT_fs_norm,na.rm=T),
+                      PPT_m_norm=median(survData3.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(survData3.scaled$T_c_norm,na.rm=T),
+                      T_pf_norm=median(survData3.scaled$T_pf_norm,na.rm=T),
+                      T_fs_norm=median(survData3.scaled$T_fs_norm,na.rm=T),
+                      T_m_norm=median(survData3.scaled$T_m_norm,na.rm=T),
                       CENSUS_INTERVAL=median(survData3.scaled$CENSUS_INTERVAL,na.rm=T)), 
                  type = "response", re.form = NA)
 
-PPTm_seq<-seq(min(survData3.scaled$PPT_m,na.rm=T),max(survData3.scaled$PPT_m,na.rm=T),length=50)
-PPTm_pred<-predict(sbase_best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
+PPTc_seq<-seq(min(survData3.scaled$PPT_c_norm,na.rm=T),max(survData3.scaled$PPT_c_norm,
+                                                           na.rm=T),length=50)
+PPTc_pred<-predict(smodel.best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
                       BALIVE=median(survData3.scaled$BALIVE,na.rm=T),
-                      PPT_m=PPTm_seq,
-                      T_fs=median(survData3.scaled$T_fs,na.rm=T),
-                      PPT_pf_dr_anom=median(survData3.scaled$PPT_pf_dr_anom,na.rm=T),
-                      T_c_anom=median(survData3.scaled$T_c_anom,na.rm=T),
+                      PPT_c_norm=PPTc_seq,
+                      PPT_pf_norm=median(survData3.scaled$PPT_pf_norm,na.rm=T),
+                      PPT_fs_norm=median(survData3.scaled$PPT_fs_norm,na.rm=T),
+                      PPT_m_norm=median(survData3.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(survData3.scaled$T_c_norm,na.rm=T),
+                      T_pf_norm=median(survData3.scaled$T_pf_norm,na.rm=T),
+                      T_fs_norm=median(survData3.scaled$T_fs_norm,na.rm=T),
+                      T_m_norm=median(survData3.scaled$T_m_norm,na.rm=T),
                       CENSUS_INTERVAL=median(survData3.scaled$CENSUS_INTERVAL,na.rm=T)), 
                    type = "response", re.form = NA)
 
-Tfs_seq<-seq(min(survData3.scaled$T_fs,na.rm=T),max(survData3.scaled$T_fs,na.rm=T),length=50)
-Tfs_pred<-predict(sbase_best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
+PPTpf_seq<-seq(min(survData3.scaled$PPT_pf_norm,na.rm=T),max(survData3.scaled$PPT_pf_norm
+                                                             ,na.rm=T),length=50)
+PPTpf_pred<-predict(smodel.best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
                       BALIVE=median(survData3.scaled$BALIVE,na.rm=T),
-                      PPT_m=median(survData3.scaled$PPT_m,na.rm=T),
-                      T_fs=Tfs_seq,
-                      PPT_pf_dr_anom=median(survData3.scaled$PPT_pf_dr_anom,na.rm=T),
-                      T_c_anom=median(survData3.scaled$T_c_anom,na.rm=T),
+                      PPT_c_norm=median(survData3.scaled$PPT_c_norm,na.rm=T),
+                      PPT_pf_norm=PPTpf_seq,
+                      PPT_fs_norm=median(survData3.scaled$PPT_fs_norm,na.rm=T),
+                      PPT_m_norm=median(survData3.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(survData3.scaled$T_c_norm,na.rm=T),
+                      T_pf_norm=median(survData3.scaled$T_pf_norm,na.rm=T),
+                      T_fs_norm=median(survData3.scaled$T_fs_norm,na.rm=T),
+                      T_m_norm=median(survData3.scaled$T_m_norm,na.rm=T),
                       CENSUS_INTERVAL=median(survData3.scaled$CENSUS_INTERVAL,na.rm=T)), 
-                  type = "response", re.form = NA)
+                   type = "response", re.form = NA)
 
-PPTanom_seq<-seq(min(survData3.scaled$PPT_pf_dr_anom,na.rm=T),
-                 max(survData3.scaled$PPT_pf_dr_anom,na.rm=T),length=50)
-PPTanom_pred<-predict(sbase_best, newdata=data.frame(
-                      PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
+PPTfs_seq<-seq(min(survData3.scaled$PPT_fs_norm,na.rm=T),max(survData3.scaled$PPT_fs_norm,
+                                                             na.rm=T),length=50)
+PPTfs_pred<-predict(smodel.best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
                       BALIVE=median(survData3.scaled$BALIVE,na.rm=T),
-                      PPT_m=median(survData3.scaled$PPT_m,na.rm=T),
-                      T_fs=median(survData3.scaled$T_fs,na.rm=T),
-                      PPT_pf_dr_anom=PPTanom_seq,
-                      T_c_anom=median(survData3.scaled$T_c_anom,na.rm=T),
+                      PPT_c_norm=median(survData3.scaled$PPT_c_norm,na.rm=T),
+                      PPT_pf_norm=median(survData3.scaled$PPT_pf_norm,na.rm=T),
+                      PPT_fs_norm=PPTfs_seq,
+                      PPT_m_norm=median(survData3.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(survData3.scaled$T_c_norm,na.rm=T),
+                      T_pf_norm=median(survData3.scaled$T_pf_norm,na.rm=T),
+                      T_fs_norm=median(survData3.scaled$T_fs_norm,na.rm=T),
+                      T_m_norm=median(survData3.scaled$T_m_norm,na.rm=T),
                       CENSUS_INTERVAL=median(survData3.scaled$CENSUS_INTERVAL,na.rm=T)), 
-                      type = "response", re.form = NA)
+                   type = "response", re.form = NA)
 
-Tanom_seq<-seq(min(survData3.scaled$T_c_anom,na.rm=T),
-               max(survData3.scaled$T_c_anom,na.rm=T),length=50)
-Tanom_pred<-predict(sbase_best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
+PPTm_seq<-seq(min(survData3.scaled$PPT_m_norm,na.rm=T),max(survData3.scaled$PPT_m_norm,
+                                                           na.rm=T),length=50)
+PPTm_pred<-predict(smodel.best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
                       BALIVE=median(survData3.scaled$BALIVE,na.rm=T),
-                      PPT_m=median(survData3.scaled$PPT_m,na.rm=T),
-                      T_fs=median(survData3.scaled$T_fs,na.rm=T),
-                      PPT_pf_dr_anom=median(survData3.scaled$PPT_pf_dr_anom,na.rm=T),
-                      T_c_anom=Tanom_seq,
+                      PPT_c_norm=median(survData3.scaled$PPT_c_norm,na.rm=T),
+                      PPT_pf_norm=median(survData3.scaled$PPT_pf_norm,na.rm=T),
+                      PPT_fs_norm=median(survData3.scaled$PPT_fs_norm,na.rm=T),
+                      PPT_m_norm=PPTm_seq,
+                      T_c_norm=median(survData3.scaled$T_c_norm,na.rm=T),
+                      T_pf_norm=median(survData3.scaled$T_pf_norm,na.rm=T),
+                      T_fs_norm=median(survData3.scaled$T_fs_norm,na.rm=T),
+                      T_m_norm=median(survData3.scaled$T_m_norm,na.rm=T),
                       CENSUS_INTERVAL=median(survData3.scaled$CENSUS_INTERVAL,na.rm=T)), 
-                    type = "response", re.form = NA)
+                   type = "response", re.form = NA)
 
-s_pred<-as.data.frame(cbind(dia_seq,dia_pred,ba_seq,ba_pred,PPTm_seq,PPTm_pred,Tfs_seq,Tfs_pred,
-                            PPTanom_seq,PPTanom_pred,Tanom_seq,Tanom_pred))
+Tc_seq<-seq(min(survData3.scaled$T_c_norm,na.rm=T),max(survData3.scaled$T_c_norm,na.rm=T),length=50)
+Tc_pred<-predict(smodel.best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
+                      BALIVE=median(survData3.scaled$BALIVE,na.rm=T),
+                      PPT_c_norm=median(survData3.scaled$PPT_c_norm,na.rm=T),
+                      PPT_pf_norm=median(survData3.scaled$PPT_pf_norm,na.rm=T),
+                      PPT_fs_norm=median(survData3.scaled$PPT_fs_norm,na.rm=T),
+                      PPT_m_norm=median(survData3.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=Tc_seq,
+                      T_pf_norm=median(survData3.scaled$T_pf_norm,na.rm=T),
+                      T_fs_norm=median(survData3.scaled$T_fs_norm,na.rm=T),
+                      T_m_norm=median(survData3.scaled$T_m_norm,na.rm=T),
+                      CENSUS_INTERVAL=median(survData3.scaled$CENSUS_INTERVAL,na.rm=T)), 
+                   type = "response", re.form = NA)
+
+Tpf_seq<-seq(min(survData3.scaled$T_pf_norm,na.rm=T),max(survData3.scaled$T_pf_norm,
+                                                         na.rm=T),length=50)
+Tpf_pred<-predict(smodel.best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
+                      BALIVE=median(survData3.scaled$BALIVE,na.rm=T),
+                      PPT_c_norm=median(survData3.scaled$PPT_c_norm,na.rm=T),
+                      PPT_pf_norm=median(survData3.scaled$PPT_pf_norm,na.rm=T),
+                      PPT_fs_norm=median(survData3.scaled$PPT_fs_norm,na.rm=T),
+                      PPT_m_norm=median(survData3.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(survData3.scaled$T_c_norm,na.rm=T),
+                      T_pf_norm=Tpf_seq,
+                      T_fs_norm=median(survData3.scaled$T_fs_norm,na.rm=T),
+                      T_m_norm=median(survData3.scaled$T_m_norm,na.rm=T),
+                      CENSUS_INTERVAL=median(survData3.scaled$CENSUS_INTERVAL,na.rm=T)), 
+                   type = "response", re.form = NA)
+
+Tfs_seq<-seq(min(survData3.scaled$T_fs_norm,na.rm=T),max(survData3.scaled$T_fs_norm,
+                                                         na.rm=T),length=50)
+Tfs_pred<-predict(smodel.best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
+                      BALIVE=median(survData3.scaled$BALIVE,na.rm=T),
+                      PPT_c_norm=median(survData3.scaled$PPT_c_norm,na.rm=T),
+                      PPT_pf_norm=median(survData3.scaled$PPT_pf_norm,na.rm=T),
+                      PPT_fs_norm=median(survData3.scaled$PPT_fs_norm,na.rm=T),
+                      PPT_m_norm=median(survData3.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(survData3.scaled$T_c_norm,na.rm=T),
+                      T_pf_norm=median(survData3.scaled$T_pf_norm,na.rm=T),
+                      T_fs_norm=Tfs_seq,
+                      T_m_norm=median(survData3.scaled$T_m_norm,na.rm=T),
+                      CENSUS_INTERVAL=median(survData3.scaled$CENSUS_INTERVAL,na.rm=T)), 
+                   type = "response", re.form = NA)
+
+Tm_seq<-seq(min(survData3.scaled$T_m_norm,na.rm=T),max(survData3.scaled$T_m_norm,na.rm=T),length=50)
+Tm_pred<-predict(smodel.best, newdata=data.frame(PREVDIA=median(survData3.scaled$PREVDIA,na.rm=T),
+                      BALIVE=median(survData3.scaled$BALIVE,na.rm=T),
+                      PPT_c_norm=median(survData3.scaled$PPT_c_norm,na.rm=T),
+                      PPT_pf_norm=median(survData3.scaled$PPT_pf_norm,na.rm=T),
+                      PPT_fs_norm=median(survData3.scaled$PPT_fs_norm,na.rm=T),
+                      PPT_m_norm=median(survData3.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(survData3.scaled$T_c_norm,na.rm=T),
+                      T_pf_norm=median(survData3.scaled$T_pf_norm,na.rm=T),
+                      T_fs_norm=median(survData3.scaled$T_fs_norm,na.rm=T),
+                      T_m_norm=Tm_seq,
+                      CENSUS_INTERVAL=median(survData3.scaled$CENSUS_INTERVAL,na.rm=T)), 
+                   type = "response", re.form = NA)
+
+
+s_pred<-as.data.frame(cbind(dia_seq,dia_pred,ba_seq,ba_pred,PPTc_seq,PPTc_pred,PPTpf_seq,PPTpf_pred,
+                            PPTfs_seq,PPTfs_pred,PPTm_seq,PPTm_pred,Tc_seq,Tc_pred,
+                            Tpf_seq,Tpf_pred,Tfs_seq,Tfs_pred,Tm_seq,Tm_pred))
 
 s_dia_plot<-ggplot(data=s_binned,aes(x=PREVDIA,y=mort_dia))+
   geom_point(alpha=0.7)+
@@ -472,27 +742,44 @@ s_ba_plot<-ggplot(data=s_binned,aes(x=BALIVE,y=mort_ba))+
   geom_point(alpha=0.7)+
   geom_line(data=s_pred,aes(x=ba_seq,y=ba_pred),col="red")
 
+s_PPTc_plot<-ggplot(data=s_binned,aes(x=PPT_c,y=mort_PPTc))+
+  geom_point(alpha=0.7)+
+  geom_line(data=s_pred,aes(x=PPTc_seq,y=PPTc_pred),col="red")
+
+s_PPTpf_plot<-ggplot(data=s_binned,aes(x=PPT_pf,y=mort_PPTpf))+
+  geom_point(alpha=0.7)+
+  geom_line(data=s_pred,aes(x=PPTpf_seq,y=PPTpf_pred),col="red")
+
+s_PPTfs_plot<-ggplot(data=s_binned,aes(x=PPT_fs,y=mort_PPTfs))+
+  geom_point(alpha=0.7)+
+  geom_line(data=s_pred,aes(x=PPTfs_seq,y=PPTfs_pred),col="red")
+
 s_PPTm_plot<-ggplot(data=s_binned,aes(x=PPT_m,y=mort_PPTm))+
   geom_point(alpha=0.7)+
   geom_line(data=s_pred,aes(x=PPTm_seq,y=PPTm_pred),col="red")
+
+s_Tc_plot<-ggplot(data=s_binned,aes(x=T_c,y=mort_Tc))+
+  geom_point(alpha=0.7)+
+  geom_line(data=s_pred,aes(x=Tc_seq,y=Tc_pred),col="red")
+
+s_Tpf_plot<-ggplot(data=s_binned,aes(x=T_pf,y=mort_Tpf))+
+  geom_point(alpha=0.7)+
+  geom_line(data=s_pred,aes(x=Tpf_seq,y=Tpf_pred),col="red")
 
 s_Tfs_plot<-ggplot(data=s_binned,aes(x=T_fs,y=mort_Tfs))+
   geom_point(alpha=0.7)+
   geom_line(data=s_pred,aes(x=Tfs_seq,y=Tfs_pred),col="red")
 
-s_PPTanom_plot<-ggplot(data=s_binned,aes(x=PPT_pf_dr_anom,y=mort_PPTanom))+
+s_Tm_plot<-ggplot(data=s_binned,aes(x=T_m,y=mort_Tm))+
   geom_point(alpha=0.7)+
-  geom_line(data=s_pred,aes(x=PPTanom_seq,y=PPTanom_pred),col="red")
-
-s_Tanom_plot<-ggplot(data=s_binned,aes(x=T_c_anom,y=mort_Tanom))+
-  geom_point(alpha=0.7)+
-  geom_line(data=s_pred,aes(x=Tanom_seq,y=Tanom_pred),col="red")
+  geom_line(data=s_pred,aes(x=Tm_seq,y=Tm_pred),col="red")
 @
 
 
 \begin{figure}[H]
 <<fig=TRUE,echo=FALSE>>=
-multiplot(s_dia_plot,s_ba_plot,s_PPTm_plot,s_Tfs_plot,s_PPTanom_plot,s_Tanom_plot,cols=2)
+multiplot(s_dia_plot,s_ba_plot,s_PPTc_plot,s_PPTpf_plot,s_PPTfs_plot,s_PPTm_plot,
+          s_Tc_plot,s_Tpf_plot,s_Tfs_plot,s_Tm_plot,cols=2)
 @
 \caption{Effects plots for "best" model, plotted over raw data.}
 \end{figure}

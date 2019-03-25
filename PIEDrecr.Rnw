@@ -11,17 +11,38 @@
 \maketitle
 
 \section{Overview}
-After playing around with the vital rate models, we decided to take the following approach to model selection:
+
 \begin{enumerate}
 \item{Select adult PIED offset (BA.PIED, cumDIA.PIED, PIEDadults1)}
-\item{Select main effects (balive, precipitation, temperature)}
-\item{Add pairwise interactions}
-\item{Add quadratics}
-\item{Add both pairwise interactions}
-\item{Try more thorough model selection, including seasonal climate variables, climate anomalies, etc.}
+\item{Select basal area predictor}
 \end{enumerate}
 
-Additional model selection can then be done at the map stage to determine how increasing the complexity of the models to get lower $AIC$ affects projected distributions.
+To test between the climate-only approach typically used in climate envelope modeling and including competition, as motivated by DMB, we created two different models:
+
+\begin{enumerate}
+\item{Climate only (simple): using temp and ppt norms + quadratics}
+\item{Climate + competition (simple): same as climate only, but with BALIVE (and quadratic) added}
+\end{enumerate}
+
+We then created two more complex models to test how increasing model complexity, which generally improves AIC at the vital rate level, changes our predicted distributions. 
+
+\begin{enumerate}
+\item Climate + competition (interactions): climate + competition, but includes 2-way interactions between linear predictors
+\item Climate + competition (complex):
+\begin{enumerate}
+ \item Test between temperature and vpd
+ \item Compare annual, 3-season, and 4-season
+ \item Compare normals, census interval, anomalies, and anomalies + norms
+ \item Add drought anomalies
+ \begin{enumerate}
+	\item total ppt and mean temp during drought
+	\item 3-season ppt and mean temp during drought
+	\item total ppt and temp anomalies during drought
+	\item 3-season ppt and temp anomalies during drought
+ \end{enumerate}  
+ \item Add interactions (interactions without quadratics vs interactions + quadratics)
+ \end{enumerate}
+\end{enumerate}
 
 <<echo=FALSE>>=
 library(ggeffects)
@@ -119,6 +140,7 @@ hist(rdata2$BALIVE, breaks = c(seq(0, 400, by = 10)), xlim = c(0, 400))
 \end{figure}
 
 \section{Models}
+\subsection{Selecting offset}
 <<echo=FALSE>>=
 # From https://github.com/glmmTMB/glmmTMB/blob/7ba86a972ddb13226a8de9eab0e113e6156fccf4/glmmTMB/R/effects.R
 Effect.glmmTMB <- function (focal.predictors, mod, ...) {
@@ -150,106 +172,311 @@ Effect.glmmTMB <- function (focal.predictors, mod, ...) {
 }
 @
 
-Selecting offset: Only the model with PIEDadults1 had acceptable residuals, so we will proceed with that throughout the rest of the model selection.
+Only the model with PIEDadults1 had acceptable residuals, so we will proceed with that throughout the rest of the model selection.
 
-\subsection{Compare additional basic predictors (balive, ppt, temp)}
+\subsectioni{Select basal area predictor}
 <<echo=FALSE>>=
-r_balive<-glmmTMB(recruits1 ~ 1
-                      + BALIVE
-                      + offset(log(CENSUS_INTERVAL))
-                      + offset(log(PIEDadults1)), # various alternatives for this offset
-                      ziformula = ~ 1,
-                      data = rdata.scaled, 
-                      family = "poisson")
-r_ppt<-glmmTMB(recruits1 ~ 1
-                      + PPT_yr_norm
-                      + offset(log(CENSUS_INTERVAL))
-                      + offset(log(PIEDadults1)), # various alternatives for this offset
-                      ziformula = ~ 1,
-                      data = rdata.scaled, 
-                      family = "poisson")
-r_t<-glmmTMB(recruits1 ~ 1
-                      + T_yr_norm 
-                      + offset(log(CENSUS_INTERVAL))
-                      + offset(log(PIEDadults1)), # various alternatives for this offset
-                      ziformula = ~ 1,
-                      data = rdata.scaled, 
-                      family = "poisson")
-r_clim<-glmmTMB(recruits1 ~ 1
-                       + PPT_yr_norm + T_yr_norm 
-                      + offset(log(CENSUS_INTERVAL))
-                      + offset(log(PIEDadults1)), # various alternatives for this offset
-                      ziformula = ~ 1,
-                      data = rdata.scaled, 
-                      family = "poisson")
-r_balive_clim<-glmmTMB(recruits1 ~ 1
-                      + BALIVE + PPT_yr_norm + T_yr_norm 
-                      + offset(log(CENSUS_INTERVAL))
-                      + offset(log(PIEDadults1)), # various alternatives for this offset
-                      ziformula = ~ 1,
-                      data = rdata.scaled, 
-                      family = "poisson")
-mod.comp1<-model.sel(r_balive,r_ppt,r_t,r_clim,r_balive_clim)
+rmodel.6a <- glmmTMB(recruits1 ~ 1 + BA.PIPO + PPT_yr_norm + T_yr_norm + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.6b <- glmmTMB(recruits1 ~ 1 + BA.notPIED + PPT_yr_norm + T_yr_norm + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.6c <- glmmTMB(recruits1 ~ 1 + BA.juniper + PPT_yr_norm + T_yr_norm + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.6d <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_yr_norm + T_yr_norm + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+mod.comp6<-model.sel(rmodel.6d,rmodel.6a,rmodel.6b,rmodel.6c)
+@
+
+The model using BALIVE was the best.
+
+\subsection{Show the effect of addng quadratics}
+<<echo=FALSE>>=
+rmodel.lin <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_yr_norm + T_yr_norm + 
+                      offset(log(CENSUS_INTERVAL)) + 
+                      offset(log(PIEDadults1)), # various alternatives for this offset
+                    ziformula = ~ 1,
+                    data = rdata.scaled, family = "poisson")
+rmodel.q <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_yr_norm + T_yr_norm + 
+        I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) + 
+        offset(log(CENSUS_INTERVAL)) + 
+        offset(log(PIEDadults1)), # various alternatives for this offset
+        ziformula = ~ 1,
+        data = rdata.scaled, family = "poisson")
+mod.comp0<-model.sel(rmodel.lin,rmodel.q)
+@
+
+<<>>=
+mod.comp0
+@
+
+There was a strong preference for including quadratics, which is why we decided quadratics should be included in the ``simple" climate models.
+
+\subsection{Compare norms to different time windows}
+<<echo=FALSE>>=
+rmodel.1a <- glmmTMB(recruits1 ~ 1
+                        + BALIVE + I(BALIVE^2)
+                        + PPT_yr_window_25 + I(PPT_yr_window_25^2)
+                        + T_yr_window_25 + I(T_yr_window_25^2)
+                        + offset(log(CENSUS_INTERVAL))
+                        + offset(log(PIEDadults1)), 
+                        ziformula = ~ 1,
+                        data = rdata.scaled, 
+                        family = "poisson")
+rmodel.1b <- glmmTMB(recruits1 ~ 1
+                        + BALIVE + I(BALIVE^2)
+                        + PPT_yr_window_20 + I(PPT_yr_window_20^2)
+                        + T_yr_window_20 + I(T_yr_window_20^2)
+                        + offset(log(CENSUS_INTERVAL))
+                        + offset(log(PIEDadults1)), 
+                        ziformula = ~ 1,
+                        data = rdata.scaled, 
+                        family = "poisson")
+# 15 yrs (Poisson)
+rmodel.1c <- glmmTMB(recruits1 ~ 1
+                        + BALIVE + I(BALIVE^2)
+                        + PPT_yr_window_15 + I(PPT_yr_window_15^2)
+                        + T_yr_window_15 + I(T_yr_window_15^2)
+                        + offset(log(CENSUS_INTERVAL))
+                        + offset(log(PIEDadults1)), 
+                        ziformula = ~ 1,
+                        data = rdata.scaled, 
+                        family = "poisson")
+mod.comp1 <- model.sel(rmodel.q,rmodel.1a, rmodel.1b,rmodel.1c)
 @
 
 <<>>=
 mod.comp1
 @
 
-The best model included live basal area, temperature, and precipitation.
+There was no difference between different time windows, so we proceeded with norms, as were used in other vital rate models.
 
-\subsection{Add interactions, quadratics, and both}
+\subsection{Compare annual, 3-season, and 4-season}
 <<echo=FALSE>>=
-r_int<-glmmTMB(recruits1 ~ 1
-                      + (BALIVE + PPT_yr_norm + T_yr_norm)^2 
-                      + offset(log(CENSUS_INTERVAL))
-                      + offset(log(PIEDadults1)), # various alternatives for this offset
-                      ziformula = ~ 1,
-                      data = rdata.scaled, 
-                      family = "poisson")
-r_q<-glmmTMB(recruits1 ~ 1
-                      + BALIVE + I(BALIVE^2)
-                      + PPT_yr_norm + I(PPT_yr_norm^2)
-                      + T_yr_norm + I(T_yr_norm^2)
-                      + offset(log(CENSUS_INTERVAL))
-                      + offset(log(PIEDadults1)), # various alternatives for this offset
-                      ziformula = ~ 1,
-                      data = rdata.scaled, 
-                      family = "poisson")
-r_int_q<-glmmTMB(recruits1 ~ 1
-                      + (BALIVE + PPT_yr_norm + T_yr_norm)^2 
-                      + I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2)
-                      + offset(log(CENSUS_INTERVAL))
-                      + offset(log(PIEDadults1)), # various alternatives for this offset
-                      ziformula = ~ 1,
-                      data = rdata.scaled, 
-                      family = "poisson")
-mod.comp_int_q<-model.sel(r_balive_clim,r_int_q,r_int,r_q)
+rmodel.2a <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                       T_c_norm + T_wd_norm + T_m_norm + 
+                      I(BALIVE^2) + 
+                      I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                      I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) +
+                      offset(log(CENSUS_INTERVAL)) + 
+                      offset(log(PIEDadults1)), # various alternatives for this offset
+                    ziformula = ~ 1,
+                    data = rdata.scaled, family = "poisson")
+rmodel.2b <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_norm + + PPT_pf_norm + PPT_fs_norm + PPT_m_norm + 
+                       T_c_norm + T_pf_norm + T_fs_norm + T_m_norm + 
+                       I(BALIVE^2) + 
+                       I(PPT_c_norm^2) + I(PPT_pf_norm^2) + I(PPT_fs_norm^2) + I(PPT_m_norm^2) + 
+                      I(T_c_norm^2) + I(T_pf_norm^2) + I(T_fs_norm^2) + (T_m_norm^2) + 
+                      offset(log(CENSUS_INTERVAL)) + 
+                      offset(log(PIEDadults1)), # various alternatives for this offset
+                    ziformula = ~ 1,
+                    data = rdata.scaled, family = "poisson")
+
+mod.comp2 <- model.sel(rmodel.q, rmodel.2a, rmodel.2b)
 @
 
 <<>>=
-mod.comp_int_q
+mod.comp2
 @
 
-The model including both interactions and quadratics was the best ($\Delta AIC = 12.29$), and the model with only quadratics was better than the model with only interactions ($\Delta AIC = 20.48$).
+The best model used 3-season climate predictors.
+
+\subsection{Compare normals vs anomalies}
+<<echo=FALSE>>=
+rmodel.3a <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_yr_anom + T_yr_anom + I(BALIVE^2) + 
+                       I(PPT_yr_anom^2) + I(T_yr_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.3b <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_anom + PPT_wd_anom + PPT_m_anom + 
+                       T_c_anom + T_wd_anom + T_m_anom + I(BALIVE^2) + 
+                       I(PPT_c_anom^2) + I(PPT_wd_anom^2) + I(PPT_m_anom^2) + 
+                       I(T_c_anom^2) + I(T_wd_anom^2) + (T_m_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.3c <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_yr_anom + T_yr_anom + PPT_yr_norm + T_yr_norm + 
+                       I(BALIVE^2) + 
+                       I(PPT_yr_anom^2) + I(T_yr_anom^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.3d <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                       T_c_norm + T_wd_norm + T_m_norm + I(BALIVE^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPT_c_anom + PPT_wd_anom + PPT_m_anom + 
+                       T_c_anom + T_wd_anom + T_m_anom + 
+                       I(PPT_c_anom^2) + I(PPT_wd_anom^2) + I(PPT_m_anom^2) + 
+                       I(T_c_anom^2) + I(T_wd_anom^2) + (T_m_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.3e <- glmmTMB(recruits1 ~ 1 + BALIVE + PPTex_yr_anom + Tex_yr_anom + I(BALIVE^2) + 
+                       I(PPTex_yr_anom^2) + I(Tex_yr_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.3f <- glmmTMB(recruits1 ~ 1 + BALIVE + PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + I(BALIVE^2) + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.3g <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_yr_norm + T_yr_norm + I(BALIVE^2) + 
+                       I(PPT_yr_norm^2) + I(T_yr_norm^2) + PPTex_yr_anom + Tex_yr_anom + 
+                       I(PPTex_yr_anom^2) + I(Tex_yr_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.3h <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                       T_c_norm + T_wd_norm + T_m_norm + I(BALIVE^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+
+mod.comp3 <- model.sel(rmodel.2a, rmodel.3a, rmodel.3b, rmodel.3c, rmodel.3d, rmodel.3e, rmodel.3f,
+                       rmodel.3g, rmodel.3h)
+@
+
+<<>>=
+mod.comp3
+@
+
+The best model included both 3-season climate norms and 3-season climate extremes anomalies.
+
+\subsection{Add drought anomalies}
+<<echo=FALSE>>=
+rmodel.4a <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                       T_c_norm + T_wd_norm + T_m_norm + 
+                       PPT_drought + Tmean_drought + I(BALIVE^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       I(PPT_drought^2) + I(Tmean_drought^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.4b <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                       T_c_norm + T_wd_norm + T_m_norm + 
+                       PPT_pf_dr + PPT_c_dr + PPT_fs_dr + PPT_m_dr + Tmean_drought + I(BALIVE^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       I(PPT_pf_dr_anom^2) + I(PPT_c_dr^2) + I(PPT_fs_dr^2) + I(PPT_m_dr^2) + I(Tmean_drought^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.4c <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                       T_c_norm + T_wd_norm + T_m_norm + 
+                       PPT_dr_anom + T_dr_anom + I(BALIVE^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       I(PPT_dr_anom^2) + I(T_dr_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.4d <- glmmTMB(recruits1 ~ 1 + BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                       T_c_norm + T_wd_norm + T_m_norm + 
+                       PPT_pf_dr_anom + PPT_c_dr_anom + PPT_fs_dr_anom + PPT_m_dr_anom + T_dr_anom + 
+                       I(BALIVE^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       I(PPT_pf_dr_anom^2) + I(PPT_c_dr_anom^2) + I(PPT_fs_dr_anom^2) + I(PPT_m_dr_anom^2) + I(T_dr_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+
+mod.comp4<-model.sel(rmodel.3h,rmodel.4a,rmodel.4b,rmodel.4c,rmodel.4d)
+@
+
+<<>>=
+mod.comp4
+@
+
+The model without drought and the model with annual drought anomalies were best, so I proceeded with the simpler model without drought.
+
+\subsection{Add interactions}
+<<echo=FALSE>>=
+rmodel.5a <- glmmTMB(recruits1 ~ 1 + (BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                                        T_c_norm + T_wd_norm + T_m_norm + 
+                                        PPT_dr_anom + T_dr_anom)^2 + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.5b <- glmmTMB(recruits1 ~ 1 + (BALIVE + PPT_c_norm + PPT_wd_norm + PPT_m_norm + 
+                                        T_c_norm + T_wd_norm + T_m_norm)^2 + I(BALIVE^2) + 
+                       I(PPT_c_norm^2) + I(PPT_wd_norm^2) + I(PPT_m_norm^2) + 
+                       I(T_c_norm^2) + I(T_wd_norm^2) + (T_m_norm^2) + 
+                       PPTex_c_anom + PPTex_wd_anom + PPTex_m_anom + 
+                       Tex_c_anom + Tex_wd_anom + Tex_m_anom + 
+                       I(PPTex_c_anom^2) + I(PPTex_wd_anom^2) + I(PPTex_m_anom^2) + 
+                       I(Tex_c_anom^2) + I(Tex_wd_anom^2) + (Tex_m_anom^2) + 
+                       offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+
+mod.comp5 <- model.sel(rmodel.3h, rmodel.5a, rmodel.5b)
+@
+
+<<>>=
+mod.comp5
+@
+
+The best model included interactions in addition to quadratics.
 
 \subsection{Model selection summary}
-<<echo=FALSE>>=
-rmodel_zip3seasTint <- glmmTMB(recruits1 ~ 1
-                            + (BALIVE + PPT_yr_norm + T_wd_norm + T_c_norm + T_m_norm)^2
-                            + I(BALIVE^2) + I(PPT_yr_norm^2)
-                            + I(T_wd_norm^2) + I(T_m_norm^2) + I(T_c_norm^2)
-                            + offset(log(CENSUS_INTERVAL))
-                            + offset(log(PIEDadults1)), 
-                            ziformula = ~ 1,
-                            data = rdata.scaled, 
-                            family = "poisson")
-@
 
-The best model that came out of the model selection process (see \emph{./Code/Recruitment/modelSelection.R}) included live basal area; annual precipitation norms; warm/dry, cold, and monsoon season temperature norms; their interactions; and quadratics:
+The best model that came out of the model selection process included live basal area; 3-season  climate norms; 3-season climate extremes anomalies; their interactions; and quadratics:
 
 <<>>=
-summary(rmodel_zip3seasTint)
+summary(rmodel.5b)
 @
 
 The models I will export for use in the IPMs are:
@@ -258,201 +485,454 @@ The models I will export for use in the IPMs are:
 \item{recr \~{} balive \** ppt \** temp}
 \item{recr \~{} balive + ppt + temp + balive\textsuperscript{2} + ppt\textsuperscript{2} + temp\textsuperscript{2}}
 \item{recr \~{} balive \** ppt \** temp + balive\textsuperscript{2} + ppt\textsuperscript{2} + temp\textsuperscript{2}}
-\item{recr \~{} balive \** ppt \** temp\_wd \** temp\_c \** temp\_m \** balive\textsuperscript{2} + ppt\textsuperscript{2} + temp\_wd\textsuperscript{2} + temp\_c\textsuperscript{2} + temp\_m\textsuperscript{2}}
+\item{recr \~{} balive \** ppt.c.norm \** ppt.wd.norm \** ppt.m.norm \** temp.c.norm \** temp.wd.norm \** temp.m.norm \** pptex.c.norm \** pptex.wd.norm \** pptex.m.norm \** tempex.c.norm \** tempex.wd.norm \** tempex.m.norm + balive\textsuperscript{2} + ppt.c.norm\textsuperscript{2} + ppt.wd.norm\textsuperscript{2} + ppt.m.norm\textsuperscript{2} + temp.c.norm\textsuperscript{2} + temp.wd.norm\textsuperscript{2} + temp.m.norm\textsuperscript{2} + pptex.c.norm\textsuperscript{2} + pptex.wd.norm\textsuperscript{2} + pptex.m.norm\textsuperscript{2} + tempex.c.norm\textsuperscript{2} + tempex.wd.norm\textsuperscript{2} + tempex.m.norm\textsuperscript{2}}
 \end{enumerate}
 
 The effects plots for these models are below.
 
 \section{Effects plots}
+<<echo=false>>=
+rmodel.clim <- glmmTMB(recruits1 ~ PPT_yr_norm + T_yr_norm + 
+                      I(PPT_yr_norm^2) + I(T_yr_norm^2) + 
+                      offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.clim.comp <- glmmTMB(recruits1 ~ BALIVE + PPT_yr_norm + T_yr_norm + 
+                           I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) + 
+                           offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.int <- glmmTMB(recruits1 ~ (BALIVE + PPT_yr_norm + T_yr_norm)^2 + 
+                     I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) + 
+                     offset(log(CENSUS_INTERVAL)) + 
+                       offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, family = "poisson")
+rmodel.best<- rmodel.5b
+@
 
 \begin{figure}[H]
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("BALIVE", r_balive_clim))
+plot(Effect.glmmTMB("PPT_yr_norm", rmodel.clim))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("PPT_yr_norm", r_balive_clim))
+plot(Effect.glmmTMB("T_yr_norm", rmodel.clim))
 @
   \end{minipage}
-  \begin{minipage}[b]{.5\linewidth}
-<<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("T_yr_norm", r_balive_clim))
-@
-  \end{minipage}
-\caption{Effects plots for model with only first-order main effects.}
+\caption{Effects plots for climate-only model.}
 \end{figure}
 
 \begin{figure}[H]
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("BALIVE", r_int))
+plot(Effect.glmmTMB("BALIVE", rmodel.clim.comp))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("PPT_yr_norm", r_int))
+plot(Effect.glmmTMB("PPT_yr_norm", rmodel.clim.comp))
 @
   \end{minipage}
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("T_yr_norm", r_int))
+plot(Effect.glmmTMB("T_yr_norm", rmodel.clim.comp))
 @
   \end{minipage}
-\caption{Effects plots for model with main effects and pairwise interaction.}
+\caption{Effects plots for climate and competition model, no interactions.}
 \end{figure}
 
 \begin{figure}[H]
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("BALIVE", r_q))
+plot(Effect.glmmTMB("BALIVE", rmodel.int))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("PPT_yr_norm", r_q))
+plot(Effect.glmmTMB("PPT_yr_norm", rmodel.int))
 @
   \end{minipage}
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("T_yr_norm", r_q))
+plot(Effect.glmmTMB("T_yr_norm", rmodel.int))
 @
   \end{minipage}
-\caption{Effects plots for model with main effects and quadratics.}
+\caption{Effects plots for climate and competition model, with interactions.}
 \end{figure}
+
 
 \begin{figure}[H]
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("BALIVE", r_int_q))
+plot(Effect.glmmTMB("BALIVE", rmodel.best))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("PPT_yr_norm", r_int_q))
+plot(Effect.glmmTMB("PPT_c_norm", rmodel.best))
 @
   \end{minipage}
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("T_yr_norm", r_int_q))
-@
-  \end{minipage}
-\caption{Effects plots for model with main effects, pairwise interactions, and quadratics.}
-\end{figure}
-
-\begin{figure}[H]
-  \begin{minipage}[b]{.5\linewidth}
-<<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("BALIVE", rmodel_zip3seasTint))
+plot(Effect.glmmTMB("PPT_wd_norm", rmodel.best))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("PPT_yr_norm", rmodel_zip3seasTint))
+plot(Effect.glmmTMB("PPT_m_norm", rmodel.best))
 @
   \end{minipage}
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("T_wd_norm", rmodel_zip3seasTint))
+plot(Effect.glmmTMB("T_c_norm", rmodel.best))
 @
   \end{minipage}%
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("T_c_norm", rmodel_zip3seasTint))
+plot(Effect.glmmTMB("T_wd_norm", rmodel.best))
 @
   \end{minipage}
   \begin{minipage}[b]{.5\linewidth}
 <<fig=TRUE,echo=false>>=
-plot(Effect.glmmTMB("T_m_norm", rmodel_zip3seasTint))
+plot(Effect.glmmTMB("T_m_norm", rmodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPTex_c_anom", rmodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPTex_wd_anom", rmodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPTex_m_anom", rmodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("Tex_c_anom", rmodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("Tex_wd_anom", rmodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("Tex_m_anom", rmodel.best))
 @
   \end{minipage}
 \caption{Effects plots for ``best" model.}
 \end{figure}
 
 <<echo=FALSE>>=
-r_fun_ba<-function(ba,coef,ppt,t_wd,t_c,t_m){
-  return(exp(coef[1]+coef[2]*ba+coef[7]*(ba^2)+coef[3]*ppt+coef[8]*(ppt^2)+
-           coef[4]*t_wd+coef[9]*(t_wd^2)+coef[5]*t_c+coef[11]*(t_c^2)+coef[6]*t_m+coef[10]*(t_m^2)+
-           coef[12]*ba*ppt+coef[13]*ba*t_wd+coef[14]*ba*t_c+coef[15]*ba*t_m+
-           coef[16]*ppt*t_wd+coef[17]*ppt*t_c+coef[18]*ppt*t_m+coef[19]*t_wd*t_c+
-           coef[20]*t_wd*t_m+coef[21]*t_c*t_m + mean(log(rdata.scaled$CENSUS_INTERVAL))+ 
-           mean(log(rdata.scaled$PIEDadults1))))
-}
-r_fun_ppt<-function(ppt,coef,ba,t_wd,t_c,t_m){
-  return(exp(coef[1]+coef[2]*ba+coef[7]*(ba^2)+coef[3]*ppt+coef[8]*(ppt^2)+
-           coef[4]*t_wd+coef[9]*(t_wd^2)+coef[5]*t_c+coef[11]*(t_c^2)+coef[6]*t_m+coef[10]*(t_m^2)+
-           coef[12]*ba*ppt+coef[13]*ba*t_wd+coef[14]*ba*t_c+coef[15]*ba*t_m+
-           coef[16]*ppt*t_wd+coef[17]*ppt*t_c+coef[18]*ppt*t_m+coef[19]*t_wd*t_c+
-           coef[20]*t_wd*t_m+coef[21]*t_c*t_m + mean(log(rdata.scaled$CENSUS_INTERVAL))+ 
-           mean(log(rdata.scaled$PIEDadults1))))
-}
-r_fun_t_wd<-function(t_wd,coef,ba,ppt,t_c,t_m){
-  return(exp(coef[1]+coef[2]*ba+coef[7]*(ba^2)+coef[3]*ppt+coef[8]*(ppt^2)+
-           coef[4]*t_wd+coef[9]*(t_wd^2)+coef[5]*t_c+coef[11]*(t_c^2)+coef[6]*t_m+coef[10]*(t_m^2)+
-           coef[12]*ba*ppt+coef[13]*ba*t_wd+coef[14]*ba*t_c+coef[15]*ba*t_m+
-           coef[16]*ppt*t_wd+coef[17]*ppt*t_c+coef[18]*ppt*t_m+coef[19]*t_wd*t_c+
-           coef[20]*t_wd*t_m+coef[21]*t_c*t_m + mean(log(rdata.scaled$CENSUS_INTERVAL))+ 
-           mean(log(rdata.scaled$PIEDadults1))))
-}
-r_fun_t_c<-function(t_c,coef,ba,ppt,t_wd,t_m){
-  return(exp(coef[1]+coef[2]*ba+coef[7]*(ba^2)+coef[3]*ppt+coef[8]*(ppt^2)+
-           coef[4]*t_wd+coef[9]*(t_wd^2)+coef[5]*t_c+coef[11]*(t_c^2)+coef[6]*t_m+coef[10]*(t_m^2)+
-           coef[12]*ba*ppt+coef[13]*ba*t_wd+coef[14]*ba*t_c+coef[15]*ba*t_m+
-           coef[16]*ppt*t_wd+coef[17]*ppt*t_c+coef[18]*ppt*t_m+coef[19]*t_wd*t_c+
-           coef[20]*t_wd*t_m+coef[21]*t_c*t_m + mean(log(rdata.scaled$CENSUS_INTERVAL))+ 
-           mean(log(rdata.scaled$PIEDadults1))))
-}
-r_fun_t_m<-function(t_m,coef,ba,ppt,t_wd,t_c){
-  return(exp(coef[1] + coef[2]*ba + coef[7]*(ba^2) + coef[3]*ppt + coef[8]*(ppt^2) + 
-           coef[4]*t_wd + coef[9]*(t_wd^2) + coef[5]*t_c + coef[11]*(t_c^2) + coef[6]*t_m + 
-           coef[10]*(t_m^2)+ coef[12]*ba*ppt + coef[13]*ba*t_wd + coef[14]*ba*t_c + coef[15]*ba*t_m +
-           coef[16]*ppt*t_wd + coef[17]*ppt*t_c + coef[18]*ppt*t_m + coef[19]*t_wd*t_c + 
-           coef[20]*t_wd*t_m + coef[21]*t_c*t_m + mean(log(rdata.scaled$CENSUS_INTERVAL))+ 
-           mean(log(rdata.scaled$PIEDadults1))))
-}
+ba_seq<-seq(min(rdata.scaled$BALIVE,na.rm=T),max(rdata.scaled$BALIVE,na.rm=T),length=50)
+ba_pred<-predict(rmodel.best, newdata=data.frame(BALIVE=ba_seq,
+                      PPT_c_norm=median(rdata.scaled$PPT_c_norm,na.rm=T),
+                      PPT_wd_norm=median(rdata.scaled$PPT_wd_norm,na.rm=T),
+                      PPT_m_norm=median(rdata.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(rdata.scaled$T_c_norm,na.rm=T),
+                      T_wd_norm=median(rdata.scaled$T_wd_norm,na.rm=T),
+                      T_m_norm=median(rdata.scaled$T_m_norm,na.rm=T),
+                      PPTex_c_anom=median(rdata.scaled$PPTex_c_anom,na.rm=T),
+                      PPTex_wd_anom=median(rdata.scaled$PPTex_wd_anom,na.rm=T),
+                      PPTex_m_anom=median(rdata.scaled$PPTex_m_anom,na.rm=T),
+                      Tex_c_anom=median(rdata.scaled$Tex_c_anom,na.rm=T),
+                      Tex_wd_anom=median(rdata.scaled$Tex_wd_anom,na.rm=T),
+                      Tex_m_anom=median(rdata.scaled$Tex_m_anom,na.rm=T),CENSUS_INTERVAL=median(rdata.scaled$CENSUS_INTERVAL,na.rm=T),
+                      PIEDadults1=median(rdata.scaled$PIEDadults1)), 
+                 type = "response")
+
+PPTc_seq<-seq(min(rdata.scaled$PPT_c_norm,na.rm=T),max(rdata.scaled$PPT_c_norm,
+                                                           na.rm=T),length=50)
+PPTc_pred<-predict(rmodel.best, newdata=data.frame(BALIVE=median(rdata.scaled$BALIVE,na.rm=T),
+                      PPT_c_norm=PPTc_seq,
+                      PPT_wd_norm=median(rdata.scaled$PPT_wd_norm,na.rm=T),
+                      PPT_m_norm=median(rdata.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(rdata.scaled$T_c_norm,na.rm=T),
+                      T_wd_norm=median(rdata.scaled$T_wd_norm,na.rm=T),
+                      T_m_norm=median(rdata.scaled$T_m_norm,na.rm=T),
+                      PPTex_c_anom=median(rdata.scaled$PPTex_c_anom,na.rm=T),
+                      PPTex_wd_anom=median(rdata.scaled$PPTex_wd_anom,na.rm=T),
+                      PPTex_m_anom=median(rdata.scaled$PPTex_m_anom,na.rm=T),
+                      Tex_c_anom=median(rdata.scaled$Tex_c_anom,na.rm=T),
+                      Tex_wd_anom=median(rdata.scaled$Tex_wd_anom,na.rm=T),
+                      Tex_m_anom=median(rdata.scaled$Tex_m_anom,na.rm=T),
+                      CENSUS_INTERVAL=median(rdata.scaled$CENSUS_INTERVAL,na.rm=T),
+                      PIEDadults1=median(rdata.scaled$PIEDadults1)), 
+                   type = "response")
+
+PPTwd_seq<-seq(min(rdata.scaled$PPT_wd_norm,na.rm=T),max(rdata.scaled$PPT_wd_norm
+                                                             ,na.rm=T),length=50)
+PPTwd_pred<-predict(rmodel.best, newdata=data.frame(BALIVE=median(rdata.scaled$BALIVE,na.rm=T),
+                      PPT_c_norm=median(rdata.scaled$PPT_c_norm,na.rm=T),
+                      PPT_wd_norm=PPTwd_seq,
+                      PPT_m_norm=median(rdata.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(rdata.scaled$T_c_norm,na.rm=T),
+                      T_wd_norm=median(rdata.scaled$T_wd_norm,na.rm=T),
+                      T_m_norm=median(rdata.scaled$T_m_norm,na.rm=T),
+                      PPTex_c_anom=median(rdata.scaled$PPTex_c_anom,na.rm=T),
+                      PPTex_wd_anom=median(rdata.scaled$PPTex_wd_anom,na.rm=T),
+                      PPTex_m_anom=median(rdata.scaled$PPTex_m_anom,na.rm=T),
+                      Tex_c_anom=median(rdata.scaled$Tex_c_anom,na.rm=T),
+                      Tex_wd_anom=median(rdata.scaled$Tex_wd_anom,na.rm=T),
+                      Tex_m_anom=median(rdata.scaled$Tex_m_anom,na.rm=T),
+                      CENSUS_INTERVAL=median(rdata.scaled$CENSUS_INTERVAL,na.rm=T),
+                      PIEDadults1=median(rdata.scaled$PIEDadults1)), 
+                   type = "response")
+
+PPTm_seq<-seq(min(rdata.scaled$PPT_m_norm,na.rm=T),max(rdata.scaled$PPT_m_norm,
+                                                           na.rm=T),length=50)
+PPTm_pred<-predict(rmodel.best, newdata=data.frame(BALIVE=median(rdata.scaled$BALIVE,na.rm=T),
+                      PPT_c_norm=median(rdata.scaled$PPT_c_norm,na.rm=T),
+                      PPT_wd_norm=median(rdata.scaled$PPT_wd_norm,na.rm=T),
+                      PPT_m_norm=PPTm_seq,
+                      T_c_norm=median(rdata.scaled$T_c_norm,na.rm=T),
+                      T_wd_norm=median(rdata.scaled$T_wd_norm,na.rm=T),
+                      T_m_norm=median(rdata.scaled$T_m_norm,na.rm=T),
+                      PPTex_c_anom=median(rdata.scaled$PPTex_c_anom,na.rm=T),
+                      PPTex_wd_anom=median(rdata.scaled$PPTex_wd_anom,na.rm=T),
+                      PPTex_m_anom=median(rdata.scaled$PPTex_m_anom,na.rm=T),
+                      Tex_c_anom=median(rdata.scaled$Tex_c_anom,na.rm=T),
+                      Tex_wd_anom=median(rdata.scaled$Tex_wd_anom,na.rm=T),
+                      Tex_m_anom=median(rdata.scaled$Tex_m_anom,na.rm=T),
+                      CENSUS_INTERVAL=median(rdata.scaled$CENSUS_INTERVAL,na.rm=T),
+                      PIEDadults1=median(rdata.scaled$PIEDadults1)), 
+                   type = "response")
+
+Tc_seq<-seq(min(rdata.scaled$T_c_norm,na.rm=T),max(rdata.scaled$T_c_norm,na.rm=T),length=50)
+Tc_pred<-predict(rmodel.best, newdata=data.frame(BALIVE=median(rdata.scaled$BALIVE,na.rm=T),
+                      PPT_c_norm=median(rdata.scaled$PPT_c_norm,na.rm=T),
+                      PPT_wd_norm=median(rdata.scaled$PPT_wd_norm,na.rm=T),
+                      PPT_m_norm=median(rdata.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=Tc_seq,
+                      T_wd_norm=median(rdata.scaled$T_wd_norm,na.rm=T),
+                      T_m_norm=median(rdata.scaled$T_m_norm,na.rm=T),
+                      PPTex_c_anom=median(rdata.scaled$PPTex_c_anom,na.rm=T),
+                      PPTex_wd_anom=median(rdata.scaled$PPTex_wd_anom,na.rm=T),
+                      PPTex_m_anom=median(rdata.scaled$PPTex_m_anom,na.rm=T),
+                      Tex_c_anom=median(rdata.scaled$Tex_c_anom,na.rm=T),
+                      Tex_wd_anom=median(rdata.scaled$Tex_wd_anom,na.rm=T),
+                      Tex_m_anom=median(rdata.scaled$Tex_m_anom,na.rm=T),
+                      CENSUS_INTERVAL=median(rdata.scaled$CENSUS_INTERVAL,na.rm=T),
+                      PIEDadults1=median(rdata.scaled$PIEDadults1)), 
+                   type = "response")
+
+Twd_seq<-seq(min(rdata.scaled$T_wd_norm,na.rm=T),max(rdata.scaled$T_wd_norm,
+                                                         na.rm=T),length=50)
+Twd_pred<-predict(rmodel.best, newdata=data.frame(BALIVE=median(rdata.scaled$BALIVE,na.rm=T),
+                      PPT_c_norm=median(rdata.scaled$PPT_c_norm,na.rm=T),
+                      PPT_wd_norm=median(rdata.scaled$PPT_wd_norm,na.rm=T),
+                      PPT_m_norm=median(rdata.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(rdata.scaled$T_c_norm,na.rm=T),
+                      T_wd_norm=Twd_seq,
+                      T_m_norm=median(rdata.scaled$T_m_norm,na.rm=T),
+                      PPTex_c_anom=median(rdata.scaled$PPTex_c_anom,na.rm=T),
+                      PPTex_wd_anom=median(rdata.scaled$PPTex_wd_anom,na.rm=T),
+                      PPTex_m_anom=median(rdata.scaled$PPTex_m_anom,na.rm=T),
+                      Tex_c_anom=median(rdata.scaled$Tex_c_anom,na.rm=T),
+                      Tex_wd_anom=median(rdata.scaled$Tex_wd_anom,na.rm=T),
+                      Tex_m_anom=median(rdata.scaled$Tex_m_anom,na.rm=T),
+                      CENSUS_INTERVAL=median(rdata.scaled$CENSUS_INTERVAL,na.rm=T),
+                      PIEDadults1=median(rdata.scaled$PIEDadults1)), 
+                   type = "response")
+
+Tm_seq<-seq(min(rdata.scaled$T_m_norm,na.rm=T),max(rdata.scaled$T_m_norm,na.rm=T),length=50)
+Tm_pred<-predict(rmodel.best, newdata=data.frame(BALIVE=median(rdata.scaled$BALIVE,na.rm=T),
+                      PPT_c_norm=median(rdata.scaled$PPT_c_norm,na.rm=T),
+                      PPT_wd_norm=median(rdata.scaled$PPT_wd_norm,na.rm=T),
+                      PPT_m_norm=median(rdata.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(rdata.scaled$T_c_norm,na.rm=T),
+                      T_wd_norm=median(rdata.scaled$T_wd_norm,na.rm=T),
+                      T_m_norm=Tm_seq,
+                      PPTex_c_anom=median(rdata.scaled$PPTex_c_anom,na.rm=T),
+                      PPTex_wd_anom=median(rdata.scaled$PPTex_wd_anom,na.rm=T),
+                      PPTex_m_anom=median(rdata.scaled$PPTex_m_anom,na.rm=T),
+                      Tex_c_anom=median(rdata.scaled$Tex_c_anom,na.rm=T),
+                      Tex_wd_anom=median(rdata.scaled$Tex_wd_anom,na.rm=T),
+                      Tex_m_anom=median(rdata.scaled$Tex_m_anom,na.rm=T),
+                      CENSUS_INTERVAL=median(rdata.scaled$CENSUS_INTERVAL,na.rm=T),
+                      PIEDadults1=median(rdata.scaled$PIEDadults1)), 
+                   type = "response")
+
+PPTcex_seq<-seq(min(rdata.scaled$PPTex_c_anom,na.rm=T),max(rdata.scaled$PPTex_c_anom,
+                                                           na.rm=T),length=50)
+PPTcex_pred<-predict(rmodel.best, newdata=data.frame(BALIVE=median(rdata.scaled$BALIVE,na.rm=T),
+                      PPT_c_norm=median(rdata.scaled$PPT_c_norm,na.rm=T),
+                      PPT_wd_norm=median(rdata.scaled$PPT_wd_norm,na.rm=T),
+                      PPT_m_norm=median(rdata.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(rdata.scaled$T_c_norm,na.rm=T),
+                      T_wd_norm=median(rdata.scaled$T_wd_norm,na.rm=T),
+                      T_m_norm=median(rdata.scaled$T_m_norm,na.rm=T),
+                      PPTex_c_anom=PPTcex_seq,
+                      PPTex_wd_anom=median(rdata.scaled$PPTex_wd_anom,na.rm=T),
+                      PPTex_m_anom=median(rdata.scaled$PPTex_m_anom,na.rm=T),
+                      Tex_c_anom=median(rdata.scaled$Tex_c_anom,na.rm=T),
+                      Tex_wd_anom=median(rdata.scaled$Tex_wd_anom,na.rm=T),
+                      Tex_m_anom=median(rdata.scaled$Tex_m_anom,na.rm=T),
+                      CENSUS_INTERVAL=median(rdata.scaled$CENSUS_INTERVAL,na.rm=T),
+                      PIEDadults1=median(rdata.scaled$PIEDadults1)), 
+                   type = "response")
+
+PPTwdex_seq<-seq(min(rdata.scaled$PPTex_wd_anom,na.rm=T),max(rdata.scaled$PPTex_wd_anom
+                                                             ,na.rm=T),length=50)
+PPTwdex_pred<-predict(rmodel.best, newdata=data.frame(BALIVE=median(rdata.scaled$BALIVE,na.rm=T),
+                      PPT_c_norm=median(rdata.scaled$PPT_c_norm,na.rm=T),
+                      PPT_wd_norm=median(rdata.scaled$PPT_wd_norm,na.rm=T),
+                      PPT_m_norm=median(rdata.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(rdata.scaled$T_c_norm,na.rm=T),
+                      T_wd_norm=median(rdata.scaled$T_wd_norm,na.rm=T),
+                      T_m_norm=median(rdata.scaled$T_m_norm,na.rm=T),
+                      PPTex_c_anom=median(rdata.scaled$PPTex_c_anom,na.rm=T),
+                      PPTex_wd_anom=PPTwdex_seq,
+                      PPTex_m_anom=median(rdata.scaled$PPTex_m_anom,na.rm=T),
+                      Tex_c_anom=median(rdata.scaled$Tex_c_anom,na.rm=T),
+                      Tex_wd_anom=median(rdata.scaled$Tex_wd_anom,na.rm=T),
+                      Tex_m_anom=median(rdata.scaled$Tex_m_anom,na.rm=T),
+                      CENSUS_INTERVAL=median(rdata.scaled$CENSUS_INTERVAL,na.rm=T),
+                      PIEDadults1=median(rdata.scaled$PIEDadults1)), 
+                   type = "response")
+
+PPTmex_seq<-seq(min(rdata.scaled$PPTex_m_anom,na.rm=T),max(rdata.scaled$PPTex_m_anom,
+                                                           na.rm=T),length=50)
+PPTmex_pred<-predict(rmodel.best, newdata=data.frame(BALIVE=median(rdata.scaled$BALIVE,na.rm=T),
+                      PPT_c_norm=median(rdata.scaled$PPT_c_norm,na.rm=T),
+                      PPT_wd_norm=median(rdata.scaled$PPT_wd_norm,na.rm=T),
+                      PPT_m_norm=median(rdata.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(rdata.scaled$T_c_norm,na.rm=T),
+                      T_wd_norm=median(rdata.scaled$T_wd_norm,na.rm=T),
+                      T_m_norm=median(rdata.scaled$T_m_norm,na.rm=T),
+                      PPTex_c_anom=median(rdata.scaled$PPTex_c_anom,na.rm=T),
+                      PPTex_wd_anom=median(rdata.scaled$PPTex_wd_anom,na.rm=T),
+                      PPTex_m_anom=PPTmex_seq,
+                      Tex_c_anom=median(rdata.scaled$Tex_c_anom,na.rm=T),
+                      Tex_wd_anom=median(rdata.scaled$Tex_wd_anom,na.rm=T),
+                      Tex_m_anom=median(rdata.scaled$Tex_m_anom,na.rm=T),
+                      CENSUS_INTERVAL=median(rdata.scaled$CENSUS_INTERVAL,na.rm=T),
+                      PIEDadults1=median(rdata.scaled$PIEDadults1)), 
+                   type = "response")
+
+Tcex_seq<-seq(min(rdata.scaled$Tex_c_anom,na.rm=T),max(rdata.scaled$Tex_c_anom,na.rm=T),length=50)
+Tcex_pred<-predict(rmodel.best, newdata=data.frame(BALIVE=median(rdata.scaled$BALIVE,na.rm=T),
+                      PPT_c_norm=median(rdata.scaled$PPT_c_norm,na.rm=T),
+                      PPT_wd_norm=median(rdata.scaled$PPT_wd_norm,na.rm=T),
+                      PPT_m_norm=median(rdata.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(rdata.scaled$T_c_norm,na.rm=T),
+                      T_wd_norm=median(rdata.scaled$T_wd_norm,na.rm=T),
+                      T_m_norm=median(rdata.scaled$T_m_norm,na.rm=T),
+                      PPTex_c_anom=median(rdata.scaled$PPTex_c_anom,na.rm=T),
+                      PPTex_wd_anom=median(rdata.scaled$PPTex_wd_anom,na.rm=T),
+                      PPTex_m_anom=median(rdata.scaled$PPTex_m_anom,na.rm=T),
+                      Tex_c_anom=Tcex_seq,
+                      Tex_wd_anom=median(rdata.scaled$Tex_wd_anom,na.rm=T),
+                      Tex_m_anom=median(rdata.scaled$Tex_m_anom,na.rm=T),
+                      CENSUS_INTERVAL=median(rdata.scaled$CENSUS_INTERVAL,na.rm=T),
+                      PIEDadults1=median(rdata.scaled$PIEDadults1)), 
+                   type = "response")
+
+Twdex_seq<-seq(min(rdata.scaled$Tex_wd_anom,na.rm=T),max(rdata.scaled$Tex_wd_anom,
+                                                         na.rm=T),length=50)
+Twdex_pred<-predict(rmodel.best, newdata=data.frame(BALIVE=median(rdata.scaled$BALIVE,na.rm=T),
+                      PPT_c_norm=median(rdata.scaled$PPT_c_norm,na.rm=T),
+                      PPT_wd_norm=median(rdata.scaled$PPT_wd_norm,na.rm=T),
+                      PPT_m_norm=median(rdata.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(rdata.scaled$T_c_norm,na.rm=T),
+                      T_wd_norm=median(rdata.scaled$T_wd_norm,na.rm=T),
+                      T_m_norm=median(rdata.scaled$T_m_norm,na.rm=T),
+                      PPTex_c_anom=median(rdata.scaled$PPTex_c_anom,na.rm=T),
+                      PPTex_wd_anom=median(rdata.scaled$PPTex_wd_anom,na.rm=T),
+                      PPTex_m_anom=median(rdata.scaled$PPTex_m_anom,na.rm=T),
+                      Tex_c_anom=median(rdata.scaled$Tex_c_anom,na.rm=T),
+                      Tex_wd_anom=Twdex_seq,
+                      Tex_m_anom=median(rdata.scaled$Tex_m_anom,na.rm=T),
+                      CENSUS_INTERVAL=median(rdata.scaled$CENSUS_INTERVAL,na.rm=T),
+                      PIEDadults1=median(rdata.scaled$PIEDadults1)), 
+                   type = "response")
+
+Tmex_seq<-seq(min(rdata.scaled$Tex_m_anom,na.rm=T),max(rdata.scaled$Tex_m_anom,na.rm=T),length=50)
+Tmex_pred<-predict(rmodel.best, newdata=data.frame(BALIVE=median(rdata.scaled$BALIVE,na.rm=T),
+                      PPT_c_norm=median(rdata.scaled$PPT_c_norm,na.rm=T),
+                      PPT_wd_norm=median(rdata.scaled$PPT_wd_norm,na.rm=T),
+                      PPT_m_norm=median(rdata.scaled$PPT_m_norm,na.rm=T),
+                      T_c_norm=median(rdata.scaled$T_c_norm,na.rm=T),
+                      T_wd_norm=median(rdata.scaled$T_wd_norm,na.rm=T),
+                      T_m_norm=median(rdata.scaled$T_m_norm,na.rm=T),
+                      PPTex_c_anom=median(rdata.scaled$PPTex_c_anom,na.rm=T),
+                      PPTex_wd_anom=median(rdata.scaled$PPTex_wd_anom,na.rm=T),
+                      PPTex_m_anom=median(rdata.scaled$PPTex_m_anom,na.rm=T),
+                      Tex_c_anom=median(rdata.scaled$Tex_c_anom,na.rm=T),
+                      Tex_wd_anom=median(rdata.scaled$Tex_wd_anom,na.rm=T),
+                      Tex_m_anom=Tmex_seq,
+                      CENSUS_INTERVAL=median(rdata.scaled$CENSUS_INTERVAL,na.rm=T),
+                      PIEDadults1=median(rdata.scaled$PIEDadults1)), 
+                   type = "response")
+
+r_pred<-as.data.frame(cbind(ba_seq,ba_pred,PPTc_seq,PPTc_pred,PPTwd_seq,PPTwd_pred,PPTm_seq,
+                            PPTm_pred,Tc_seq,Tc_pred,Twd_seq,Twd_pred,Tm_seq,Tm_pred,
+                            PPTcex_seq,PPTcex_pred,PPTwdex_seq,PPTwdex_pred,PPTmex_seq,
+                            PPTmex_pred,Tcex_seq,Tcex_pred,Twdex_seq,Twdex_pred,Tmex_seq,Tmex_pred))
 
 r_ba_plot<-ggplot(data=rdata.scaled,aes(x=BALIVE,y=recruits1))+
   geom_point(alpha=0.7)+
-  stat_function(fun=r_fun_ba,args=list(coef=fixef(rmodel_zip3seasTint)$cond,
-                                       ppt=mean(rdata.scaled$PPT_yr_norm),
-                                       t_wd=mean(rdata.scaled$T_wd_norm),
-                                       t_c=mean(rdata.scaled$T_c_norm),
-                                       t_m=mean(rdata.scaled$T_m_norm)),
-                col="red")
+  geom_line(data=r_pred,aes(x=ba_seq,y=ba_pred),col="red")
 
-r_ppt_plot<-ggplot(data=rdata.scaled,aes(x=PPT_yr_norm,y=recruits1))+
+r_PPTc_plot<-ggplot(data=rdata.scaled,aes(x=PPT_c_norm,y=recruits1))+
   geom_point(alpha=0.7)+
-  stat_function(fun=r_fun_ppt,args=list(coef=fixef(rmodel_zip3seasTint)$cond,
-                                        ba=mean(rdata.scaled$BALIVE),
-                                        t_wd=mean(rdata.scaled$T_wd_norm),
-                                        t_c=mean(rdata.scaled$T_c_norm),
-                                        t_m=mean(rdata.scaled$T_m_norm)),
-                col="red")
-r_t_wd_plot<-ggplot(data=rdata.scaled,aes(x=T_wd_norm,y=recruits1))+
+  geom_line(data=r_pred,aes(x=PPTc_seq,y=PPTc_pred),col="red")
+
+r_PPTwd_plot<-ggplot(data=rdata.scaled,aes(x=PPT_wd_norm,y=recruits1))+
   geom_point(alpha=0.7)+
-  stat_function(fun=r_fun_t_wd,args=list(coef=fixef(rmodel_zip3seasTint)$cond,
-                                         ba=mean(rdata.scaled$BALIVE),
-                                         ppt=mean(rdata.scaled$PPT_yr_norm),
-                                         t_c=mean(rdata.scaled$T_c_norm),
-                                         t_m=mean(rdata.scaled$T_m_norm)),
-                col="red")
-r_t_c_plot<-ggplot(data=rdata.scaled,aes(x=T_c_norm,y=recruits1))+
+  geom_line(data=r_pred,aes(x=PPTwd_seq,y=PPTwd_pred),col="red")
+
+r_PPTm_plot<-ggplot(data=rdata.scaled,aes(x=PPT_m_norm,y=recruits1))+
   geom_point(alpha=0.7)+
-  stat_function(fun=r_fun_t_c,args=list(coef=fixef(rmodel_zip3seasTint)$cond,
-                                        ba=mean(rdata.scaled$BALIVE),
-                                        ppt=mean(rdata.scaled$PPT_yr_norm),
-                                        t_wd=mean(rdata.scaled$T_wd_norm),
-                                        t_m=mean(rdata.scaled$T_m_norm)),
-                col="red")
-r_t_m_plot<-ggplot(data=rdata.scaled,aes(x=T_m_norm,y=recruits1))+
+  geom_line(data=r_pred,aes(x=PPTm_seq,y=PPTm_pred),col="red")
+
+r_Tc_plot<-ggplot(data=rdata.scaled,aes(x=T_c_norm,y=recruits1))+
   geom_point(alpha=0.7)+
-  stat_function(fun=r_fun_t_m,args=list(coef=fixef(rmodel_zip3seasTint)$cond,
-                                        ba=mean(rdata.scaled$BALIVE),
-                                        ppt=mean(rdata.scaled$PPT_yr_norm),
-                                        t_wd=mean(rdata.scaled$T_wd_norm),
-                                        t_c=mean(rdata.scaled$T_c_norm)),
-                col="red")
+  geom_line(data=r_pred,aes(x=Tc_seq,y=Tc_pred),col="red")
+
+r_Twd_plot<-ggplot(data=rdata.scaled,aes(x=T_wd_norm,y=recruits1))+
+  geom_point(alpha=0.7)+
+  geom_line(data=r_pred,aes(x=Twd_seq,y=Twd_pred),col="red")
+
+r_Tm_plot<-ggplot(data=rdata.scaled,aes(x=T_m_norm,y=recruits1))+
+  geom_point(alpha=0.7)+
+  geom_line(data=r_pred,aes(x=Tm_seq,y=Tm_pred),col="red")
+
+r_PPTcex_plot<-ggplot(data=rdata.scaled,aes(x=PPTex_c_anom,y=recruits1))+
+  geom_point(alpha=0.7)+
+  geom_line(data=r_pred,aes(x=PPTcex_seq,y=PPTcex_pred),col="red")
+
+r_PPTwdex_plot<-ggplot(data=rdata.scaled,aes(x=PPTex_wd_anom,y=recruits1))+
+  geom_point(alpha=0.7)+
+  geom_line(data=r_pred,aes(x=PPTwdex_seq,y=PPTwdex_pred),col="red")
+
+r_PPTmex_plot<-ggplot(data=rdata.scaled,aes(x=PPTex_m_anom,y=recruits1))+
+  geom_point(alpha=0.7)+
+  geom_line(data=r_pred,aes(x=PPTmex_seq,y=PPTmex_pred),col="red")
+
+r_Tcex_plot<-ggplot(data=rdata.scaled,aes(x=Tex_c_anom,y=recruits1))+
+  geom_point(alpha=0.7)+
+  geom_line(data=r_pred,aes(x=Tcex_seq,y=Tcex_pred),col="red")
+
+r_Twdex_plot<-ggplot(data=rdata.scaled,aes(x=Tex_wd_anom,y=recruits1))+
+  geom_point(alpha=0.7)+
+  geom_line(data=r_pred,aes(x=Twdex_seq,y=Twdex_pred),col="red")
+
+r_Tmex_plot<-ggplot(data=rdata.scaled,aes(x=Tex_m_anom,y=recruits1))+
+  geom_point(alpha=0.7)+
+  geom_line(data=r_pred,aes(x=Tmex_seq,y=Tmex_pred),col="red")
 @
 
 <<echo=FALSE>>=
@@ -495,9 +975,10 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
 \begin{figure}[H]
 <<fig=TRUE,echo=FALSE>>=
-multiplot(r_ba_plot,r_t_wd_plot,r_t_m_plot,r_ppt_plot,r_t_c_plot,cols=2)
+multiplot(r_ba_plot,r_PPTc_plot,r_PPTwd_plot,r_PPTm_plot,r_Tc_plot,r_Twd_plot,r_Tm_plot,
+          r_PPTcex_plot,r_PPTwdex_plot,r_PPTmex_plot,r_Tcex_plot,r_Twdex_plot,r_Tmex_plot,cols=2)
 @
-\caption{Effects plots for model with main effects and quadratics, plotted over raw data.}
+\caption{Effects plots for ``best" model, plotted over raw data.}
 \end{figure}
 
 \end{document}

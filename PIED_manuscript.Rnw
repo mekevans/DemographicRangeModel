@@ -1,15 +1,21 @@
 \documentclass{article}
 
+\usepackage{float}
+
+\title{A demographic perspective on the ecological niche and the geographic distribution: a range-wide analysis of climate and competition as factors limiting vital rates of \textit{Pinus edulis}}
+
 \begin{document}
 \SweaveOpts{concordance=TRUE}
 
+\maketitle
+
 \section{Introduction}
 
-Anthropogenic climate change is affecting the geographic distributions of species across the tree of life and the globe (Parmesan & Yohe 2003; Parmesan 2006; Chen et al. 2011). Forests show indications of this change, including large-scale, drought-induced mortality events (Allen et al. 2010, 2015), productivity changes indicative of biome shifts (Beck et al. 2011), and range contractions for many tree species (Zhu et al. 2012) . Many North American tree species have been found to respond negatively to the environmental and biotic consequences of contemporary climate change (e.g. Breshears et al. 2005, 2009; van Mantgem et al. 2009; Chen et al. 2016; Hansen et al. 2016). Given the extensive ecosystem services forests provide (Costanza et al. 1997), assessing the future of forests under climate change is essential for managing these ecosystems (Millar et al. 2007).
+Anthropogenic climate change is affecting the geographic distributions of species across the tree of life and the globe (Parmesan \& Yohe 2003; Parmesan 2006; Chen et al. 2011). Forests show indications of this change, including large-scale, drought-induced mortality events (Allen et al. 2010, 2015), productivity changes indicative of biome shifts (Beck et al. 2011), and range contractions for many tree species (Zhu et al. 2012) . Many North American tree species have been found to respond negatively to the environmental and biotic consequences of contemporary climate change (e.g. Breshears et al. 2005, 2009; van Mantgem et al. 2009; Chen et al. 2016; Hansen et al. 2016). Given the extensive ecosystem services forests provide (Costanza et al. 1997), assessing the future of forests under climate change is essential for managing these ecosystems (Millar et al. 2007).
 
-Though elucidating the causes of species’ ranges has been a central question in ecology and evolutionary biology for decades (MacArthur 1984; Brown et al. 1996; Holt 2003; Sexton et al. 2009), the question has not been answered for a single species. Dobzhansky (1950) and MacArthur (1972) both suggested that species' ranges are limited by abiotic stress at high latitudes and/or elevations, and limited by biotic stress (competition) at low latitudes and/or elevations. Their relative contributions are not clear (Brooker et al. 2007; Sexton et al. 2009), including for tree species (Ettinger et al. 2011; Ettinger & HilleRisLambers 2013; HilleRisLambers et al. 2013). \textbf{Elaborate more on this}
+Though elucidating the causes of species’ ranges has been a central question in ecology and evolutionary biology for decades (MacArthur 1984; Brown et al. 1996; Holt 2003; Sexton et al. 2009), the question has not been answered for a single species. Dobzhansky (1950) and MacArthur (1972) both suggested that species' ranges are limited by abiotic stress at high latitudes and/or elevations, and limited by biotic stress (competition) at low latitudes and/or elevations. Their relative contributions are not clear (Brooker et al. 2007; Sexton et al. 2009), including for tree species (Ettinger et al. 2011; Ettinger \& HilleRisLambers 2013; HilleRisLambers et al. 2013). \textbf{Elaborate more on this}
 
-Whereas modeling the geographic distributions of species is typically done using correlative approaches based on presence (or presence-absence) and climate data (so-called species distribution models or SDMs; Elith & Leathwick 2009), projections of the forest biome are most often based on process-based approaches representing underlying physiological relationships, particularly photosynthesis (dynamic global vegetation models [DGVMs] or terrestrial biosphere models; Bonan et al. 2003; Sitch et al. 2008). SDMs are often criticized for problems with inference, e.g. when extrapolating to non-analog climates (Fitzpatrick & Hargrove 2009), while DGVMs suffer uncertainty deriving from a variety of assumptions, including the representation of mortality (Joetzjer et al. 2014), phenology (Jeong et al. 2012), and responses to CO2 fertilization (Thornton et al. 2007). \textbf{Connect this back to previous paragraph. Maybe combine with the next paragraph and condense.}
+Whereas modeling the geographic distributions of species is typically done using correlative approaches based on presence (or presence-absence) and climate data (so-called species distribution models or SDMs; Elith \& Leathwick 2009), projections of the forest biome are most often based on process-based approaches representing underlying physiological relationships, particularly photosynthesis (dynamic global vegetation models [DGVMs] or terrestrial biosphere models; Bonan et al. 2003; Sitch et al. 2008). SDMs are often criticized for problems with inference, e.g. when extrapolating to non-analog climates (Fitzpatrick \& Hargrove 2009), while DGVMs suffer uncertainty deriving from a variety of assumptions, including the representation of mortality (Joetzjer et al. 2014), phenology (Jeong et al. 2012), and responses to CO2 fertilization (Thornton et al. 2007). \textbf{Connect this back to previous paragraph. Maybe combine with the next paragraph and condense.}
 
 Demographic models strike a middle ground between these correlative and process-based approaches. In demographic range models (DRMs ), population dynamics are represented from a process-based perspective in the sense that growth, mortality, and reproduction modeled explicitly. However, the response of each of these vital rates to environmental drivers - e.g., climatic factors like temperature and precipitation - is correlative. Here we adopt a demographic approach to try to better understand what factors shape the geographic range of a single species. 
 
@@ -24,5 +30,481 @@ Pinus edulis' range forms an elevational band below which is found juniper woodl
 
 We attempt to address these alternative hypotheses for PIED's geographic distribution by parameterizing competing demographic models and evaluating their performance at predicting the observed distribution of PIED.
 
+\section{Methods}
+\subsection{Study system}
+\subsection{Data}
+\subsection{Vital rate models}
+\subsection{Integral projection models}
+\subsection{Maps}
+\subsection{Residual analysis}
+\subsection{Life table response experiment}
+
+\section{Results}
+<<echo=FALSE>>=
+library(raster)
+library(rgdal)
+library(rgeos)
+library(dplyr)
+library(glmmTMB)
+library(coefplot)
+library(ggplot2)
+library(ggeffects)
+library(cowplot)
+library(effects)
+library(DHARMa)
+library(lme4)
+
+load("./Code/IPM/GrRescaling.Rdata")
+load("./Code/IPM/SurvRescalingNoFire.Rdata")
+load("./Code/IPM/RecruitRescaling.Rdata")
+load("./Code/IPM/recrstats.rda")
+
+grdata <- read.csv("./Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
+
+# Only keep trees that didn't die
+grdata <- subset(grdata, STATUSCD == 1) #18204
+
+# Create increment columns
+# note that growth increments need to be moved to the positive realm (by adding a constant)
+# IF log transform is used
+grdata$AGB_INCR <- grdata$DRYBIO_AG_DIFF / grdata$CENSUS_INTERVAL
+grdata$DIA_INCR <- grdata$DIA_DIFF / grdata$CENSUS_INTERVAL
+grdata$BA_INCR <- grdata$BA_DIFF / grdata$CENSUS_INTERVAL
+
+grdata.scaled <- grdata %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
+                                                    -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
+                                                    -CENSUS_INTERVAL,
+                                                    -AGB_INCR, -DIA_INCR, -BA_INCR))
+
+survData <- read.csv("./Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
+
+# Create increment columns
+# not needed for survival/mort analysis
+survData$AGB_INCR <- survData$DRYBIO_AG_DIFF / survData$CENSUS_INTERVAL
+survData$DIA_INCR <- survData$DIA_DIFF / survData$CENSUS_INTERVAL
+survData$BA_INCR <- survData$BA_DIFF / survData$CENSUS_INTERVAL
+survData$log.size <- log(survData$PREVDIA)
+survData$log.BALIVE <- log(survData$BALIVE)
+
+# Recode status
+survData$surv <- ifelse(survData$STATUSCD == 2, 0, 1)
+survData$mort <- ifelse(survData$STATUSCD == 1, 0, 1)
+
+# remove cases where BALIVE at time 1 = zero (should be impossible)
+# survData <- subset(survData, log.BALIVE > 0) 
+survData.2 <- subset(survData, BALIVE > 0) # goes from 20329 to 20161
+
+# remove conditions where fire or harvest occurred
+survData.3 <- survData[!(survData$DSTRBCD1 %in% c(30, 31, 32, 80)), ] # goes from 20329 to 19867
+
+# standardize covariates
+#ELS update: no AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3 in dataframe, so I removed them from the following code
+survData.scaled <- survData %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
+                                                          -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
+                                                          -CENSUS_INTERVAL,
+                                                          AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3,
+                                                          -AGB_INCR, -DIA_INCR, -BA_INCR,
+                                                          -surv, -mort))
+
+survData2.scaled <- survData.2 %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
+                                                              -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
+                                                              -CENSUS_INTERVAL,
+                                                              AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3,
+                                                              -AGB_INCR, -DIA_INCR, -BA_INCR,
+                                                              -surv, -mort))
+
+survData3.scaled <- survData.3 %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
+                                                                 -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
+                                                                 -CENSUS_INTERVAL,
+                                                                 AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3,
+                                                                 -AGB_INCR, -DIA_INCR, -BA_INCR,
+                                                                 -surv, -mort))
+
+rdata <- read.csv("./Processed/Recruitment/RecruitData.csv", header = T, stringsAsFactors = F)
+rdata <- subset(rdata, PIEDadults1 > 0)
+rdata$BA.all <- rdata$BA.PIED + rdata$BA.notPIED
+rdata.scaled <- rdata %>% mutate_at(scale, .vars = vars(-plot, -lat, -lon, -elev, -PApied,
+                                                        -state, -county, -plotID, -CONDID, 
+                                                          -measYear, -plotPrev, -PREV_MEASYEAR,
+                                                          -CENSUS_INTERVAL, -recruits1, -recruits12,
+                                                          -AGB_intra, -BA.PIED, -PIEDadults1,
+                                                          -PIEDadults4, -PIEDadults8, -cumDIA.PIED))
+@
+
+\subsection{Climate-only}
+
+\begin{figure}[H]
+\begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", gmodel.clim))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_yr_norm", gmodel.clim))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr_norm", gmodel.clim))
+@
+  \end{minipage}
+\caption{Growth effects plots for climate-only model.}
+\end{figure}
+
+\begin{figure}[H]
+\begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", smodel.clim))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_yr_norm", smodel.clim))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr_norm", smodel.clim))
+@
+  \end{minipage}
+\caption{Survival effects plots for climate-only model.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPT_yr_norm", rmodel.clim))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("T_yr_norm", rmodel.clim))
+@
+  \end{minipage}
+\caption{Recruitment effects plots for climate-only model.}
+\end{figure}
+
+\begin{figure}[H]
+\includegraphics[width=1\linewidth]{Output/PIED_clim}
+\caption{Map of lambda predictions for \textit{P. edulis} using the climate-only model.}
+\end{figure}
+
+\subsection{Climate and competition, no interactions}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", gmodel.clim.comp))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", gmodel.clim.comp))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_yr_norm", gmodel.clim.comp))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr_norm", gmodel.clim.comp))
+@
+  \end{minipage}
+\caption{Growth effects plots for climate and competition model, no interactions.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", smodel.clim.comp))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", smodel.clim.comp))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_yr_norm", smodel.clim.comp))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr_norm", smodel.clim.comp))
+@
+  \end{minipage}
+\caption{Survival effects plots for climate and competition model, no interactions.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("BALIVE", rmodel.clim.comp))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPT_yr_norm", rmodel.clim.comp))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("T_yr_norm", rmodel.clim.comp))
+@
+  \end{minipage}
+\caption{Recruitment effects plots for climate and competition model, no interactions.}
+\end{figure}
+
+\begin{figure}[H]
+\includegraphics[width=1\linewidth]{Output/PIED_climcomp}
+\caption{Map of lambda predictions for \textit{P. edulis} using the climate + competition model, without interactions.}
+\end{figure}
+
+\subsection{Climate and competition, interactions}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", gmodel.int))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", gmodel.int))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_yr_norm", gmodel.int))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr_norm", gmodel.int))
+@
+  \end{minipage}
+\caption{Growth effects plots for climate and competition model, with interactions.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", smodel.int))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", smodel.int))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_yr_norm", smodel.int))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr_norm", smodel.int))
+@
+  \end{minipage}
+\caption{Survival effects plots for climate and competition model, with interactions.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("BALIVE", rmodel.int))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPT_yr_norm", rmodel.int))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("T_yr_norm", rmodel.int))
+@
+  \end{minipage}
+\caption{Recruitment effects plots for climate and competition model, with interactions.}
+\end{figure}
+
+\subsection{Climate and competition, tailored}
+For the tailored models, which are the result of more thorough model selection to optimize AIC values for the models, we have so far created only vital rate plots and not maps. It will take a bit of effort to put together the data necessary for creating these maps, so we would like your input on the model selection process before we make that effort.
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", gmodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", gmodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_yr", gmodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr", gmodel.best))
+@
+  \end{minipage}
+\caption{Growth effects plots for tailored model.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", smodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", smodel.best))
+@
+  \end{minipage}
+\caption{Survival effects plots for size and competition variables in tailored model.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_c_norm", smodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_pf_norm", smodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_fs_norm", smodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_m_norm", smodel.best))
+@
+  \end{minipage}
+\caption{Survival effects plots for precipitation variables in tailored model.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_c_norm", smodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_pf_norm", smodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_fs_norm", smodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_m_norm", smodel.best))
+@
+  \end{minipage}
+\caption{Survival effects plots for temperature variables in tailored model.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("BALIVE", rmodel.best))
+@
+  \end{minipage}
+\caption{Recruitment effects plots for competition in tailored model.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPT_c_norm", rmodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPT_wd_norm", rmodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPT_m_norm", rmodel.best))
+@
+  \end{minipage}
+\caption{Recruitment effects plots for precipitation norms in tailored model.}
+\end{figure}  
+  
+\begin{figure}[H]  
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("T_c_norm", rmodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("T_wd_norm", rmodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("T_m_norm", rmodel.best))
+@
+  \end{minipage}
+\caption{Recruitment effects plots for temperature norms in tailored model.}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPTex_c_anom", rmodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPTex_wd_anom", rmodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPTex_m_anom", rmodel.best))
+@
+  \end{minipage}
+\caption{Recruitment effects plots for precipitation extremes anomalies in tailored model.}
+\end{figure}
+
+\begin{figure}[H]  
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("Tex_c_anom", rmodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("Tex_wd_anom", rmodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("Tex_m_anom", rmodel.best))
+@
+  \end{minipage}
+\caption{Recruitment effects plots for temperature extremes anomalies in tailored model.}
+\end{figure}
 
 \end{document}
