@@ -328,6 +328,12 @@ smodel.clim.comp<-glmer(mort ~ PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm +
                  family = binomial(link = cloglog), data = survData3.scaled,
                  control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
 
+smodel.clim.comp.fire<-glmer(mort ~ PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm + 
+                          I(PREVDIA^2) + I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) + 
+                          (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                        family = binomial(link = cloglog), data = survData.scaled,
+                        control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+
 smodel.int<-glmer(mort ~ (PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm)^2 + 
                      I(PREVDIA^2) + I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) + 
                      (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
@@ -352,6 +358,7 @@ get_scale = function(data, predictors) {
 }
 
 surv.scaling = get_scale(survData3.scaled, surv.predictors)
+surv.scaling.fire = get_scale(survData.scaled, surv.predictors)
 
 # remove scaling information from the dataset so that the model doesnt expect scaled data in predict()
 for (i in surv.predictors) {
@@ -362,4 +369,5 @@ for (i in surv.predictors) {
 #save(smodel4.q, surv.scaling, file = "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Code/IPM/SurvRescaling.Rdata")
 #save(smodel4, surv.scaling, file = "./Code/IPM/SurvRescalingNoFire.Rdata")
 #save(smodel3, surv.scaling, file = "./Code/IPM/SurvRescalingBA.Rdata")
-save(smodel.clim,smodel.clim.comp,smodel.int,smodel.best, surv.scaling, file = "./Code/IPM/SurvRescalingNoFire.Rdata")
+save(smodel.clim,smodel.clim.comp,smodel.clim.comp.fire,smodel.int,smodel.best, 
+     surv.scaling,  surv.scaling.fire, file = "./Code/IPM/SurvRescaling.Rdata")

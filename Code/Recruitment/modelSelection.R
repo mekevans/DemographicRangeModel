@@ -409,6 +409,7 @@ rmodel.clim<-glmmTMB(recruits1 ~ 1
                        family = "poisson")
 rmodel.clim.comp<-glmmTMB(recruits1 ~ 1
                        + BALIVE + PPT_yr_norm + T_yr_norm 
+                       + I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) 
                        + offset(log(CENSUS_INTERVAL))
                        + offset(log(PIEDadults1)), # various alternatives for this offset
                        ziformula = ~ 1,
@@ -416,6 +417,7 @@ rmodel.clim.comp<-glmmTMB(recruits1 ~ 1
                        family = "poisson")
 rmodel.int<-glmmTMB(recruits1 ~ 1
                + (BALIVE + PPT_yr_norm + T_yr_norm)^2 
+               + I(BALIVE^2) + I(PPT_yr_norm^2) + I(T_yr_norm^2) 
                + offset(log(CENSUS_INTERVAL))
                + offset(log(PIEDadults1)), # various alternatives for this offset
                ziformula = ~ 1,

@@ -18,7 +18,7 @@ load("./Code/IPM/GrRescaling.Rdata")
 # survival model + scaling
 # from modelSelection_Survival.R
 # load(paste0(path, "Code/IPM/SurvRescaling.Rdata"))
-load("./Code/IPM/SurvRescalingNoFire.Rdata")
+load("./Code/IPM/SurvRescaling.Rdata")
 #load(paste0(path, "Code/IPM/SurvRescalingBA.Rdata"))
 
 # recruitment model + scaling
@@ -89,10 +89,10 @@ for (i in 1:nrow(ppt_yr_raster)) {
     # Extract climate for cell
     pred_data <- data.frame(PPT_yr=as.numeric(ppt_yr_raster[i,j]),
                             T_yr=as.numeric(t_yr_raster[i,j]),
-                            BALIVE=as.numeric(ba_raster[i,j]),
-                            T_wd_norm=as.numeric(t_wd_raster[i,j]),
-                            T_c_norm=as.numeric(t_c_raster[i,j]),
-                            T_m_norm=as.numeric(t_m_raster[i,j]))
+                            BALIVE=as.numeric(ba_raster[i,j]))
+                            #T_wd_norm=as.numeric(t_wd_raster[i,j]),
+                            #T_c_norm=as.numeric(t_c_raster[i,j]),
+                            #T_m_norm=as.numeric(t_m_raster[i,j]))
     # Check for missing value
     if (is.na(pred_data$PPT_yr) | is.na(pred_data$T_yr) | is.na(pred_data$BALIVE)) {
       lambda[i,j] <- NA
@@ -100,8 +100,8 @@ for (i in 1:nrow(ppt_yr_raster)) {
       next
     }
     # Calculate lambda
-    K<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel_q, smodel=sbase_q, 
-               rmodel=r_q, gSD=growSD_q,
+    K<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.clim.comp, smodel=smodel.clim.comp, 
+               rmodel=rmodel.clim.comp, gSD=growSD.clim.comp,
                data=pred_data, rperturb = 0.01)
     lambda_val <- Re(eigen(K)$values[1])
     print(lambda_val)
@@ -112,13 +112,13 @@ for (i in 1:nrow(ppt_yr_raster)) {
 }
 
 # Export maps
-unperturbed <- raster("./Output/BC/PIED.q_lambda.tif")
+unperturbed <- raster("./Output/tifs/PIED.climcomp_lambda.tif")
 elasticity_recruit <- (lambda-unperturbed)/(unperturbed*0.01)
-writeRaster(elasticity_growth, "./Code/Elasticities/elasticity_growth.tif", overwrite = T)
-writeRaster(elasticity_survival, "./Code/Elasticities/elasticity_survival.tif", overwrite = T)
-writeRaster(elasticity_recruit, "./Code/Elasticities/elasticity_recruit.tif", overwrite = T)
+writeRaster(elasticity_growth, "./Code/Elasticities/elasticity_growth_climcomp.tif", overwrite = T)
+writeRaster(elasticity_survival, "./Code/Elasticities/elasticity_survival_climcomp.tif", overwrite = T)
+writeRaster(elasticity_recruit, "./Code/Elasticities/elasticity_recruit_climcomp.tif", overwrite = T)
 
-pdf("./Output/elasticities.pdf")
+pdf("./Output/elasticities_climcomp.pdf")
 plot(elasticity_growth, main = "Growth"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 plot(elasticity_survival, main = "Survival"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 plot(elasticity_recruit, main = "Recruitment"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)

@@ -5,7 +5,6 @@ library(dplyr)
 library(glmmTMB)
 
 # Load vital rate and IPM functions
-source("./Code/IPM/BuildIPM.R")
 
 PRISM.norm.path <-  "./ClimateData/PRISM/Normals/"
 
@@ -18,7 +17,7 @@ load("./Code/IPM/GrRescaling.Rdata")
 # survival model + scaling
 # from modelSelection_Survival.R
 # load(paste0(path, "Code/IPM/SurvRescaling.Rdata"))
-load("./Code/IPM/SurvRescalingNoFire.Rdata")
+load("./Code/IPM/SurvRescaling.Rdata")
 #load(paste0(path, "Code/IPM/SurvRescalingBA.Rdata"))
 
 # recruitment model + scaling
@@ -59,7 +58,6 @@ t_c_raster <- raster(paste0(PRISM.norm.path, "T_c.tif"))
 t_m_raster <- raster(paste0(PRISM.norm.path, "T_m.tif"))
 # stand-level basal area raster
 ba_raster <- raster("./BA/BA.tif")
-# ba_raster <- raster("C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/BA/BA.tif")
 
 ppt_yr_raster <- resample(ppt_yr_raster, ba_raster)
 t_yr_raster <- resample(t_yr_raster, ba_raster)
@@ -67,146 +65,210 @@ t_wd_raster <- resample(t_wd_raster, ba_raster)
 t_c_raster <- resample(t_c_raster, ba_raster)
 t_m_raster <- resample(t_m_raster, ba_raster)
 
+#Load rasters of unperturbed lambda values
+lambda_clim<-raster("./Output/tifs/PIED.climclamp_lambda.tif")
+lambda_climcomp<-raster("./Output/tifs/PIED.climcomp_lambda.tif")
+lambda_int<-raster("./Output/tifs/PIED.int_lambda.tif")
+
 #LTRE
-## Collect dparam/dba for the ba-dependent parameters (these are the ba climate coefficients from Bayes models)
-#dparam.denv<-c(gmodel_q@beta[4],gmodel_q@beta[5],gmodel_q@beta[6],gmodel_q@beta[7],gmodel_q@beta[8],gmodel_q@beta[9]) #growth
-#dparam.denv<-c(sbase_q@beta[3],sbase_q@beta[7],sbase_q@beta[4],sbase_q@beta[8],sbase_q@beta[5],sbase_q@beta[9]) #survival
-dparam.denv<-c(r_q$fit$par[2],r_q$fit$par[3],r_q$fit$par[4],r_q$fit$par[5],r_q$fit$par[6],r_q$fit$par[7]) #recruitment
+## Collect dparam/dba for the env-dependent parameters (these are the coefficients vital rate models)
+# Growth
+dparam.denv.g.clim<-c(gmodel.clim@beta[3],gmodel.clim@beta[6],gmodel.clim@beta[4],gmodel.clim@beta[7])
+dparam.denv.g.climcomp<-c(gmodel.clim.comp@beta[3],gmodel.clim.comp@beta[7],gmodel.clim.comp@beta[4],gmodel.clim.comp@beta[8],gmodel.clim.comp@beta[5],gmodel.clim.comp@beta[9]) #growth
+dparam.denv.g.int<-c(gmodel.int@beta[3],gmodel.int@beta[7],gmodel.int@beta[10],gmodel.int@beta[13],gmodel.int@beta[14],
+                     gmodel.int@beta[4],gmodel.int@beta[8],gmodel.int@beta[11],gmodel.int@beta[13],gmodel.int@beta[15],
+                     gmodel.int@beta[5],gmodel.int@beta[9],gmodel.int@beta[12],gmodel.int@beta[14],gmodel.int@beta[15]) 
+# Survival
+dparam.denv.s.clim<-c(smodel.clim@beta[3],smodel.clim@beta[6],smodel.clim@beta[4],smodel.clim@beta[7])
+dparam.denv.s.climcomp<-c(smodel.clim.comp@beta[3],smodel.clim.comp@beta[7],smodel.clim.comp@beta[4],smodel.clim.comp@beta[8],smodel.clim.comp@beta[5],smodel.clim.comp@beta[9]) #survival
+dparam.denv.s.int<-c(smodel.int@beta[3],smodel.int@beta[7],smodel.int@beta[10],smodel.int@beta[13],smodel.int@beta[14],
+                     smodel.int@beta[4],smodel.int@beta[8],smodel.int@beta[11],smodel.int@beta[13],smodel.int@beta[15],
+                     smodel.int@beta[5],smodel.int@beta[9],smodel.int@beta[12],smodel.int@beta[14],smodel.int@beta[15]) 
+# Recruitment
+dparam.denv.r.clim<-c(rmodel.clim$fit$par[2],rmodel.clim$fit$par[4],rmodel.clim$fit$par[3],rmodel.clim$fit$par[5])
+dparam.denv.r.climcomp<-c(rmodel.clim.comp$fit$par[2],rmodel.clim.comp$fit$par[5],rmodel.clim.comp$fit$par[3],rmodel.clim.comp$fit$par[6],rmodel.clim.comp$fit$par[4],rmodel.clim.comp$fit$par[7]) #recruitment
 
-## Collect dlambda/dparam for the climate-dependent parameters
-## Sensitivities will vary with level of spei, so the output is a matrix with vital rates as rows and spei as columns
-
-dlambda.dparam<-array(NA,dim=c(length(dparam.denv),nrow(ppt_yr_raster),ncol(ppt_yr_raster)))
-perturb<-0.01
 ## here are the indices of the climate-dependent parameters
-#dlambda.dparam.indices<-c(1,4,1,6,1,8) #growth
-#dlambda.dparam.indices<-c(1,3,1,4,1,5) #survival
-dlambda.dparam.indices<-c(1,2,1,4,1,6) #recruitment
+# Growth
+dlambda.dparam.indices.g.clim<-c(1,3,1,4)
+dlambda.dparam.indices.g.climcomp<-c(1,3,1,4,1,5)
+dlambda.dparam.indices.g.int<-c(1,3,2,4,5,1,4,2,3,5,1,5,2,3,4) 
+#survival
+dlambda.dparam.indices.s.clim<-c(1,3,1,4)
+dlambda.dparam.indices.s.climcomp<-c(1,3,1,4,1,5) 
+dlambda.dparam.indices.s.int<-c(1,3,2,4,5,1,4,2,3,5,1,5,2,3,4) 
+# Recruitment
+dlambda.dparam.indices.r.clim<-c(1,2,1,3)
+dlambda.dparam.indices.r.climcomp<-c(1,2,1,3,1,4) 
 
+# Load IPM and LTRE functions
+source("./Code/IPM/BuildIPM.R")
+source("./Code/IPM/BuildLTRE.R")
+
+cov<-c("ppt","ppt","t","t")
+grow_cont_clim<-ltre(dparam.denv=dparam.denv.g.clim,dlambda.dparam.indices=dlambda.dparam.indices.g.clim,
+                       cov=cov,ppt=ppt_yr_raster,tmp=t_yr_raster,ba=ba_raster,
+                       lambda=lambda_clim,vital.perturb="g",perturb=0.01,perturb.env=1,
+                       gmodel.ltre=gmodel.clim,smodel.ltre=smodel.clim,
+                       rmodel.ltre=rmodel.clim,gSD.ltre=growSD.clim,gba.clamp=F,gt.clamp=T,rba.clamp=F)
+
+surv_cont_clim<-ltre(dparam.denv=dparam.denv.s.clim,dlambda.dparam.indices=dlambda.dparam.indices.s.clim,
+                       cov=cov,ppt=ppt_yr_raster,tmp=t_yr_raster,ba=ba_raster,
+                       lambda=lambda_clim,vital.perturb="s",perturb=0.01,perturb.env=1,
+                       gmodel.ltre=gmodel.clim,smodel.ltre=smodel.clim,
+                       rmodel.ltre=rmodel.clim,gSD.ltre=growSD.clim,gba.clamp=F,gt.clamp=T,rba.clamp=F)
+
+recr_cont_clim<-ltre(dparam.denv=dparam.denv.r.clim,dlambda.dparam.indices=dlambda.dparam.indices.r.clim,
+                       cov=cov,ppt=ppt_yr_raster,tmp=t_yr_raster,ba=ba_raster,
+                       lambda=lambda_clim,vital.perturb="r",perturb=0.01,perturb.env=1,
+                       gmodel.ltre=gmodel.clim,smodel.ltre=smodel.clim,
+                       rmodel.ltre=rmodel.clim,gSD.ltre=growSD.clim,gba.clamp=F,gt.clamp=T,rba.clamp=F)
+
+clim_total_ppt<-ltre_total(ppt=ppt_yr_raster,tmp=t_yr_raster,ba=ba_raster,lambda=lambda_clim,
+                           gmodel.ltre=gmodel.clim,smodel.ltre=smodel.clim,rmodel.ltre=rmodel.clim,
+                           gSD.ltre=growSD.clim,perturb.var="ppt",perturb.env=1)
+
+clim_total_t<-ltre_total(ppt=ppt_yr_raster,tmp=t_yr_raster,ba=ba_raster,lambda=lambda_clim,
+                         gmodel.ltre=gmodel.clim,smodel.ltre=smodel.clim,rmodel.ltre=rmodel.clim,
+                         gSD.ltre=growSD.clim,perturb.var="t",perturb.env=1)
+
+test_ppt<-sum(grow_cont_clim$cont_ppt,surv_cont_clim$cont_ppt,recr_cont_clim$cont_ppt)  
+test_t<-sum(grow_cont_clim$cont_t,surv_cont_clim$cont_t,recr_cont_clim$cont_t)  
+
+sens.ras<-ppt_yr_raster
+
+writeRaster(grow_cont_clim$cont_ppt, "./Code/Elasticities/growth_cont_ppt_clim.tif", overwrite = T)
+writeRaster(grow_cont_clim$cont_t, "./Code/Elasticities/growth_cont_t_clim.tif", overwrite = T)
+writeRaster(setValues(sens.ras, grow_cont_clim$sens[1,,]), "./Code/Elasticities/sens_grow_clim_ppt.tif", overwrite = T)
+writeRaster(setValues(sens.ras, grow_cont_clim$sens[2,,]), "./Code/Elasticities/sens_grow_clim_ppt2.tif", overwrite = T)
+writeRaster(setValues(sens.ras, grow_cont_clim$sens[3,,]), "./Code/Elasticities/sens_grow_clim_t.tif", overwrite = T)
+writeRaster(setValues(sens.ras, grow_cont_clim$sens[4,,]), "./Code/Elasticities/sens_grow_clim_t2.tif", overwrite = T)
+
+writeRaster(surv_cont_clim$cont_ppt, "./Code/Elasticities/surv_cont_ppt_clim.tif", overwrite = T)
+writeRaster(surv_cont_clim$cont_t, "./Code/Elasticities/surv_cont_t_clim.tif", overwrite = T)
+writeRaster(setValues(sens.ras, surv_cont_clim$sens[1,,]), "./Code/Elasticities/sens_surv_clim_ppt.tif", overwrite = T)
+writeRaster(setValues(sens.ras, surv_cont_clim$sens[2,,]), "./Code/Elasticities/sens_surv_clim_ppt2.tif", overwrite = T)
+writeRaster(setValues(sens.ras, surv_cont_clim$sens[3,,]), "./Code/Elasticities/sens_surv_clim_t.tif", overwrite = T)
+writeRaster(setValues(sens.ras, surv_cont_clim$sens[4,,]), "./Code/Elasticities/sens_surv_clim_t2.tif", overwrite = T)
+
+writeRaster(recr_cont_clim$cont_ppt, "./Code/Elasticities/recr_cont_ppt_clim.tif", overwrite = T)
+writeRaster(recr_cont_clim$cont_t, "./Code/Elasticities/recr_cont_t_clim.tif", overwrite = T)
+writeRaster(setValues(sens.ras, recr_cont_clim$sens[1,,]), "./Code/Elasticities/sens_recr_clim_ppt.tif", overwrite = T)
+writeRaster(setValues(sens.ras, recr_cont_clim$sens[2,,]), "./Code/Elasticities/sens_recr_clim_ppt2.tif", overwrite = T)
+writeRaster(setValues(sens.ras, recr_cont_clim$sens[3,,]), "./Code/Elasticities/sens_recr_clim_t.tif", overwrite = T)
+writeRaster(setValues(sens.ras, recr_cont_clim$sens[4,,]), "./Code/Elasticities/sens_recr_clim_t2.tif", overwrite = T)
+
+pdf("./Output/growth_cont_clim.pdf")
+plot(grow_cont_clim$cont_ppt, main = "MAP"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+plot(grow_cont_clim$cont_t, main = "MAT"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+dev.off()
+
+pdf("./Output/surv_cont_clim.pdf")
+plot(surv_cont_clim$cont_ppt, main = "MAP"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+plot(surv_cont_clim$cont_t, main = "MAT"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+dev.off()
+
+pdf("./Output/recr_cont_clim.pdf")
+plot(recr_cont_clim$cont_ppt, main = "MAP"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+plot(recr_cont_clim$cont_t, main = "MAT"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+dev.off()
+
+ppt_ltre<-sum(grow_cont_clim$cont_ppt,surv_cont_clim$cont_ppt,recr_cont_clim$cont_ppt)
+plot(ppt_ltre, main = "MAP"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+t_ltre<-sum(grow_cont_clim$cont_t,surv_cont_clim$cont_t,recr_cont_clim$cont_t)
+plot(t_ltre, main = "MAT"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+
+writeRaster(clim_total_ppt, "./Code/Elasticities/ppt_ltre_clim.tif", overwrite = T)
+writeRaster(clim_total_t, "./Code/Elasticities/t_ltre_clim.tif", overwrite = T)
+
+# Climate + competition, no interactions
 cov<-c("ba","ba","ppt","ppt","t","t")
-#1,5) #survival
-#1,2) #recruitment
-## Here, store the product of dlambda.dparam and dparam.ddens
-LTRE.arr<-array(NA,dim=c(length(dparam.denv),nrow(ppt_yr_raster),ncol(ppt_yr_raster)))##6 rows for 6 env-dependent parameters
-#growth_cont_ba <- ppt_yr_raster
-#growth_cont_ba <- setValues(growth_cont_ba, NA)
-#growth_cont_ppt <- growth_cont_ba
-#growth_cont_ba <- growth_cont_ba
-#surv_cont_ba <- ppt_yr_raster
-#surv_cont_ba <- setValues(surv_cont_ba, NA)
-#surv_cont_ppt <- surv_cont_ba
-#surv_cont_ba <- surv_cont_ba
-recr_cont_ba <- ppt_yr_raster
-recr_cont_ba <- setValues(recr_cont_ba, NA)
-recr_cont_ppt <- recr_cont_ba
-recr_cont_ba <- recr_cont_ba
-lambda<-recr_cont_ba
+grow_cont_climcomp<-ltre(dparam.denv=dparam.denv.g.climcomp,
+                         dlambda.dparam.indices=dlambda.dparam.indices.g.climcomp,
+                         cov=cov,ppt=ppt_yr_raster,tmp=t_yr_raster,ba=ba_raster,
+                         lambda=lambda_climcomp,vital.perturb="g",perturb=0.01,perturb.env=1,
+                         gmodel.ltre=gmodel.clim.comp,smodel.ltre=smodel.clim.comp,
+                         rmodel.ltre=rmodel.clim.comp,gSD.ltre=growSD.clim.comp)
 
-for (i in 1:nrow(ppt_yr_raster)) {
-  for (j in 1:ncol(ppt_yr_raster)) {
-    # Extract climate for cell
-    pred_data <- data.frame(PPT_yr=as.numeric(ppt_yr_raster[i,j]),
-                            T_yr=as.numeric(t_yr_raster[i,j]),
-                            BALIVE=as.numeric(ba_raster[i,j]),
-                            T_wd_norm=as.numeric(t_wd_raster[i,j]),
-                            T_c_norm=as.numeric(t_c_raster[i,j]),
-                            T_m_norm=as.numeric(t_m_raster[i,j]))
-    # Check for missing value
-    if (is.na(pred_data$PPT_yr) | is.na(pred_data$T_yr) | is.na(pred_data$BALIVE)) {
-      #growth_cont_ba[i,j] <- NA
-      #growth_cont_ppt[i,j] <- NA
-      #growth_cont_t[i,j] <- NA
-      #surv_cont_ba[i,j] <- NA
-      #surv_cont_ppt[i,j] <- NA
-      #surv_cont_t[i,j] <- NA
-      recr_cont_ba[i,j] <- NA
-      recr_cont_ppt[i,j] <- NA
-      recr_cont_t[i,j] <- NA
-      print("Missing predictor... Skipping!")
-      next
-    }
-    
-    K<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel_q, smodel=sbase_q, 
-               rmodel=r_q, gSD=growSD_q,
-               data=pred_data)
-    lam<-Re(eigen(K)$values[1])
-    lambda[i,j]<-lam
-    
-    pars<-seq(1:6)
-    if (pred_data$BALIVE>190){
-      pars<-pars[-c(1:2)]
-      LTRE.arr[1:2,i,j]<-0
-    }
-    #if (pred_data$T_yr>190){
-    #  pars<-pars[-5:6]
-    #  LTRE.arr[5:6,i,j]<-0
-    #}
-    ## cycle over parameters; compute sensitivities and LTREs
-    for(p in pars){
-      #oldCoef <- as.numeric(gmodel_q@beta[dlambda.dparam.indices[p]])
-      #gmodel_q@beta[dlambda.dparam.indices[p]] <- gmodel_q@beta[dlambda.dparam.indices[p]] + perturb
-      #oldCoef <- as.numeric(sbase_q@beta[dlambda.dparam.indices[p]])
-      #sbase_q@beta[dlambda.dparam.indices[p]] <- sbase_q@beta[dlambda.dparam.indices[p]] + perturb
-      oldCoef <- as.numeric(r_q$fit$par[dlambda.dparam.indices[p]])
-      r_q$fit$par[dlambda.dparam.indices[p]] <- r_q$fit$par[dlambda.dparam.indices[p]] + perturb
-      K<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel_q, smodel=sbase_q, 
-                 rmodel=r_q, gSD=growSD_q,
-                 data=pred_data)
-      perturb.lam<-Re(eigen(K)$values[1])
-      dlambda.dparam[p,i,j]<-(perturb.lam-lambda[i,j])/perturb
-      LTRE.arr[p,i,j]<-dlambda.dparam[p,i,j]*dparam.denv[p]
-      #gmodel_q@beta[dlambda.dparam.indices[p]] <- oldCoef
-      #sbase_q@beta[dlambda.dparam.indices[p]] <- oldCoef
-      r_q$fit$par[dlambda.dparam.indices[p]] <- oldCoef
-    }
-    # Calculate lambda
-    #growth_cont_ba[i,j] <- sum(LTRE.arr[which(cov=="ba"),i,j])
-    #growth_cont_ppt[i,j] <- sum(LTRE.arr[which(cov=="ppt"),i,j])
-    #growth_cont_t[i,j] <- sum(LTRE.arr[which(cov=="t"),i,j])
-    #print(growth_cont_ba[i,j])
-    #surv_cont_ba[i,j] <- sum(LTRE.arr[which(cov=="ba"),i,j])
-    #surv_cont_ppt[i,j] <- sum(LTRE.arr[which(cov=="ppt"),i,j])
-    #surv_cont_t[i,j] <- sum(LTRE.arr[which(cov=="t"),i,j])
-    #print(surv_cont_ba[i,j])
-    recr_cont_ba[i,j] <- sum(LTRE.arr[which(cov=="ba"),i,j])
-    recr_cont_ppt[i,j] <- sum(LTRE.arr[which(cov=="ppt"),i,j])
-    recr_cont_t[i,j] <- sum(LTRE.arr[which(cov=="t"),i,j])
-    print(recr_cont_ba[i,j])
-  }
-  print(paste0("Finished row ", i, " of ", nrow(ppt_yr_raster)))
-  #plot(growth_cont_ba)
-  #plot(surv_cont_ba)
-  plot(recr_cont_ba)
-}
+surv_cont_climcomp<-ltre(dparam.denv=dparam.denv.s.climcomp,
+                     dlambda.dparam.indices=dlambda.dparam.indices.s.climcomp,
+                     cov=cov,ppt=ppt_yr_raster,tmp=t_yr_raster,ba=ba_raster,
+                     lambda=lambda_climcomp,vital.perturb="s",perturb=0.01,perturb.env=1, 
+                     gmodel.ltre=gmodel.clim.comp,smodel.ltre=smodel.clim.comp,
+                     rmodel.ltre=rmodel.clim.comp,gSD.ltre=growSD.clim.comp)
 
-writeRaster(growth_cont_ba, "./Code/Elasticities/growth_cont_ba.tif", overwrite = T)
-writeRaster(growth_cont_ppt, "./Code/Elasticities/growth_cont_ppt.tif", overwrite = T)
-writeRaster(growth_cont_t, "./Code/Elasticities/growth_cont_t.tif", overwrite = T)
+recr_cont_climcomp<-ltre(dparam.denv=dparam.denv.r.climcomp,
+                         dlambda.dparam.indices=dlambda.dparam.indices.r.climcomp,
+                         cov=cov,ppt=ppt_yr_raster,tmp=t_yr_raster,ba=ba_raster,
+                         lambda=lambda_climcomp,vital.perturb="r",perturb=0.01,perturb.env=1,
+                         gmodel.ltre=gmodel.clim.comp,smodel.ltre=smodel.clim.comp,
+                         rmodel.ltre=rmodel.clim.comp,gSD.ltre=growSD.clim.comp)
 
-writeRaster(surv_cont_ba, "./Code/Elasticities/surv_cont_ba.tif", overwrite = T)
-writeRaster(surv_cont_ppt, "./Code/Elasticities/surv_cont_ppt.tif", overwrite = T)
-writeRaster(surv_cont_t, "./Code/Elasticities/surv_cont_t.tif", overwrite = T)
+climcomp_total_ppt<-ltre_total(ppt=ppt_yr_raster,tmp=t_yr_raster,ba=ba_raster,lambda=lambda_climcomp,
+                           gmodel.ltre=gmodel.clim.comp,smodel.ltre=smodel.clim.comp,
+                           rmodel.ltre=rmodel.clim.comp,
+                           gSD.ltre=growSD.clim.comp,perturb.var="ppt",perturb.env=1)
 
-writeRaster(recr_cont_ba, "./Code/Elasticities/recr_cont_ba.tif", overwrite = T)
-writeRaster(recr_cont_ppt, "./Code/Elasticities/recr_cont_ppt.tif", overwrite = T)
-writeRaster(recr_cont_t, "./Code/Elasticities/recr_cont_t.tif", overwrite = T)
+climcomp_total_t<-ltre_total(ppt=ppt_yr_raster,tmp=t_yr_raster,ba=ba_raster,lambda=lambda_climcomp,
+                         gmodel.ltre=gmodel.clim.comp,smodel.ltre=smodel.clim.comp,
+                         rmodel.ltre=rmodel.clim.comp,
+                         gSD.ltre=growSD.clim.comp,perturb.var="t",perturb.env=1)
 
-pdf("./Output/growth_cont.pdf")
-plot(growth_cont_ba, main = "Basal Area"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-plot(growth_cont_ppt, main = "MAP"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-plot(growth_cont_t, main = "MAT"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+climcomp_total_ba<-ltre_total(ppt=ppt_yr_raster,tmp=t_yr_raster,ba=ba_raster,lambda=lambda_climcomp,
+                             gmodel.ltre=gmodel.clim.comp,smodel.ltre=smodel.clim.comp,
+                             rmodel.ltre=rmodel.clim.comp,
+                             gSD.ltre=growSD.clim.comp,perturb.var="ba",perturb.env=1)
+
+test_ppt<-sum(grow_cont_climcomp$cont_ppt,surv_cont_climcomp$cont_ppt,recr_cont_climcomp$cont_ppt)  
+test_t<-sum(grow_cont_climcomp$cont_t,surv_cont_climcomp$cont_t,recr_cont_climcomp$cont_t)  
+test_ba<-sum(grow_cont_climcomp$cont_ba,surv_cont_climcomp$cont_ba,recr_cont_climcomp$cont_ba)  
+
+writeRaster(grow_cont_climcomp$cont_ba, "./Code/Elasticities/growth_cont_ba_climcomp.tif", overwrite = T)
+writeRaster(grow_cont_climcomp$cont_ppt, "./Code/Elasticities/growth_cont_ppt_climcomp.tif", overwrite = T)
+writeRaster(grow_cont_climcomp$cont_t, "./Code/Elasticities/growth_cont_t_climcomp.tif", overwrite = T)
+writeRaster(setValues(sens.ras, grow_cont_climcomp$sens[1,,]), "./Code/Elasticities/sens_grow_climcomp_ba.tif", overwrite = T)
+writeRaster(setValues(sens.ras, grow_cont_climcomp$sens[2,,]), "./Code/Elasticities/sens_grow_climcomp_ba2.tif", overwrite = T)
+writeRaster(setValues(sens.ras, grow_cont_climcomp$sens[3,,]), "./Code/Elasticities/sens_grow_climcomp_ppt.tif", overwrite = T)
+writeRaster(setValues(sens.ras, grow_cont_climcomp$sens[4,,]), "./Code/Elasticities/sens_grow_climcomp_ppt2.tif", overwrite = T)
+writeRaster(setValues(sens.ras, grow_cont_climcomp$sens[5,,]), "./Code/Elasticities/sens_grow_climcomp_t.tif", overwrite = T)
+writeRaster(setValues(sens.ras, grow_cont_climcomp$sens[6,,]), "./Code/Elasticities/sens_grow_climcomp_t2.tif", overwrite = T)
+
+writeRaster(surv_cont_climcomp$cont_ba, "./Code/Elasticities/surv_cont_ba_climcomp.tif", overwrite = T)
+writeRaster(surv_cont_climcomp$cont_ppt, "./Code/Elasticities/surv_cont_ppt_climcomp.tif", overwrite = T)
+writeRaster(surv_cont_climcomp$cont_t, "./Code/Elasticities/surv_cont_t_climcomp.tif", overwrite = T)
+writeRaster(setValues(sens.ras, surv_cont_climcomp$sens[1,,]), "./Code/Elasticities/sens_surv_climcomp_ba.tif", overwrite = T)
+writeRaster(setValues(sens.ras, surv_cont_climcomp$sens[2,,]), "./Code/Elasticities/sens_surv_climcomp_ba2.tif", overwrite = T)
+writeRaster(setValues(sens.ras, surv_cont_climcomp$sens[3,,]), "./Code/Elasticities/sens_surv_climcomp_ppt.tif", overwrite = T)
+writeRaster(setValues(sens.ras, surv_cont_climcomp$sens[4,,]), "./Code/Elasticities/sens_surv_climcomp_ppt2.tif", overwrite = T)
+writeRaster(setValues(sens.ras, surv_cont_climcomp$sens[5,,]), "./Code/Elasticities/sens_surv_climcomp_t.tif", overwrite = T)
+writeRaster(setValues(sens.ras, surv_cont_climcomp$sens[6,,]), "./Code/Elasticities/sens_surv_climcomp_t2.tif", overwrite = T)
+
+writeRaster(recr_cont_climcomp$cont_ba, "./Code/Elasticities/recr_cont_ba_climcomp.tif", overwrite = T)
+writeRaster(recr_cont_climcomp$cont_ppt, "./Code/Elasticities/recr_cont_ppt_climcomp.tif", overwrite = T)
+writeRaster(recr_cont_climcomp$cont_t, "./Code/Elasticities/recr_cont_t_climcomp.tif", overwrite = T)
+writeRaster(setValues(sens.ras, recr_cont_climcomp$sens[1,,]), "./Code/Elasticities/sens_recr_climcomp_ba.tif", overwrite = T)
+writeRaster(setValues(sens.ras, recr_cont_climcomp$sens[2,,]), "./Code/Elasticities/sens_recr_climcomp_ba2.tif", overwrite = T)
+writeRaster(setValues(sens.ras, recr_cont_climcomp$sens[3,,]), "./Code/Elasticities/sens_recr_climcomp_ppt.tif", overwrite = T)
+writeRaster(setValues(sens.ras, recr_cont_climcomp$sens[4,,]), "./Code/Elasticities/sens_recr_climcomp_ppt2.tif", overwrite = T)
+writeRaster(setValues(sens.ras, recr_cont_climcomp$sens[5,,]), "./Code/Elasticities/sens_recr_climcomp_t.tif", overwrite = T)
+writeRaster(setValues(sens.ras, recr_cont_climcomp$sens[6,,]), "./Code/Elasticities/sens_recr_climcomp_t2.tif", overwrite = T)
+
+pdf("./Output/growth_cont_climcomp.pdf")
+plot(grow_cont_climcomp$cont_ba, main = "Basal Area"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+plot(grow_cont_climcomp$cont_ppt, main = "MAP"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+plot(grow_cont_climcomp$cont_t, main = "MAT"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 dev.off()
 
-pdf("./Output/surv_cont.pdf")
-plot(surv_cont_ba, main = "Basal Area"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-plot(surv_cont_ppt, main = "MAP"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-plot(surv_cont_t, main = "MAT"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+pdf("./Output/surv_cont_climcomp.pdf")
+plot(surv_cont_climcomp$cont_ba, main = "Basal Area"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+plot(surv_cont_climcomp$cont_ppt, main = "MAP"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+plot(surv_cont_climcomp$cont_t, main = "MAT"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 dev.off()
 
-pdf("./Output/recr_cont.pdf")
-plot(recr_cont_ba, main = "Basal Area"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-plot(recr_cont_ppt, main = "MAP"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-plot(recr_cont_t, main = "MAT"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+pdf("./Output/recr_cont_climcomp.pdf")
+plot(recr_cont_climcomp$cont_ba, main = "Basal Area"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+plot(recr_cont_climcomp$cont_ppt, main = "MAP"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+plot(recr_cont_climcomp$cont_t, main = "MAT"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 dev.off()
 
 ba_ltre<-sum(growth_cont_ba,surv_cont_ba,recr_cont_ba)
@@ -216,60 +278,19 @@ plot(ppt_ltre, main = "MAP"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 t_ltre<-sum(growth_cont_t,surv_cont_t,recr_cont_t)
 plot(t_ltre, main = "MAT"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 
-#Calculate dlambda/dpred (the contributions of each vital rate should sum to these total changes)
-perturb<-0.01
-dlambda <- ppt_yr_raster
-dlambda <- setValues(recr_cont, NA)
-lambda <- ppt_yr_raster
-lambda <- setValues(recr_cont, NA)
-
-for (i in 1:nrow(ppt_yr_raster)) {
-  for (j in 1:ncol(ppt_yr_raster)) {
-    # Extract climate for cell
-    pred_data <- data.frame(PPT_yr=as.numeric(ppt_yr_raster[i,j]),
-                            T_yr=as.numeric(t_yr_raster[i,j]),
-                            BALIVE=as.numeric(ba_raster[i,j]),
-                            T_wd_norm=as.numeric(t_wd_raster[i,j]),
-                            T_c_norm=as.numeric(t_c_raster[i,j]),
-                            T_m_norm=as.numeric(t_m_raster[i,j]))
-    # Check for missing value
-    if (is.na(pred_data$PPT_yr) | is.na(pred_data$T_yr) | is.na(pred_data$BALIVE)) {
-      dlambda[i,j] <- NA
-      print("Missing predictor... Skipping!")
-      next
-    }
-    
-    #K1<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel_q, smodel=sbase_q, 
-    #           rmodel=r_q, gSD=growSD_q,
-    #          data=pred_data)
-    #lam<-Re(eigen(K1)$values[1])
-    
-    #lambda[i,j]<-lam
-    ## perturb predictor; compute change in lambda
-    
-    pred_data$T_yr<-pred_data$T_yr+perturb
-    K2<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel_q, smodel=sbase_q, 
-                rmodel=r_q, gSD=growSD_q,
-                data=pred_data)
-    perturb.lam<-Re(eigen(K2)$values[1])
-    
-    dlambda[i,j]<-(perturb.lam-lambda[i,j])/perturb
-    print(dlambda[i,j])
-  }
-  print(paste0("Finished row ", i, " of ", nrow(ppt_yr_raster)))
-  plot(dlambda)
-}
+writeRaster(ppt_ltre, "./Code/Elasticities/ppt_ltre_climcomp.tif", overwrite = T)
+writeRaster(t_ltre, "./Code/Elasticities/t_ltre_climcomp.tif", overwrite = T)
 
 ba_ltre_total<-dlambda
 ppt_ltre_total<-dlambda
 t_ltre_total<-dlambda
 
-pdf("./Output/ltre_totals.pdf")
+pdf("./Output/ltre_totals_climcomp.pdf")
 plot(ba_ltre_total, main = "Basal Area"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 plot(ppt_ltre_total, main = "MAP"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 plot(t_ltre_total, main = "MAT"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 dev.off()
 
-writeRaster(ba_ltre_total, "./Code/Elasticities/ba_ltre_total.tif", overwrite = T)
-writeRaster(ppt_ltre_total, "./Code/Elasticities/ppt_ltre_total.tif", overwrite = T)
-writeRaster(t_ltre_total, "./Code/Elasticities/t_ltre_total.tif", overwrite = T)
+writeRaster(climcomp_total_ba, "./Code/Elasticities/ba_ltre_total_clim.tif", overwrite = T)
+writeRaster(climcomp_total_ppt, "./Code/Elasticities/ppt_ltre_total_clim.tif", overwrite = T)
+writeRaster(climcomp_total_t, "./Code/Elasticities/t_ltre_total_clim.tif", overwrite = T)

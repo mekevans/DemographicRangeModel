@@ -25,7 +25,7 @@ load("./Code/IPM/GrRescaling.Rdata")
 # survival model + scaling
 # from modelSelection_Survival.R
 # load(paste0(path, "Code/IPM/SurvRescaling.Rdata"))
-load("./Code/IPM/SurvRescalingNoFire.Rdata")
+load("./Code/IPM/SurvRescaling.Rdata")
 #load(paste0(path, "Code/IPM/SurvRescalingBA.Rdata"))
 
 # recruitment model + scaling
@@ -45,6 +45,13 @@ FIA <- FIA[!(FIA$DSTRBCD1 %in% c(30, 31, 32, 80)), ]
 xy = FIA[, c("LON", "LAT")]
 spFIA = sp::SpatialPoints(xy)
 spFIA = SpatialPointsDataFrame(spFIA, FIA)
+
+min_ba<-min(FIA$BALIVE, na.rm=T)
+max_ba<-max(FIA$BALIVE, na.rm=T)
+min_ppt<-min(FIA$PPT_yr_norm, na.rm=T)
+max_ppt<-max(FIA$PPT_yr_norm, na.rm=T)
+min_t<-min(FIA$T_yr_norm, na.rm=T)
+max_t<-max(FIA$T_yr_norm, na.rm=T)
 
 ## Test vital rate functions
 # try out s.x on some realistic combinations of values
@@ -119,6 +126,14 @@ t_wd_raster <- resample(t_wd_raster, ba_raster)
 t_c_raster <- resample(t_c_raster, ba_raster)
 t_m_raster <- resample(t_m_raster, ba_raster)
 
+extrap <- ppt_yr_raster
+for (i in 1:nrow(extrap)) {
+  for (j in 1:ncol(extrap)) {
+    extrap[i,j]<-ifelse(ppt_yr_raster[i,j]>max_ppt | ppt_yr_raster[i,j]<min_ppt |
+                          t_yr_raster[i,j]>max_t | t_yr_raster[i,j]<min_t |
+                          ba_raster[i,j]>max_ba | ba_raster[i,j]<min_ba,1,NA)
+  }
+}
 # aggregate for now, just to make it faster
 #ppt_yr_raster <- aggregate(ppt_yr_raster, 2)
 #t_yr_raster <- aggregate(t_yr_raster, 2)
@@ -129,16 +144,65 @@ t_m_raster <- resample(t_m_raster, ba_raster)
 lambda <- ppt_yr_raster
 lambda <- setValues(lambda, NA)
 growth <- ppt_yr_raster
-growth <- setValues(growth, 0)
+growth <- setValues(growth, NA)
 survival <- ppt_yr_raster
-survival <- setValues(survival, 0)
+survival <- setValues(survival, NA)
 reproduction <- ppt_yr_raster
-reproduction <- setValues(reproduction, 0)
+reproduction <- setValues(reproduction, NA)
 
 min.size <- 1*min(FIA$PREVDIA, na.rm = T) # minimum size is 1.0 inches diameter at root collar
 max.size <- 1.5*max(FIA$PREVDIA, na.rm = T) # maximum size is 39.4 inches DRC
 n_dim <- 500
 # I think max.size should be smaller...59.1 inches DRC is totally unrealistic
+
+dim_vec<-seq(100,1000,by=50)
+
+dim_check <- data.frame(dim = dim_vec,
+                            BALIVE = rep(median(FIA$BALIVE), length(dim_vec)), 
+                            PPT_yr = rep(median(FIA$PPT_yr_norm), length(dim_vec)), 
+                            T_yr = rep(median(FIA$T_yr_norm), length(dim_vec)),
+                            lambda_c = rep(0, length(dim_vec)),
+                            lambda_ccl = rep(0, length(dim_vec)),
+                            lambda_cc = rep(0, length(dim_vec)),
+                            lambda_ccf = rep(0, length(dim_vec)),
+                            lambda_i = rep(0, length(dim_vec)))
+for (i in 1:length(dim_vec)) {
+  dim_check[i, "lambda_c"] <- Re(eigen(ipm_fun(min=min.size, max=max.size, n=dim_vec[i], 
+                                                 gmodel=gmodel.clim, 
+                                                 smodel=smodel.clim, 
+                                                 rmodel=rmodel.clim, 
+                                                 gSD=growSD.clim,
+                                                 data=dim_check[i,],
+                                                 s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F))$values[1])
+  dim_check[i, "lambda_ccl"] <- Re(eigen(ipm_fun(min=min.size, max=max.size, n=dim_vec[i], 
+                                                   gmodel=gmodel.clim, 
+                                                   smodel=smodel.clim, 
+                                                   rmodel=rmodel.clim, 
+                                                   gSD=growSD.clim,
+                                                   data=dim_check[i,],
+                                                   s.t.clamp=T, g.t.clamp=T, g.ba.clamp=T,r.ba.clamp=T))$values[1])
+  dim_check[i, "lambda_cc"] <- Re(eigen(ipm_fun(min=min.size, max=max.size, n=dim_vec[i], 
+                                                   gmodel=gmodel.clim.comp, 
+                                                   smodel=smodel.clim.comp, 
+                                                   rmodel=rmodel.clim.comp, 
+                                                   gSD=growSD.clim.comp,
+                                                   data=dim_check[i,],
+                                                   s.t.clamp=T, g.t.clamp=F, g.ba.clamp=T,r.ba.clamp=T))$values[1])
+  dim_check[i, "lambda_ccf"] <- Re(eigen(ipm_fun(min=min.size, max=max.size, n=dim_vec[i], 
+                                                   gmodel=gmodel.clim.comp, 
+                                                   smodel=smodel.clim.comp.fire, 
+                                                   rmodel=rmodel.clim.comp, 
+                                                   gSD=growSD.clim.comp,
+                                                   data=dim_check[i,],
+                                                   s.t.clamp=T, g.t.clamp=F, g.ba.clamp=T,r.ba.clamp=T))$values[1])
+  dim_check[i, "lambda_i"] <- Re(eigen(ipm_fun(min=min.size, max=max.size, n=dim_vec[i], 
+                                                   gmodel=gmodel.int, 
+                                                   smodel=smodel.int, 
+                                                   rmodel=rmodel.int, 
+                                                   gSD=growSD.int,
+                                                   data=dim_check[i,],
+                                                   s.t.clamp=T, g.t.clamp=F, g.ba.clamp=T,r.ba.clamp=T))$values[1])
+}
 
 # Build IPMs and calculate lambda
 for (i in 1:nrow(ppt_yr_raster)) {
@@ -157,8 +221,8 @@ for (i in 1:nrow(ppt_yr_raster)) {
       next
     }
     # Calculate lambda
-    K<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.clim, smodel=smodel.clim, 
-               rmodel=rmodel.clim, gSD=growSD.clim,
+    K<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.int, smodel=smodel.int, 
+               rmodel=rmodel.int, gSD=growSD.int,
                data=pred_data)
     lambda_val <- Re(eigen(K)$values[1])
     print(lambda_val)
@@ -180,15 +244,17 @@ for (i in 1:nrow(ppt_yr_raster)) {
                             T_m_norm=as.numeric(t_m_raster[i,j]))
     # Check for missing value
     if (is.na(pred_data$PPT_yr) | is.na(pred_data$T_yr) | is.na(pred_data$BALIVE)) {
-      lambda[i,j] <- NA
+      growth[i,j] <- NA
+      survival[i,j] <- NA
+      reproduction[i,j] <- NA
       print("Missing predictor... Skipping!")
       next
     }
     
-    G <- g.mean(size.x = median(FIA$DIA, na.rm = T), model = gmodel_q, data=pred_data) # interval = 1 in g.mean function
+    G <- g.mean(size.x = median(FIA$DIA, na.rm = T), model = gmodel.int, data=pred_data, t.clamp = F, ba.clamp = T) # interval = 1 in g.mean function
     # S <- s.x(size.x = median(FIA$DIA, na.rm = T), PPTann = ppt_yr_val, Tann = t_yr_val)
-    S <- s.x(size.x = median(FIA$DIA, na.rm = T), model = sbase_q, data=pred_data)
-    R <- f.mean(model = r_q, data=pred_data)
+    S <- s.x(size.x = median(FIA$DIA, na.rm = T), model = smodel.int, data=pred_data, t.clamp = T)
+    R <- f.mean(model = rmodel.int, data=pred_data, ba.clamp = T)
     growth[i,j] <- G
     survival[i,j] <- S
     reproduction[i,j] <- R
@@ -197,7 +263,7 @@ for (i in 1:nrow(ppt_yr_raster)) {
   plot(growth); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 }
 
-pdf("./Output/PIED.q.pdf")
+pdf("./Output/PIED_int.pdf")
 plot(lambda, main = "Lambda"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 plot(growth, main = "Growth"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 plot(survival, main = "Survival", zlim = c(0.95, 1)); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
@@ -219,9 +285,94 @@ survival <- mask(survival, fourState)
 reproduction <- mask(reproduction, fourState)
 
 # Export
-writeRaster(lambda, "./Output/BC/PIED.q_lambda.tif", overwrite = T)
-writeRaster(growth, "./Output/BC/PIED.q_growth.tif", overwrite = T)
-writeRaster(survival, "./Output/BC/PIED.q_survival.tif", overwrite = T)
-writeRaster(reproduction, "./Output/BC/PIED.q_reproduction.tif", overwrite = T)
+writeRaster(lambda, "./Output/tifs/PIED.int_lambda.tif", overwrite = T)
+writeRaster(growth, "./Output/tifs/PIED.int_growth.tif", overwrite = T)
+writeRaster(survival, "./Output/tifs/PIED.int_survival.tif", overwrite = T)
+writeRaster(reproduction, "./Output/tifs/PIED.int_reproduction.tif", overwrite = T)
 
-lambda<- readRaster("./Output/BC/PIED.int.q_lambda.tif")
+writeRaster(extrap,"./Output/tifs/extrap.tif", overwrite = T)
+
+lambda_c<-raster("./Output/tifs/PIED.clim_lambda.tif")
+lambda_ccl<-raster("./Output/tifs/PIED.climclamp_lambda.tif")
+lambda_cc<-raster("./Output/tifs/PIED.climcomp_lambda.tif")
+lambda_ccf<-raster("./Output/tifs/PIED.climcompfire_lambda.tif")
+lambda_i<-raster("./Output/tifs/PIED.int_lambda.tif")
+
+##Histogram lambda in plots with and without PIED
+
+#Upload recruitment data, which has PIED presence/absence column, and summarize by plot
+FIA_pa <- read.csv("./Processed/Recruitment/RecruitData.csv", header = T, stringsAsFactors = F)
+FIA_pa.plot<-FIA_pa %>%
+  group_by(plot) %>%
+  summarise(lat=mean(lat),lon=mean(lon),PApied=mean(PApied))
+FIA_pa.plot$PApied<-as.factor(FIA_pa.plot$PApied)
+
+#Make points spatial and extract lambda for each point
+Points <- SpatialPoints(coords = cbind(FIA_pa.plot$lon, FIA_pa.plot$lat), 
+                        proj4string = CRS("+proj=longlat +datum=NAD83"))
+FIA_pa.plot$lambda_c <- raster::extract(lambda_c, Points) 
+FIA_pa.plot$lambda_ccl <- raster::extract(lambda_ccl, Points) 
+FIA_pa.plot$lambda_cc <- raster::extract(lambda_cc, Points) 
+FIA_pa.plot$lambda_ccf <- raster::extract(lambda_ccf, Points) 
+FIA_pa.plot$lambda_i <- raster::extract(lambda_i, Points) 
+
+l_means<-FIA_pa.plot %>%
+  group_by(PApied) %>%
+  summarise(lambda_c=mean(lambda_c),lambda_ccl=mean(lambda_ccl),lambda_cc=mean(lambda_cc),
+            lambda_ccf=mean(lambda_ccf),lambda_i=mean(lambda_i))
+  
+lambdaHist_c<-ggplot(data=FIA_pa.plot,aes(x=lambda_c,fill=PApied)) +
+  geom_histogram(aes(y = ..density..),alpha=0.7)+
+  geom_vline(data=l_means, aes(xintercept=lambda_c,  colour=PApied),
+             linetype="dashed", size=1)+
+  scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                    name = "PIED presence", labels = c("Absent","Present"))+
+  scale_colour_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                    name = "PIED presence", labels = c("Absent","Present"))+
+  labs(x="Lambda", y="Density")+
+  theme_classic()
+
+lambdaHist_ccl<-ggplot(data=FIA_pa.plot,aes(x=lambda_ccl,fill=PApied)) +
+  geom_histogram(aes(y = ..density..),alpha=0.7)+
+  geom_vline(data=l_means, aes(xintercept=lambda_ccl,  colour=PApied),
+             linetype="dashed", size=1)+
+  scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                    name = "PIED presence", labels = c("Absent","Present"))+
+  scale_colour_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                      name = "PIED presence", labels = c("Absent","Present"))+
+  labs(x="Lambda", y="Density")+
+  theme_classic()
+
+lambdaHist_cc<-ggplot(data=FIA_pa.plot,aes(x=lambda_cc,fill=PApied)) +
+  geom_histogram(aes(y = ..density..),alpha=0.7)+
+  geom_vline(data=l_means, aes(xintercept=lambda_cc,  colour=PApied),
+             linetype="dashed", size=1)+
+  scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                    name = "PIED presence", labels = c("Absent","Present"))+
+  scale_colour_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                      name = "PIED presence", labels = c("Absent","Present"))+
+  labs(x="Lambda", y="Density")+
+  theme_classic()
+
+lambdaHist_ccf<-ggplot(data=FIA_pa.plot,aes(x=lambda_ccf,fill=PApied)) +
+  geom_histogram(aes(y = ..density..),alpha=0.7)+
+  geom_vline(data=l_means, aes(xintercept=lambda_ccf,  colour=PApied),
+             linetype="dashed", size=1)+
+  scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                    name = "PIED presence", labels = c("Absent","Present"))+
+  scale_colour_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                      name = "PIED presence", labels = c("Absent","Present"))+
+  labs(x="Lambda", y="Density")+
+  theme_classic()
+
+lambdaHist_i<-ggplot(data=FIA_pa.plot,aes(x=lambda_i,fill=PApied)) +
+  geom_histogram(aes(y = ..density..),alpha=0.7)+
+  geom_vline(data=l_means, aes(xintercept=lambda_i,  colour=PApied),
+             linetype="dashed", size=1)+
+  scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                    name = "PIED presence", labels = c("Absent","Present"))+
+  scale_colour_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                      name = "PIED presence", labels = c("Absent","Present"))+
+  labs(x="Lambda", y="Density")+
+  theme_classic()
+
