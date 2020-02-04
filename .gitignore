@@ -6,4 +6,7 @@
 *.pdf
 *.gz
 *.tex
-.Rproj.user
+*.png
+*.tiff
+*.csv
+
