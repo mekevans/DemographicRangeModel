@@ -58,7 +58,7 @@ t_wd_raster <- raster(paste0(PRISM.norm.path, "T_wd.tif"))
 t_c_raster <- raster(paste0(PRISM.norm.path, "T_c.tif"))
 t_m_raster <- raster(paste0(PRISM.norm.path, "T_m.tif"))
 # stand-level basal area raster
-ba_raster <- raster("./BA/BA.tif")
+ba_raster <- raster("./BA/balive_RF.tif")
 # ba_raster <- raster("C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/BA/BA.tif")
 
 ppt_yr_raster <- resample(ppt_yr_raster, ba_raster)
@@ -101,8 +101,9 @@ for (i in 1:nrow(ppt_yr_raster)) {
     }
     # Calculate lambda
     K<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.clim.comp, smodel=smodel.clim.comp, 
-               rmodel=rmodel.clim.comp, gSD=growSD.clim.comp,
-               data=pred_data, rperturb = 0.01)
+               rmodel=rmodel.clim, gSD=growSD.clim,
+               data=pred_data, rperturb = 0.01,
+               s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F)
     lambda_val <- Re(eigen(K)$values[1])
     print(lambda_val)
     lambda[i,j] <- lambda_val
@@ -112,13 +113,13 @@ for (i in 1:nrow(ppt_yr_raster)) {
 }
 
 # Export maps
-unperturbed <- raster("./Output/tifs/PIED.climcomp_lambda.tif")
+unperturbed <- raster("./Output/tifs/PIED.clim_lambda.tif")
 elasticity_recruit <- (lambda-unperturbed)/(unperturbed*0.01)
-writeRaster(elasticity_growth, "./Code/Elasticities/elasticity_growth_climcomp.tif", overwrite = T)
-writeRaster(elasticity_survival, "./Code/Elasticities/elasticity_survival_climcomp.tif", overwrite = T)
-writeRaster(elasticity_recruit, "./Code/Elasticities/elasticity_recruit_climcomp.tif", overwrite = T)
+writeRaster(elasticity_growth, "./Code/Elasticities/elasticity_growth_clim.tif", overwrite = T)
+writeRaster(elasticity_survival, "./Code/Elasticities/elasticity_survival_clim.tif", overwrite = T)
+writeRaster(elasticity_recruit, "./Code/Elasticities/elasticity_recruit_clim.tif", overwrite = T)
 
-pdf("./Output/elasticities_climcomp.pdf")
+pdf("./Output/elasticities_clim.pdf")
 plot(elasticity_growth, main = "Growth"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 plot(elasticity_survival, main = "Survival"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 plot(elasticity_recruit, main = "Recruitment"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
