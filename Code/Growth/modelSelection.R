@@ -218,11 +218,22 @@ gmodel.best<- lmer(DIA_INCR ~ PREVDIA + BALIVE + PPT_yr + T_yr + I(PREVDIA^2) + 
                      I(PPT_yr^2) + I(T_yr^2) + 
                      (1|PLT_CN), data = grdata.scaled)
 
+gmodel.clim.lin <- lmer(DIA_INCR ~ PREVDIA + PPT_yr_norm + T_yr_norm + 
+                      (1|PLT_CN), data = grdata.scaled)
+gmodel.clim.comp.lin <- lmer(DIA_INCR ~ PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm + 
+                           (1|PLT_CN), data = grdata.scaled)
+gmodel.int.lin <- lmer(DIA_INCR ~ (PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm)^2 + 
+                     (1|PLT_CN), data = grdata.scaled)
+
 # growSD is used for building IPM (see BuildIPM.R)
 growSD.clim <- sd(resid(gmodel.clim))
 growSD.clim.comp <- sd(resid(gmodel.clim.comp))
 growSD.int <- sd(resid(gmodel.int))
 growSD.best <- sd(resid(gmodel.best))
+
+growSD.clim.lin <- sd(resid(gmodel.clim.lin))
+growSD.clim.comp.lin <- sd(resid(gmodel.clim.comp.lin))
+growSD.int.lin <- sd(resid(gmodel.int.lin))
 
 ### dealing with std'ized covariates
 
@@ -248,5 +259,8 @@ for (i in gr.predictors) {
 
 # export model for coefficients and scaling information -------------------
 #save(gmodel.7, gr.scaling, growSD, file = "./Code/IPM/GrRescaling.Rdata")
-save(gmodel.clim,gmodel.clim.comp,gmodel.int,gmodel.best, gr.scaling, growSD.clim,growSD.clim.comp,
-     growSD.int,growSD.best, file = "./Code/IPM/GrRescaling.Rdata")
+save(gmodel.clim,gmodel.clim.comp,gmodel.int,gmodel.best, 
+     gmodel.clim.lin,gmodel.clim.comp.lin,gmodel.int.lin, 
+     growSD.clim,growSD.clim.comp,growSD.int,growSD.best, 
+     growSD.clim.lin,growSD.clim.comp.lin,growSD.int.lin, 
+     gr.scaling, file = "./Code/IPM/GrRescaling.Rdata")
