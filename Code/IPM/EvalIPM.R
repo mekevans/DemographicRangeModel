@@ -5,6 +5,8 @@ library(rgdal)
 library(rgeos)
 library(dplyr)
 library(glmmTMB)
+library(rasterVis)
+library(RColorBrewer)
 
 # Load vital rate and IPM functions
 source("./Code/IPM/BuildIPM.R")
@@ -34,6 +36,12 @@ load("./Code/IPM/RecruitRescaling.Rdata")
 
 # information on the size distribution of recruits (ingrowth)
 # from dataPrepRecruitment.R
+load("./Code/IPM/recrstats.rda")
+
+# Alternative models - gams
+load("./Code/IPM/GrRescaling_gam.Rdata")
+load("./Code/IPM/SurvRescaling_gam.Rdata")
+load("./Code/IPM/RecruitRescaling_gam.Rdata")
 load("./Code/IPM/recrstats.rda")
 
 # Load FIA survival, growth data
@@ -117,7 +125,7 @@ t_wd_raster <- raster(paste0(PRISM.norm.path, "T_wd.tif"))
 t_c_raster <- raster(paste0(PRISM.norm.path, "T_c.tif"))
 t_m_raster <- raster(paste0(PRISM.norm.path, "T_m.tif"))
 # stand-level basal area raster
-ba_raster <- raster("./BA/BA.tif")
+ba_raster <- raster("./BA/balive_RF.tif")
 # ba_raster <- raster("C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/BA/BA.tif")
 
 ppt_yr_raster <- resample(ppt_yr_raster, ba_raster)
@@ -134,10 +142,11 @@ for (i in 1:nrow(extrap)) {
                           ba_raster[i,j]>max_ba | ba_raster[i,j]<min_ba,1,NA)
   }
 }
+
 # aggregate for now, just to make it faster
-#ppt_yr_raster <- aggregate(ppt_yr_raster, 2)
-#t_yr_raster <- aggregate(t_yr_raster, 2)
-#ba_raster <- aggregate(ba_raster, 2)
+ppt_yr_raster <- aggregate(ppt_yr_raster, 4)
+t_yr_raster <- aggregate(t_yr_raster, 4)
+ba_raster <- aggregate(ba_raster, 4)
 
 
 # Prepare empty rasters
@@ -204,16 +213,17 @@ for (i in 1:length(dim_vec)) {
                                                    s.t.clamp=T, g.t.clamp=F, g.ba.clamp=T,r.ba.clamp=T))$values[1])
 }
 
+#i=14; j=45
 # Build IPMs and calculate lambda
 for (i in 1:nrow(ppt_yr_raster)) {
   for (j in 1:ncol(ppt_yr_raster)) {
     # Extract climate for cell
     pred_data <- data.frame(PPT_yr=as.numeric(ppt_yr_raster[i,j]),
                             T_yr=as.numeric(t_yr_raster[i,j]),
-                            BALIVE=as.numeric(ba_raster[i,j]),
-                            T_wd_norm=as.numeric(t_wd_raster[i,j]),
-                            T_c_norm=as.numeric(t_c_raster[i,j]),
-                            T_m_norm=as.numeric(t_m_raster[i,j]))
+                            BALIVE=as.numeric(ba_raster[i,j]))
+                            #T_wd_norm=as.numeric(t_wd_raster[i,j]),
+                            #T_c_norm=as.numeric(t_c_raster[i,j]),
+                            #T_m_norm=as.numeric(t_m_raster[i,j]))
     # Check for missing value
     if (is.na(pred_data$PPT_yr) | is.na(pred_data$T_yr) | is.na(pred_data$BALIVE)) {
       lambda[i,j] <- NA
@@ -221,9 +231,10 @@ for (i in 1:nrow(ppt_yr_raster)) {
       next
     }
     # Calculate lambda
-    K<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.int, smodel=smodel.int, 
-               rmodel=rmodel.int, gSD=growSD.int,
-               data=pred_data)
+    K<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.int.gam, smodel=smodel.int.gam, 
+               rmodel=rmodel.int.gam, gSD=growSD.int.gam,
+               data=pred_data,
+               s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F)
     lambda_val <- Re(eigen(K)$values[1])
     print(lambda_val)
     lambda[i,j] <- lambda_val
@@ -238,10 +249,10 @@ for (i in 1:nrow(ppt_yr_raster)) {
     # Extract climate for cell
     pred_data <- data.frame(PPT_yr=as.numeric(ppt_yr_raster[i,j]),
                             T_yr=as.numeric(t_yr_raster[i,j]),
-                            BALIVE=as.numeric(ba_raster[i,j]),
-                            T_wd_norm=as.numeric(t_wd_raster[i,j]),
-                            T_c_norm=as.numeric(t_c_raster[i,j]),
-                            T_m_norm=as.numeric(t_m_raster[i,j]))
+                            BALIVE=as.numeric(ba_raster[i,j]))
+                            #T_wd_norm=as.numeric(t_wd_raster[i,j]),
+                            #T_c_norm=as.numeric(t_c_raster[i,j]),
+                            #T_m_norm=as.numeric(t_m_raster[i,j]))
     # Check for missing value
     if (is.na(pred_data$PPT_yr) | is.na(pred_data$T_yr) | is.na(pred_data$BALIVE)) {
       growth[i,j] <- NA
@@ -251,10 +262,10 @@ for (i in 1:nrow(ppt_yr_raster)) {
       next
     }
     
-    G <- g.mean(size.x = median(FIA$DIA, na.rm = T), model = gmodel.int, data=pred_data, t.clamp = F, ba.clamp = T) # interval = 1 in g.mean function
+    G <- g.mean(size.x = median(FIA$DIA, na.rm = T), model = gmodel.int.gam, data=pred_data, t.clamp = T, ba.clamp = F) # interval = 1 in g.mean function
     # S <- s.x(size.x = median(FIA$DIA, na.rm = T), PPTann = ppt_yr_val, Tann = t_yr_val)
-    S <- s.x(size.x = median(FIA$DIA, na.rm = T), model = smodel.int, data=pred_data, t.clamp = T)
-    R <- f.mean(model = rmodel.int, data=pred_data, ba.clamp = T)
+    S <- s.x(size.x = median(FIA$DIA, na.rm = T), model = smodel.int.gam, data=pred_data, t.clamp = F)
+    R <- f.mean(model = rmodel.int.gam, data=pred_data, ba.clamp = F)
     growth[i,j] <- G
     survival[i,j] <- S
     reproduction[i,j] <- R
@@ -263,116 +274,65 @@ for (i in 1:nrow(ppt_yr_raster)) {
   plot(growth); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
 }
 
-pdf("./Output/PIED_int.pdf")
-plot(lambda, main = "Lambda"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-plot(growth, main = "Growth"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-plot(survival, main = "Survival", zlim = c(0.95, 1)); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-plot(reproduction, main = "Reproduction"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-dev.off()
-
-pdf("./Output/Climate_maps.pdf")
-plot(ba_raster, main = "Live Basal Area"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-plot(ppt_yr_raster, main = "MAP"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-plot(t_yr_raster, main = "MAT"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-dev.off()
-
-# Crop rasters
-fourState <- readOGR("C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans", "4state")
-fourState <- gUnaryUnion(fourState)
-lambda <- mask(lambda, fourState)
-growth <- mask(growth, fourState)
-survival <- mask(survival, fourState)
-reproduction <- mask(reproduction, fourState)
-
 # Export
-writeRaster(lambda, "./Output/tifs/PIED.int_lambda.tif", overwrite = T)
-writeRaster(growth, "./Output/tifs/PIED.int_growth.tif", overwrite = T)
-writeRaster(survival, "./Output/tifs/PIED.int_survival.tif", overwrite = T)
-writeRaster(reproduction, "./Output/tifs/PIED.int_reproduction.tif", overwrite = T)
+writeRaster(lambda, "./Output/tifs/PIED.int_lambda_gam.tif", overwrite = T)
+writeRaster(growth, "./Output/tifs/PIED.int_growth_gam.tif", overwrite = T)
+writeRaster(survival, "./Output/tifs/PIED.int_survival_gam.tif", overwrite = T)
+writeRaster(reproduction, "./Output/tifs/PIED.int_reproduction_gam.tif", overwrite = T)
 
 writeRaster(extrap,"./Output/tifs/extrap.tif", overwrite = T)
 
-lambda_c<-raster("./Output/tifs/PIED.clim_lambda.tif")
-lambda_ccl<-raster("./Output/tifs/PIED.climclamp_lambda.tif")
-lambda_cc<-raster("./Output/tifs/PIED.climcomp_lambda.tif")
-lambda_ccf<-raster("./Output/tifs/PIED.climcompfire_lambda.tif")
-lambda_i<-raster("./Output/tifs/PIED.int_lambda.tif")
-
-##Histogram lambda in plots with and without PIED
-
+#Calculate lambdas for FIA plots
 #Upload recruitment data, which has PIED presence/absence column, and summarize by plot
-FIA_pa <- read.csv("./Processed/Recruitment/RecruitData.csv", header = T, stringsAsFactors = F)
-FIA_pa.plot<-FIA_pa %>%
+BAdata <- read.csv("./BA/BALIVEdata2.csv", header = T, stringsAsFactors = F)
+BA.plot<-BAdata %>%
+  group_by(PLT_CN) %>%
+  summarise(lat=mean(LAT),lon=mean(LON),elev=mean(ELEV), PPT_yr_norm=mean(PPT_yr_norm),
+            T_yr_norm=mean(T_yr_norm),BALIVE=mean(BALIVE)) 
+BA.plot$lambda_c<-as.numeric(NA)
+BA.plot$lambda_ccl<-as.numeric(NA)
+BA.plot$lambda_cc<-as.numeric(NA)
+BA.plot$lambda_ccf<-as.numeric(NA)
+BA.plot$lambda_i<-as.numeric(NA)
+
+FIA <- read.csv("./Processed/Recruitment/RecruitData.csv", header = T, stringsAsFactors = F)
+FIA.plot<-FIA %>%
   group_by(plot) %>%
-  summarise(lat=mean(lat),lon=mean(lon),PApied=mean(PApied))
-FIA_pa.plot$PApied<-as.factor(FIA_pa.plot$PApied)
+  summarise(lat=mean(lat),lon=mean(lon),elev=mean(elev),PApied=mean(PApied), PPT_yr_norm=mean(PPT_yr_norm),
+            T_yr_norm=mean(T_yr_norm),BALIVE=mean(BALIVE)) 
+FIA.plot$PApied<-as.factor(FIA.plot$PApied)
+FIA.plot$lambda_c<-as.numeric(NA)
+FIA.plot$lambda_ci<-as.numeric(NA)
+FIA.plot$lambda_cc<-as.numeric(NA)
+#FIA.plot$lambda_ccf<-as.numeric(NA)
+FIA.plot$lambda_i<-as.numeric(NA)
 
-#Make points spatial and extract lambda for each point
-Points <- SpatialPoints(coords = cbind(FIA_pa.plot$lon, FIA_pa.plot$lat), 
-                        proj4string = CRS("+proj=longlat +datum=NAD83"))
-FIA_pa.plot$lambda_c <- raster::extract(lambda_c, Points) 
-FIA_pa.plot$lambda_ccl <- raster::extract(lambda_ccl, Points) 
-FIA_pa.plot$lambda_cc <- raster::extract(lambda_cc, Points) 
-FIA_pa.plot$lambda_ccf <- raster::extract(lambda_ccf, Points) 
-FIA_pa.plot$lambda_i <- raster::extract(lambda_i, Points) 
+# Build IPMs and calculate lambda
+for (i in 1:nrow(FIA.plot)) {
+    # Extract climate for cell
+    pred_data <- data.frame(PPT_yr=(FIA.plot$PPT_yr_norm[i]),
+                            T_yr=(FIA.plot$T_yr_norm[i]),
+                            BALIVE=(FIA.plot$BALIVE[i]))
+    # Check for missing value
+    if (is.na(pred_data$PPT_yr) | is.na(pred_data$T_yr) | is.na(pred_data$BALIVE)) {
+      print("Missing predictor... Skipping!")
+      next
+    }
+    # Calculate lambda
+    FIA.plot$lambda_c[i]<-Re(eigen(ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.clim.gam, 
+                               smodel=smodel.clim.gam,rmodel=rmodel.clim.gam, gSD=growSD.clim.gam,
+               data=pred_data,s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F))$values[1])
+    FIA.plot$lambda_ci[i]<-Re(eigen(ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.clim.int.gam, 
+                                           smodel=smodel.clim.int.gam,rmodel=rmodel.clim.int.gam, gSD=growSD.clim.gam,
+                                           data=pred_data,s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F))$values[1])
+    FIA.plot$lambda_cc[i]<-Re(eigen(ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.clim.comp.gam, 
+                                           smodel=smodel.clim.comp.gam,rmodel=rmodel.clim.comp.gam, gSD=growSD.clim.comp.gam,
+                                           data=pred_data,s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F))$values[1])
+    FIA.plot$lambda_i[i]<-Re(eigen(ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.int.gam, 
+                                           smodel=smodel.int.gam,rmodel=rmodel.int.gam, gSD=growSD.int.gam,
+                                           data=pred_data,s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F))$values[1])
+    print(FIA.plot$lambda_c[i])
+  print(paste0("Finished row ", i, " of ", nrow(FIA.plot)))
+}
 
-l_means<-FIA_pa.plot %>%
-  group_by(PApied) %>%
-  summarise(lambda_c=mean(lambda_c),lambda_ccl=mean(lambda_ccl),lambda_cc=mean(lambda_cc),
-            lambda_ccf=mean(lambda_ccf),lambda_i=mean(lambda_i))
-  
-lambdaHist_c<-ggplot(data=FIA_pa.plot,aes(x=lambda_c,fill=PApied)) +
-  geom_histogram(aes(y = ..density..),alpha=0.7)+
-  geom_vline(data=l_means, aes(xintercept=lambda_c,  colour=PApied),
-             linetype="dashed", size=1)+
-  scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
-                    name = "PIED presence", labels = c("Absent","Present"))+
-  scale_colour_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
-                    name = "PIED presence", labels = c("Absent","Present"))+
-  labs(x="Lambda", y="Density")+
-  theme_classic()
-
-lambdaHist_ccl<-ggplot(data=FIA_pa.plot,aes(x=lambda_ccl,fill=PApied)) +
-  geom_histogram(aes(y = ..density..),alpha=0.7)+
-  geom_vline(data=l_means, aes(xintercept=lambda_ccl,  colour=PApied),
-             linetype="dashed", size=1)+
-  scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
-                    name = "PIED presence", labels = c("Absent","Present"))+
-  scale_colour_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
-                      name = "PIED presence", labels = c("Absent","Present"))+
-  labs(x="Lambda", y="Density")+
-  theme_classic()
-
-lambdaHist_cc<-ggplot(data=FIA_pa.plot,aes(x=lambda_cc,fill=PApied)) +
-  geom_histogram(aes(y = ..density..),alpha=0.7)+
-  geom_vline(data=l_means, aes(xintercept=lambda_cc,  colour=PApied),
-             linetype="dashed", size=1)+
-  scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
-                    name = "PIED presence", labels = c("Absent","Present"))+
-  scale_colour_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
-                      name = "PIED presence", labels = c("Absent","Present"))+
-  labs(x="Lambda", y="Density")+
-  theme_classic()
-
-lambdaHist_ccf<-ggplot(data=FIA_pa.plot,aes(x=lambda_ccf,fill=PApied)) +
-  geom_histogram(aes(y = ..density..),alpha=0.7)+
-  geom_vline(data=l_means, aes(xintercept=lambda_ccf,  colour=PApied),
-             linetype="dashed", size=1)+
-  scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
-                    name = "PIED presence", labels = c("Absent","Present"))+
-  scale_colour_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
-                      name = "PIED presence", labels = c("Absent","Present"))+
-  labs(x="Lambda", y="Density")+
-  theme_classic()
-
-lambdaHist_i<-ggplot(data=FIA_pa.plot,aes(x=lambda_i,fill=PApied)) +
-  geom_histogram(aes(y = ..density..),alpha=0.7)+
-  geom_vline(data=l_means, aes(xintercept=lambda_i,  colour=PApied),
-             linetype="dashed", size=1)+
-  scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
-                    name = "PIED presence", labels = c("Absent","Present"))+
-  scale_colour_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
-                      name = "PIED presence", labels = c("Absent","Present"))+
-  labs(x="Lambda", y="Density")+
-  theme_classic()
-
+write.csv(FIA.plot,"./Output/FIA_lambda_gam.csv")
