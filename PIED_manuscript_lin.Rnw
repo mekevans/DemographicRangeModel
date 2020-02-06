@@ -1,0 +1,1445 @@
+\documentclass{article}
+
+\usepackage{float}
+\usepackage[backend=bibtex,style=authoryear,maxcitenames=2,maxbibnames=10,doi=false,isbn=false,url=false,firstinits=true]{biblatex}
+\addbibresource{PIED_library}
+
+\title{A demographic perspective on the ecological niche and the geographic distribution: a range-wide analysis of climate and competition as factors limiting vital rates of \textit{Pinus edulis}}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\maketitle
+
+\section{Introduction}
+
+The addition of greenhouse gasses to Earth's atmosphere, causing it to retain additional energy, is altering  the Earth's climate \parencite{IPCC_climate_2014, le_quere_global_2016}. This is expected to change species' distributions  and ultimately drive some species to extinction \parencite{parmesan_globally_2003, thomas_extinction_2004, chen_rapid_2011}. Climate envelope models are a widely-used tool to evaluate extinction risk and make planning decisions to prevent extinction. This practice relies on the assumption that climate is sufficient to explain a species' distribution. If climate is sufficient, other factors do not need to be included, and climate envelope models will be adequate to predict future species' distributions. The flexibility of modern SDM algorithms (machine learning - maximum entropy, boosted regression trees) ensures that a good fit of climate to occurrence data can be achieved (citations?). 
+
+However, long-standing hypotheses about the causes of range limits suggest that biotic interactions, in addition to biophysical conditions, can be important. \cite{darwin_origin_1859}, \cite{dobzhansky_evolution_1950}, \cite{macarthur_geographical_1972}, and \cite{brown_macroecology_1995} all suggested that climate limits ranges at high elevations or latitudes where abiotic stress is high, whereas competition limits ranges at low elevations or latitudes, where abiotic stress is low but biotic stress (i.e., competitive pressure) is high -- what \cite{louthan_where_2015} have termed the ``species interactions-abiotic stress hypothesis". \cite{brown_geographic_1996} added nuance by suggesting that multiple factors might limit different edges of a species' range . Indeed, the modern or Hutchinsonian concept of the niche includes both biotic and abiotic dimensions \parencite{hutchinson_concluding_1957, hutchinson_introduction_1978}, merging Eltonian and Grinnellian niche concepts. Accordingly, species may sort along gradients (biotopes) of opposing forms of stress, e.g., climatic vs. competitive stress, according to evolutionary trade-offs expressed within individuals and negative evolutionary correlations expressed among species - with climate limiting at one range edge and competition at another \parencite{barton_factors_1993, ettinger_climate_2011, louthan_where_2015}. Species would then fill ecological space, including both abiotic and biotic gradients, until they reach their adaptive limits \parencite{sexton_evolution_2009}, (other citations ?). This view of the limits of geographic distributions better aligns with the Hutchinsonian view of the ecological niche - i.e., that it includes both abiotic and biotic components -- as well as reflecting the sorting of species along gradients (biotopes) observed in nature.  The climate-only argument is that biotic interactions are local in scale and not influential at the scale of a geographic distribution \parencite{gotelli_macroecological_2010, mcgill_matters_2010, copenhaverparry_toward_2017} -- they represent blurring at the edges of a climatically-determined distribution.
+
+Here, we evaluate climate and competition as drivers of a species' distribution through the lens of demography. \cite{holt_bringing_2009} pointed out that Hutchinson's conception of the niche was a demographic one - he defined the niche as the set of conditions ``permitting the species to exist indefinitely" \parencite{hutchinson_concluding_1957, hutchinson_introduction_1978}. That is, it is the (n-dimensional) environmental space where long-term population growth rate is at or above 1.0  \parencite{holt_bringing_2009, peterson_ecological_2011}. This demographic perspective on the niche requires information on the entire life cycle: the number of births and deaths, change in size (growth) of individuals, as well as the conditions under which these occur. With such information, vital rates can be modeled as a function of climatic and competitive conditions, combined together in a population model, and population growth rate calculated and projected geographically as a function of digital layers of covariate information -- forming what we call a demographic range model. Indeed, the case for a demographic approach to range modeling has been made on more than one occasion \parencite{huntley_beyond_2010, pagel_forecasting_2012, schurr_how_2012, normand_demography_2014, ehrlen_predicting_2015}, though there are few examples thus far \parencite{merow_developing_2011, merow_using_2014, diez_probabilistic_2014}, (other citations ??).
+
+We take this sort of demographic approach to evaluating what sets the limits of the geographic distribution, focusing on a small-statured tree endemic to the Colorado Plateau in the southwestern U. S., \emph{Pinus edulis}. We use forest inventory data as a source of demographic information. In forest inventories, marked individuals in permanent sample plots are censused repeatedly. The U. S. Forest Service's Forest Inventory and Analysis Program's plot network encompasses the entire geographic distribution of \emph{P. edulis}. Recent trends of \emph{P. edulis} are suggestive of early stage forest biome collapse - i.e., widespread, drought-induced mortality caused by a combination of "global change-type drought" plus insect attack - making this a good species for investigating range limits and rapid range change \parencite{allen_drought_1998, adams_temperature_2009, breshears_tree_2009, williams_temperature_2013, clifford_precipitation_2013}.
+
+Climate and competition were evaluated as limiting factors using two kinds of evidence: the statistical relationship between these factors and vital rates, and the resemblance of competing demographic range models to occurrence data. Under the climate-only hypothesis for Pinus edulis' distribution, competitive conditions might have no significant effect on vital rates, or a demographic range model using only climate predictors of vital rates might better match occurrence data. Further, under the climate-only hypothesis, the response(s) of vital rates to climate variation might be unimodal, with peak growth, recruitment, or survival in the center of the climate space occupied by Pinus edulis, or different climatic factors might be limiting at different edges. If climate and competition are both important limiting factors, they should both be statistically significant predictors of variation in vital rates, or a demographic range model using both types of predictors should better fit occurrence data. A final possibility, if both factors are important, is that the statistical responses of vital rates might show climate to be limiting at one edge and competition limiting at another edge of the distribution.
+
+We evaluated these predictions regarding climate and competition as limiting factors using census data on 20,000 trees sampled in 1,941 forest inventory plots throughout the geographic distribution of Pinus edulis. This represents the largest demographic dataset applied to the problem of understanding range limits; it is the most comprehensive dataset used to model demography across a species' entire distribution. Recruitment, growth, and mortality were predicted as a function of climatic factors (temperature, precipitation) alone, or in addition to competitive conditions (the basal area of live trees); these vital rates were combined together to form competing climate-only vs. climate plus competition integral projection models (IPM), from which asymptotic population growth rate ($\lambda$) was calculated as a function of digital layers of the climate and competitive covariates. Climate-only vs. climate plus competition maps of predicted population growth rate were compared against occurrence data.  
+
+Needs a snazzy ending sentence.and/or add something about providing example/lessons learned in the process of building one of the few examples (and most data-rich) of demographic range modeling?
+
+\section{Methods}
+\subsection{Study system}
+\subsection{Data}
+Demographic data were derived from the Forest Inventory Analysis (FIA) database for Arizona, Colorado, New Mexico, and Utah. Growth data were extracted by excluding individuals that died between censuses, that were not remeasured, that did not show positive growth, or were missing covariates used in this analysis, for a total of 10,705 records from between 2000 and 2016. Survival data were extracted by excluding individuals that were missing covariates, for a total of 15,950 records. Ingrowth data were obtained for 1,872 FIA plots with PIED present. The sampling for PIED includes its entire geographic distribution within the United States, which allows for robust inference of the influence of climate on its demography (Coutts et al. 2016).
+
+Historical annual climate data, i.e. monthly temperature and precipitation, were extracted from the PRISM Climate Group web archive (data set AN81m; http://prism.oregonstate.edu/) at 4-km resolution. Monthly values were summed (precipitation) or averaged (temperature) to obtain seasonal values, and then averaged across the census interval. These seasonal variables were calculated for each tree based on its approximate spatial location, where location `fuzzing', as required by law, has negligible effects on regression model accuracy at coarse spatial scales (>2 km; Coulston et al. 2006). We defined the cool season as running from October to March, and the warm season as running from May to July. 
+
+Elevation was extracted from the Shuttle Radar Topography Mission (SRTM) v4.1 data set (Jarvis et al., 2008 ) at 1 arc-second resolution. An additional covariate was basal area of all living trees (as a proxy for competition) -- the BALIVE variable in the FIA database. The latter was calculated as the condition-level weighted average for each plot.
+
+\subsection{Vital rate models}
+With the FIA data, we built vital rate models of growth, survival, and reproduction. Vital rate models took the form of generalized linear models, with tree diameter at root crown (DIA) as the IPM state variable for growth and survival models. Because no parentage data are available for the regression of recruitment, we used the number of adult PIED trees (> 1" diameter at root crown) in each individual plot as an offset in a Poisson regression -- see below. We considered DIA, climate variables, and basal area as potential predictors, as well as quadratic terms. 
+
+Growth was modeled using multiple linear regression with annual DIA increment ($inc$) as the dependent variable:
+
+\begin{equation}
+inc = (DIA_{census 2} - DIA_{census 1})/(year_{census 2} - year_{census 1})
+\end{equation}
+
+An advantage of using increment rather than absolute size is that increment is already adjusted for the variable census interval of the growth data, which ranged from 3 to 15 years (mean of 9.4 years).
+Survival was modeled using logistic regression. Individual tree size from the previous census was used for each record. One additional predictor was considered for survival models: the number of years between censuses, which was later forced to 1 in the IPM to obtain annual population growth rates. 
+
+Recruitment was modeled as number of recruits (with diameter at root collar $\geq$ 1.0 inch) using Poisson regression, with offsets for time between censuses (forced to 1 in the IPMs), and number of adults PIED in each recruitment plot. Given that we have no information on the age of each recruit, we used climate norms for the preceding 30 years. We also modeled recruitment using climate conditions from the past 10, 15, 20, and 25 years, but the resulting recruitment models were qualitatively the same as the results based on 30 years. We therefore only report results based on 30-year climate norms. Finally, we calculated mean recruit size and its standard deviation for parameterizing the recruitment subkernel of the IPMs.
+
+We built four sets of vital rate models to test our hypotheses regarding the drivers of PIED's range: climate-only models and three different sets of models including both climate and competition. The first set of climate and competition models ("simple") used 30-year temperature and precipitation norms as the climate predictors, as well as quadratics of all predictors. The second sest of climate and competition models ("interaction") included the same main effects as the simple model, but also included all pairwise interactions between the first-order predictors. For the final set of models ("tailored"), we used model selection to choose the set of predictors that maximized the AIC value for each vital rate function. Possible predictors included census-interval climate variables, 3- or 4- season climate variables, climate anomalies, and drought anomalies, as well as quadratics and interactions. All four sets of models further included individual size as covariates for the survival and growth functions. 
+
+\subsection{Integral projection models}
+We modeled the geographic distribution of Pinus edulis using an integral projection model (IPMs). IPMs produce population projections based on estimates of vital rates (growth, survival, and reproduction) and the relationship of these rates to at least one continuous state variables (often size or age; Easterling et al. 2000; Ellner \& Rees 2006; Ellner et al. 2016). Vital rate models within IPMs (also known as subkernels) are constructed using regression analysis, allowing one to model the influence of covariates (e.g. climate) on vital rates and ultimately population dynamics (Merow et al. 2014a). 
+
+An IPM is composed of a kernel, a function that maps the state of an individual in the present onto its state (and the states of potential offspring) in the next time step. When considering a population of individuals $n_t (z)$ of size distribution $z$ at time $t$, the population at the next time step can be represented as
+
+\begin{equation}
+n_{(t+1)}(z') = \int_{\Omega} K(z',z)n_t(z)dz,
+\end{equation}
+
+where $z'$ represents size at time $t + 1$, $\Omega$ indicates the range of possible sizes, and $K(z',z)$ is the IPM kernel  (Merow et al. 2014a) . In essence, this expression is a continuous version of the more familiar Leslie and Lefkovitch matrix models, with the IPM kernel replacing the transition matrix. The kernel describes the processes of survival, growth, and reproduction. The kernel can be broken down into
+
+\begin{equation}
+K(z',z) = P(z',z) + F(z',z),
+\end{equation}
+
+where the growth/survival subkernel $P(z',z)$ describes the probability distribution of the size at the next time step of an individual with current size $z$, conditional on its survival, and the recruitment subkernel $F(z',z)$ describes the probability distribution of the number of recruits birthed by an individual of size $z$, and the size distribution of those offspring. These subkernels are constructed using vital rate regressions.
+
+\subsection{Geographic range projections}
+To produce climate-driven maps of expected population growth rate, climate normals (monthly VPD and monthly precipitation) were extracted from PRISM (data set Norm81m; http://prism.oregonstate.edu/) at 800-m resolution for Arizona, Colorado, New Mexico, and Utah. We then rescaled normals to 16-km resolution (to reduce the computational burden), and constructed seasonal variables based on the seasonality definition described in the previous section.
+
+To produce maps of PIED's expected population growth rate under the effects of both climate and competition, a raster of plot-level basal area of live trees was produced. This layer was based on spatial interpolation, using ordinary kriging of basal area of living trees from each FIA plot within the four-state region of Arizona, Colorado, New Mexico, and Utah. The SRTM elevation raster from which the vital rate models were parameterized was used to provide elevation forcing data. Both the basal area and elevation rasters were rescaled to 16-km resolution and aligned with each other and the climate normal rasters.
+
+IPMs kernels were then constructed by forcing vital rate models with climate, elevation, and plot basal area for each grid cell on the landscape (at 16-km resolution). Kernels were discretized as high-dimensional matrices (500 rows and columns), and the asymptotic population growth rate, $\lambda$, was derived as the dominant eigenvalue of this matrix. Such high-dimensional discretized kernels are recommended for slow-growing organisms (Zuidema et al. 2010), with the exact number based on convergence of $\lambda$. Starting with a discretized kernel of 100 rows and columns, $\lambda$ was calculated at mean covariate values. Then the number of rows/columns was increased by 5 until $\lambda$ changed by less than 0.001, which occurred at 500 rows and columns.
+
+\subsection{Validation}
+\textbf{Note: this was the validation process formerly used. Florian's residual analysis could be used as an alternative to this.}
+We compared population growth rates predicted from our model against presence/absence calculated from all FIA plots in the study area. Since it is possible that PIED's population dynamics are already being negatively affected by current climate change (i.e., the warm drought of the early 2000's), we avoided defining a threshold of $\lambda$ above which we expect PIED to be present (to be compared against the FIA-derived map). Instead, we used AUC, the area under the receiver operating characteristic (ROC) curve, to evaluate the models. The ROC curve (Fawcett 2006) is a plot of the false positive rate (on the x-axis) against the true positive rate (on the y-axis) across all possible thresholds (here, values of lambda, the asymptotic population growth rate), where we use the FIA map to define the ``true" presence/absence of PIED. As lambda increases, the true positive rate increases, but so does the false positive rate. Better models are expected to have the true positive rate rise most quickly compared to the false positive rate; this is quantified by the area under the ROC curve (AUC). We calculated AUC in two ways: for the entire landscape, and for the northwest, northeast, southwest, and southeast quadrants of the landscape in order to better understand where our model performed best. To assess if AUC changes with scale, we repeated the landscape-level ROC analysis when the landscape was aggregated by a factor of 2 and 3.
+
+Finally, we entertained the possibility that a single threshold may not adequately separate presence/absence of PIED on the landscape. This could be the case, for example, if predicted population growth rates based on the vital rate models are high, but a species is actually absent due to processes missing in the range model. To test this, we enumerated all possible combinations of two values, a low and high $\lambda$ threshold, and coded the raster cell as present if the predicted value of $\lambda$ fell between the two thresholds. Otherwise, we coded the raster cell as a predicted absence. We then calculated root-mean-square error for each combination of thresholds. Combinations of thresholds with lower RMSE have higher discriminating power between presences and absences.
+
+\subsection{Elasticity}
+To assess the sensitivity of $\lambda$ to the parameters of the vital rate models we performed an elasticity analysis. Elasticities were calculated for each grid cell on the landscape and each parameter as (for details see Merow et al. 2014b):
+
+\begin{equation}
+e = (\lambda_{perturbed} - \lambda_{fitted}) / (\delta \lambda_{fitted} ) 
+\end{equation}
+
+Where $\delta$ is the perturbation factor, here chosen to be 1\%. Parameters to which $\lambda$ is more sensitive at a given location are expected to have high elasticity values.
+
+\section{Results}
+\subsection{Take-home messages}
+\emph{Vital rate models}: Overall, the vital rate models produced biologically-sensible predictions, with a few exceptions. In general, increasing competition and temperature had a negative effect on vital rates and increasing precipitation had a positive effect. The two main exceptions were the u-shaped relationship between temperature and regeneration in the climate-only model (Fig. \ref{fig:recr_c}b) and the the hump-shaped relationship between precipitation and survival, which never seems to go away, regardless of the model (Figs. \ref{fig:surv_c}b, \ref{fig:surv_cc}c, \ref{fig:surv_i}c,
+\ref{fig:surv_t3}a \& b).
+
+\emph{Climate-only model}: The $\lambda$ maps produced by the climate-only models looked terrible (Fig. \ref{fig:map_c}, \ref{fig:map_ccl}). In addition to predicting high $\lambda$at high elevations, it predicted high $\lambda$ in the desert region in the southwestern corner of the region. The high $\lambda$ in the desert seemed to be due the u-shaped relationship between temperature and regeneration (Fig. \ref{fig:recr_c}b), so there was high regeneration at high temperatures. Without clamping, growth and survival were also somewhat higher in this desert region (Fig. \ref{fig:map_c}b \& c), but that pattern was reduced by the clamping in the growth and survival functions (Fig. \ref{fig:map_ccl}b \& c).
+
+\emph{Climate + competition, no interactions}: Adding competition to the model improved the maps (Fig. \ref{fig:map_cc}), but not in the way we would predict based on our hypothesis. Based on our hypothesis, competition would be limiting at upper elevations, so adding competition to the model woudl result in better predictions of the upper-elevation limit. However, the model still predicted high $\lambda$ values at high elevations. It did, however, result in better predictions at low elevations. It predicted low $\lambda$ values in the southwestern desert. With clamping at the lower end of the basal area recruitment fuctions, it predicted low lambda $\lambda$ in what we think is grassland in the southeastern region, where we predicted high lambda in previous versions of the map. It therefore seems that a lot of the improvement is due to better predictions of climate effects when competition is added to the model, most notably by improving the prediction of the relationship between temperature and regeneration (Fig. \ref{fig:recr_cc}c vs Fig. \ref{fig:recr_c}b).
+
+\emph{Climate + competition, with interactions}: To the eye, adding interactions to the models slightly improved preditions (Fig. \ref{fig:map_i}), but the problem of high lambda at high elevations remained. However the map looked fairly similar to the map without interactions, so this is a place where Florian's residual analysis would be helpful for interpreting the results.
+
+\emph{Model selection}: The model selection process for the growth models was fairly straightforward. The best model was pretty simple, including annual climate predictors, quadratics, and no interactions (Fig. \ref{fig:grow_t}). We have the best data for growth, and this was reflected in my confidence in the model selection process (Fig. \ref{fig:surv_t1}, \ref{fig:surv_t2}, \ref{fig:surv_t3}, \ref{fig:recr_t1}, \ref{fig:recr_t2}, \ref{fig:recr_t3}, \ref{fig:recr_t4}, \ref{fig:recr_t5}). For the survival and regeneration models, model selection seemed to favor more and more complex models, often resulting in convergence problems. The best models based on AIC values also resulted in a lot more uncertainty than did simpler models.
+
+\emph{Lambda effects plots}: In general the effects of the predictors on lambda make sense (Figs. \ref{fig: lambda_c}, \ref{fig: lambda_cc}, \ref{fig: lambda_i}). All models predict a positive effect of precipitation on lambda and a negative effect of basal area (in the models that include basal area). The models predict a negative effect of temperature, models except the climate-only model, which predicts a positive effect due to the previously-mentioned positive effect of temperature on recruitment.
+
+\emph{Extrapolation}: One of the changes I made to the vital rate figures was to extrapolate the models for the full range of predictor values we see on the maps, which turned out to be very telling. This is what drove us to clamp the lower end of the basal area recruitment function, which is what reduced the lambda values in the southeastern region. Based on the extrapolation, we also think precipitation is the culprit behind the high lambda at high elevations. The precipitation in the high elevation areas was about double the highest precipitation observed in the FIA plots containing PIED. Both growth and survival respond positively to precipitation when precipitation is high, so, when extrapolated to these much high precipitation values, our models predict very high growth rates and almost no mortality. Recruitment actually does decline when we extrapolate to high precipitation, which is probably just a statistical artifact, but it doesn't completely offset the high growth and survival. Basal area, which we expect to also be higher at high elevations, does have a negative effect on the vital rates, but it does not seem to commonly be higher than what we observe in the FIA data with PIED, so it also does not offset the positive effects of precipitation.
+
+\emph{Elasicity}: Overall, survival had the highest elasticitiy values, which is unsurprising for a long-lived species. However, under some circumstances, regeneration also had non-trivial elasicities. This might be because, in this case, recruits are not counted until they reach a certain size threshold, so our measure of recruitment actually combines several vital rates, including survival of the young trees, into a single metric. The elasiticities for regeneration were typically higher in regions where elasticities for survival were lower, most notably in the climate-only model and the climate + competition model without interactions. Elasicity was generally lower for regeneration in the climate + competition model with interactions. Elasticity was relatively low for growth in general. Interestingly, elasticity values for growth were sometimes negative, suggesting that increasing the growth rate reduced the population growth rate under some conditions.
+
+\emph{Other observations}:
+\begin{enumerate}
+\item Increasing the complexity of the model tended to result in lower $\lambda$ values, which seems to make biological sense for a tree.
+\item Regeneration matters. This is unfortunate because regeneration is the weakest part of the model. A lot of the strange patters we saw seemed to be the result of regeneration. This argues for including something like inverse modeling and possibly some additional data, such as pith dates from tree cores, to improve our regeneration estimates.
+\item Including fire-killed trees did not change the results much (Fig. \ref{fig:surv_cc}; Fig. \ref{fig:map_cc} vs. \ref{fig:map_ccf}). The biggest change was in the relationship between basal area and survival (Fig. \ref{fig:surv_cc}b), but this did not scale up to a strong effect on $\lambda$ predictions (Fig. \ref{fig:map_cc} vs. \ref{fig:map_ccf}), probably because basal area does not get very high anywhere on the landscape.
+\end{enumerate}
+
+<<echo=FALSE>>=
+library(raster)
+library(rgdal)
+library(rgeos)
+library(dplyr)
+library(glmmTMB)
+library(coefplot)
+library(ggplot2)
+library(ggeffects)
+library(cowplot)
+library(effects)
+library(DHARMa)
+library(lme4)
+library(grid)
+library(MuMIn)
+
+load("./Code/IPM/GrRescaling.Rdata")
+load("./Code/IPM/SurvRescaling.Rdata")
+load("./Code/IPM/RecruitRescaling.Rdata")
+load("./Code/IPM/recrstats.rda")
+
+grdata <- read.csv("./Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
+
+# Only keep trees that didn't die
+grdata <- subset(grdata, STATUSCD == 1) #18204
+
+# Create increment columns
+# note that growth increments need to be moved to the positive realm (by adding a constant)
+# IF log transform is used
+grdata$AGB_INCR <- grdata$DRYBIO_AG_DIFF / grdata$CENSUS_INTERVAL
+grdata$DIA_INCR <- grdata$DIA_DIFF / grdata$CENSUS_INTERVAL
+grdata$BA_INCR <- grdata$BA_DIFF / grdata$CENSUS_INTERVAL
+
+grdata.scaled <- grdata %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
+                                                    -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
+                                                    -CENSUS_INTERVAL,
+                                                    -AGB_INCR, -DIA_INCR, -BA_INCR))
+
+survData <- read.csv("./Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
+
+# Create increment columns
+# not needed for survival/mort analysis
+survData$AGB_INCR <- survData$DRYBIO_AG_DIFF / survData$CENSUS_INTERVAL
+survData$DIA_INCR <- survData$DIA_DIFF / survData$CENSUS_INTERVAL
+survData$BA_INCR <- survData$BA_DIFF / survData$CENSUS_INTERVAL
+survData$log.size <- log(survData$PREVDIA)
+survData$log.BALIVE <- log(survData$BALIVE)
+
+# Recode status
+survData$surv <- ifelse(survData$STATUSCD == 2, 0, 1)
+survData$mort <- ifelse(survData$STATUSCD == 1, 0, 1)
+
+# remove cases where BALIVE at time 1 = zero (should be impossible)
+# survData <- subset(survData, log.BALIVE > 0) 
+survData.2 <- subset(survData, BALIVE > 0) # goes from 20329 to 20161
+
+# remove conditions where fire or harvest occurred
+survData.3 <- survData[!(survData$DSTRBCD1 %in% c(30, 31, 32, 80)), ] # goes from 20329 to 19867
+
+# standardize covariates
+#ELS update: no AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3 in dataframe, so I removed them from the following code
+survData.scaled <- survData %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
+                                                          -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
+                                                          -CENSUS_INTERVAL,
+                                                          AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3,
+                                                          -AGB_INCR, -DIA_INCR, -BA_INCR,
+                                                          -surv, -mort))
+
+survData2.scaled <- survData.2 %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
+                                                              -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
+                                                              -CENSUS_INTERVAL,
+                                                              AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3,
+                                                              -AGB_INCR, -DIA_INCR, -BA_INCR,
+                                                              -surv, -mort))
+
+survData3.scaled <- survData.3 %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
+                                                                 -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
+                                                                 -CENSUS_INTERVAL,
+                                                                 AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3,
+                                                                 -AGB_INCR, -DIA_INCR, -BA_INCR,
+                                                                 -surv, -mort))
+
+rdata <- read.csv("./Processed/Recruitment/RecruitData.csv", header = T, stringsAsFactors = F)
+rdata <- subset(rdata, PIEDadults1 > 0)
+rdata$BA.all <- rdata$BA.PIED + rdata$BA.notPIED
+rdata.scaled <- rdata %>% mutate_at(scale, .vars = vars(-plot, -lat, -lon, -elev, -PApied,
+                                                        -state, -county, -plotID, -CONDID, 
+                                                          -measYear, -plotPrev, -PREV_MEASYEAR,
+                                                          -CENSUS_INTERVAL, -recruits1, -recruits12,
+                                                          -AGB_intra, -BA.PIED, -PIEDadults1,
+                                                          -PIEDadults4, -PIEDadults8, -cumDIA.PIED))
+ppt_yr_raster <- raster("./ClimateData/PRISM/Normals/PPT_year.tif")
+t_yr_raster <- raster("./ClimateData/PRISM/Normals/T_year.tif")
+ba_raster <- raster("./BA/balive_RF.tif")
+@
+
+<<echo=FALSE>>=
+ncuts=30
+chopsize_dia<-cut(grdata$PREVDIA,ncuts)
+chopsize_ba<-cut(grdata$BALIVE,ncuts)
+chopsize_PPT<-cut(grdata$PPT_yr_norm,ncuts)
+chopsize_T<-cut(grdata$T_yr_norm,ncuts)
+grow_binned_dia<-as.vector(sapply(split(grdata$DIA_INCR,chopsize_dia),mean,na.rm=T))
+dia_binned<-as.vector(sapply(split(grdata$PREVDIA,chopsize_dia),mean,na.rm=T))
+grow_binned_ba<-as.vector(sapply(split(grdata$DIA_INCR,chopsize_ba),mean,na.rm=T))
+ba_binned<-as.vector(sapply(split(grdata$BALIVE,chopsize_ba),mean,na.rm=T))
+grow_binned_PPT<-as.vector(sapply(split(grdata$DIA_INCR,chopsize_PPT),mean,na.rm=T))
+PPT_binned<-as.vector(sapply(split(grdata$PPT_yr_norm,chopsize_PPT),mean,na.rm=T))
+grow_binned_T<-as.vector(sapply(split(grdata$DIA_INCR,chopsize_T),mean,na.rm=T))
+T_binned<-as.vector(sapply(split(grdata$T_yr_norm,chopsize_T),mean,na.rm=T))
+g_binned<-as.data.frame(cbind(grow_binned_dia,grow_binned_ba,grow_binned_PPT,grow_binned_T,
+                              dia_binned,ba_binned,PPT_binned,T_binned))
+names(g_binned)<-c("grow_dia","grow_ba","grow_PPT","grow_T","PREVDIA","BALIVE","PPT","T")
+
+g_fun<-function(dia,ba,ppt,t,model,clampba=F,clampt=F){
+  gdata=data.frame(PREVDIA=dia,BALIVE = ifelse(clampba==T & ba >190, 190, ba),
+  PPT_yr_norm = ppt, T_yr_norm = ifelse(clampt==T & t >10.6, 10.6, t))
+   scaled.gdata = data.frame(scale(gdata,
+                                   scale = gr.scaling$scale[match(names(gdata), 
+                                                                  names(gr.scaling$scale))], 
+                                  center = gr.scaling$center[match(names(gdata), 
+                                                                   names(gr.scaling$center))]))  
+  return(predict(model, newdata = scaled.gdata, re.form = NA))
+}
+means<-c(mean(grdata$PREVDIA,na.rm=T),mean(grdata$BALIVE,na.rm=T),
+         mean(grdata$PPT_yr_norm,na.rm=T),mean(grdata$T_yr_norm,na.rm=T))
+seq<-data.frame(dia=seq(0.5*min(grdata$PREVDIA),1.2*max(grdata$PREVDIA),length=50),
+                ba=seq(cellStats(ba_raster,stat="min",na.rm=T),
+                       max(grdata$BALIVE,na.rm=T),length=50),
+                ppt=seq(cellStats(ppt_yr_raster,stat="min",na.rm=T),
+                        cellStats(ppt_yr_raster,stat="max",na.rm=T),length=50),
+                t=seq(cellStats(t_yr_raster,stat="min",na.rm=T),
+                      cellStats(t_yr_raster,stat="max",na.rm=T),length=50))
+grplot_data_clim<-cbind(data.frame(dia_pred=g_fun(seq$dia,means[2],means[3],means[4],gmodel.clim),
+                             ppt_pred=g_fun(means[1],means[2],seq$ppt,means[4],gmodel.clim),
+                             t_pred=g_fun(means[1],means[2],means[3],seq$t,gmodel.clim),
+                             dia_pred_c=g_fun(seq$dia,means[2],means[3],means[4],gmodel.clim,
+                                             clampba=T,clampt=T),
+                             ppt_pred_c=g_fun(means[1],means[2],seq$ppt,means[4],gmodel.clim,
+                                             clampba=T,clampt=T),
+                             t_pred_c=g_fun(means[1],means[2],means[3],seq$t,gmodel.clim,
+                                             clampba=T,clampt=T)),seq)
+grplot_data_climcomp<-cbind(data.frame(dia_pred=g_fun(seq$dia,means[2],means[3],means[4],
+                                                      gmodel.clim.comp),
+                             ba_pred=g_fun(means[1],seq$ba,means[3],means[4],gmodel.clim.comp),
+                             ppt_pred=g_fun(means[1],means[2],seq$ppt,means[4],gmodel.clim.comp),
+                             t_pred=g_fun(means[1],means[2],means[3],seq$t,gmodel.clim.comp),
+                             dia_pred_c=g_fun(seq$dia,means[2],means[3],means[4],gmodel.clim.comp,
+                                             clampba=T,clampt=F),
+                             ba_pred_c=g_fun(means[1],seq$ba,means[3],means[4],gmodel.clim.comp,
+                                             clampba=T,clampt=F),
+                             ppt_pred_c=g_fun(means[1],means[2],seq$ppt,means[4],gmodel.clim.comp,
+                                             clampba=T,clampt=F),
+                             t_pred_c=g_fun(means[1],means[2],means[3],seq$t,gmodel.clim.comp,
+                                             clampba=T,clampt=F)),seq)
+grplot_data_int<-cbind(data.frame(dia_pred=g_fun(seq$dia,means[2],means[3],means[4],
+                                                      gmodel.int),
+                             ba_pred=g_fun(means[1],seq$ba,means[3],means[4],gmodel.int),
+                             ppt_pred=g_fun(means[1],means[2],seq$ppt,means[4],gmodel.int),
+                             t_pred=g_fun(means[1],means[2],means[3],seq$t,gmodel.int),
+                             dia_pred_c=g_fun(seq$dia,means[2],means[3],means[4],gmodel.int,
+                                             clampba=T,clampt=F),
+                             ba_pred_c=g_fun(means[1],seq$ba,means[3],means[4],gmodel.int,
+                                             clampba=T,clampt=F),
+                             ppt_pred_c=g_fun(means[1],means[2],seq$ppt,means[4],gmodel.int,
+                                             clampba=T,clampt=F),
+                             t_pred_c=g_fun(means[1],means[2],means[3],seq$t,gmodel.int,
+                                             clampba=T,clampt=F)),seq)
+@
+
+<<echo=FALSE>>=
+ncuts=50
+chopsize_dia<-cut(survData$PREVDIA,ncuts)
+chopsize_ba<-cut(survData$BALIVE,ncuts)
+chopsize_PPT<-cut(survData$PPT_yr_norm,ncuts)
+chopsize_PPTc<-cut(survData$PPT_c_norm,ncuts)
+chopsize_PPTpf<-cut(survData$PPT_pf_norm,ncuts)
+chopsize_PPTfs<-cut(survData$PPT_fs_norm,ncuts)
+chopsize_PPTm<-cut(survData$PPT_m_norm,ncuts)
+chopsize_T<-cut(survData$T_yr_norm,ncuts)
+chopsize_Tc<-cut(survData$T_c_norm,ncuts)
+chopsize_Tpf<-cut(survData$T_pf_norm,ncuts)
+chopsize_Tfs<-cut(survData$T_fs_norm,ncuts)
+chopsize_Tm<-cut(survData$T_m_norm,ncuts)
+surv_binned_dia<-as.vector(sapply(split(survData$mort,chopsize_dia),mean,na.rm=T))
+dia_binned<-as.vector(sapply(split(survData$PREVDIA,chopsize_dia),mean,na.rm=T))
+surv_binned_ba<-as.vector(sapply(split(survData$mort,chopsize_ba),mean,na.rm=T))
+ba_binned<-as.vector(sapply(split(survData$BALIVE,chopsize_ba),mean,na.rm=T))
+surv_binned_PPT<-as.vector(sapply(split(survData$mort,chopsize_PPT),mean,na.rm=T))
+PPT_binned<-as.vector(sapply(split(survData$PPT_yr_norm,chopsize_PPT),mean,na.rm=T))
+surv_binned_PPTc<-as.vector(sapply(split(survData$mort,chopsize_PPTc),mean,na.rm=T))
+PPTc_binned<-as.vector(sapply(split(survData$PPT_c_norm,chopsize_PPTc),mean,na.rm=T))
+surv_binned_PPTpf<-as.vector(sapply(split(survData$mort,chopsize_PPTpf),mean,na.rm=T))
+PPTpf_binned<-as.vector(sapply(split(survData$PPT_pf_norm,chopsize_PPTpf),mean,na.rm=T))
+surv_binned_PPTfs<-as.vector(sapply(split(survData$mort,chopsize_PPTfs),mean,na.rm=T))
+PPTfs_binned<-as.vector(sapply(split(survData$PPT_fs_norm,chopsize_PPTfs),mean,na.rm=T))
+surv_binned_PPTm<-as.vector(sapply(split(survData$mort,chopsize_PPTm),mean,na.rm=T))
+PPTm_binned<-as.vector(sapply(split(survData$PPT_m_norm,chopsize_PPTm),mean,na.rm=T))
+surv_binned_T<-as.vector(sapply(split(survData$mort,chopsize_T),mean,na.rm=T))
+T_binned<-as.vector(sapply(split(survData$T_yr_norm,chopsize_T),mean,na.rm=T))
+surv_binned_Tc<-as.vector(sapply(split(survData$mort,chopsize_Tc),mean,na.rm=T))
+Tc_binned<-as.vector(sapply(split(survData$T_c_norm,chopsize_Tc),mean,na.rm=T))
+surv_binned_Tpf<-as.vector(sapply(split(survData$mort,chopsize_Tpf),mean,na.rm=T))
+Tpf_binned<-as.vector(sapply(split(survData$T_pf_norm,chopsize_Tpf),mean,na.rm=T))
+surv_binned_Tfs<-as.vector(sapply(split(survData$mort,chopsize_Tfs),mean,na.rm=T))
+Tfs_binned<-as.vector(sapply(split(survData$T_fs_norm,chopsize_Tfs),mean,na.rm=T))
+surv_binned_Tm<-as.vector(sapply(split(survData$mort,chopsize_Tm),mean,na.rm=T))
+Tm_binned<-as.vector(sapply(split(survData$T_m_norm,chopsize_Tm),mean,na.rm=T))
+
+s_binned<-as.data.frame(cbind(surv_binned_dia,surv_binned_ba,surv_binned_PPT,surv_binned_PPTc,
+                              surv_binned_PPTpf,surv_binned_PPTfs,surv_binned_PPTm,
+                              surv_binned_T,surv_binned_Tc,surv_binned_Tpf,
+                              surv_binned_Tfs,surv_binned_Tm,dia_binned,ba_binned,
+                              PPT_binned,PPTc_binned,PPTpf_binned,PPTfs_binned,PPTm_binned,
+                              T_binned,Tc_binned,Tpf_binned,Tfs_binned,Tm_binned))
+names(s_binned)<-c("mort_dia","mort_ba","mort_PPT","mort_PPTc","mort_PPTpf","mort_PPTfs",
+                   "mort_PPTm","mort_T","mort_Tc","mort_Tpf","mort_Tfs","mort_Tm",
+                   "PREVDIA","BALIVE","PPT","PPT_c","PPT_pf","PPT_fs","PPT_m",
+                   "T","T_c","T_pf","T_fs","T_m")
+
+s_fun<-function(dia,ba,ppt,t,ci,model,clampt=F){
+  sdata=data.frame(PREVDIA=dia,BALIVE=ba,PPT_yr_norm = ppt, 
+                  T_yr_norm = ifelse(clampt==T & t >12.5, 12.5, t))
+  scaled.sdata = data.frame(scale(sdata, 
+                                  scale = surv.scaling$scale[match(names(sdata), 
+                                                                   names(surv.scaling$scale))], 
+                                  center = surv.scaling$center[match(names(sdata), 
+                                                                     names(surv.scaling$center))])) 
+  scaled.sdata = cbind(scaled.sdata,CENSUS_INTERVAL = ci)
+return(predict(model, newdata = scaled.sdata, type = "response", re.form = NA))
+}
+
+means<-c(mean(survData$PREVDIA,na.rm=T),mean(survData$BALIVE,na.rm=T),
+         mean(survData$PPT_yr_norm,na.rm=T),mean(survData$T_yr_norm,na.rm=T),
+         mean(survData$CENSUS_INTERVAL))
+seq<-data.frame(dia=seq(0.5*min(survData$PREVDIA),1.2*max(survData$PREVDIA),length=50),
+                ba=seq(cellStats(ba_raster,stat="min",na.rm=T),
+                       max(survData$BALIVE,na.rm=T),length=50),
+                ppt=seq(cellStats(ppt_yr_raster,stat="min",na.rm=T),
+                        cellStats(ppt_yr_raster,stat="max",na.rm=T),length=50),
+                t=seq(cellStats(t_yr_raster,stat="min",na.rm=T),
+                      cellStats(t_yr_raster,stat="max",na.rm=T),length=50))
+
+splot_data_clim<-cbind(data.frame(dia_pred=s_fun(seq$dia,means[2],means[3],means[4],means[5],
+                                                 smodel.clim),
+                             ppt_pred=s_fun(means[1],means[2],seq$ppt,means[4],means[5],smodel.clim),
+                             t_pred=s_fun(means[1],means[2],means[3],seq$t,means[5],smodel.clim),
+                             dia_pred_c=s_fun(seq$dia,means[2],means[3],means[4],means[5],
+                                              smodel.clim,clampt=T),
+                             ppt_pred_c=s_fun(means[1],means[2],seq$ppt,means[4],means[5],
+                                              smodel.clim,clampt=T),
+                             t_pred_c=s_fun(means[1],means[2],means[3],seq$t,means[5],smodel.clim,
+                                             clampt=T)),seq)
+splot_data_climcomp<-cbind(data.frame(dia_pred=s_fun(seq$dia,means[2],means[3],means[4],means[5],
+                                                      smodel.clim.comp),
+                             ba_pred=s_fun(means[1],seq$ba,means[3],means[4],means[5],
+                                           smodel.clim.comp),
+                             ppt_pred=s_fun(means[1],means[2],seq$ppt,means[4],means[5],
+                                            smodel.clim.comp),
+                             t_pred=s_fun(means[1],means[2],means[3],seq$t,means[5],
+                                          smodel.clim.comp),
+                             dia_pred_c=s_fun(seq$dia,means[2],means[3],means[4],means[5],
+                                              smodel.clim.comp,clampt=T),
+                             ba_pred_c=s_fun(means[1],seq$ba,means[3],means[4],means[5],
+                                             smodel.clim.comp,clampt=T),
+                             ppt_pred_c=s_fun(means[1],means[2],seq$ppt,means[4],means[5],
+                                              smodel.clim.comp,clampt=T),
+                             t_pred_c=s_fun(means[1],means[2],means[3],seq$t,means[5],
+                                            smodel.clim.comp,clampt=T)),seq)
+splot_data_fire<-cbind(data.frame(dia_pred=s_fun(seq$dia,means[2],means[3],means[4],means[5],
+                                                      smodel.clim.comp.fire),
+                             ba_pred=s_fun(means[1],seq$ba,means[3],means[4],means[5],
+                                           smodel.clim.comp.fire),
+                             ppt_pred=s_fun(means[1],means[2],seq$ppt,means[4],means[5],
+                                            smodel.clim.comp.fire),
+                             t_pred=s_fun(means[1],means[2],means[3],seq$t,means[5],
+                                          smodel.clim.comp.fire),
+                             dia_pred_c=s_fun(seq$dia,means[2],means[3],means[4],means[5],
+                                              smodel.clim.comp.fire,clampt=T),
+                             ba_pred_c=s_fun(means[1],seq$ba,means[3],means[4],means[5],
+                                             smodel.clim.comp.fire,clampt=T),
+                             ppt_pred_c=s_fun(means[1],means[2],seq$ppt,means[4],means[5],
+                                              smodel.clim.comp.fire,clampt=T),
+                             t_pred_c=s_fun(means[1],means[2],means[3],seq$t,means[5],
+                                            smodel.clim.comp.fire,clampt=T)),seq)
+splot_data_int<-cbind(data.frame(dia_pred=s_fun(seq$dia,means[2],means[3],means[4],means[5],
+                                                      smodel.int),
+                             ba_pred=s_fun(means[1],seq$ba,means[3],means[4],means[5],smodel.int),
+                             ppt_pred=s_fun(means[1],means[2],seq$ppt,means[4],means[5],smodel.int),
+                             t_pred=s_fun(means[1],means[2],means[3],seq$t,means[5],smodel.int),
+                             dia_pred_c=s_fun(seq$dia,means[2],means[3],means[4],means[5],smodel.int,
+                                             clampt=T),
+                             ba_pred_c=s_fun(means[1],seq$ba,means[3],means[4],means[5],smodel.int,
+                                             clampt=T),
+                             ppt_pred_c=s_fun(means[1],means[2],seq$ppt,means[4],means[5],smodel.int,
+                                             clampt=T),
+                             t_pred_c=s_fun(means[1],means[2],means[3],seq$t,means[5],smodel.int,
+                                             clampt=T)),seq)
+@
+
+<<echo=FALSE>>=
+ncuts=30
+chopsize_ba<-cut(rdata$BALIVE,ncuts)
+chopsize_PPT<-cut(rdata$PPT_yr_norm,ncuts)
+chopsize_T<-cut(rdata$T_yr_norm,ncuts)
+recr_binned_ba<-as.vector(sapply(split(rdata$recruits1,chopsize_ba),mean,na.rm=T))
+ba_binned<-as.vector(sapply(split(rdata$BALIVE,chopsize_ba),mean,na.rm=T))
+recr_binned_PPT<-as.vector(sapply(split(rdata$recruits1,chopsize_PPT),mean,na.rm=T))
+PPT_binned<-as.vector(sapply(split(rdata$PPT_yr_norm,chopsize_PPT),mean,na.rm=T))
+recr_binned_T<-as.vector(sapply(split(rdata$recruits1,chopsize_T),mean,na.rm=T))
+T_binned<-as.vector(sapply(split(rdata$T_yr_norm,chopsize_T),mean,na.rm=T))
+r_binned<-as.data.frame(cbind(recr_binned_ba,recr_binned_PPT,recr_binned_T,
+                              ba_binned,PPT_binned,T_binned))
+names(r_binned)<-c("recr_ba","recr_PPT","recr_T","BALIVE","PPT","T")
+
+r_fun<-function(ba,ppt,t,pa,ci,model,clampba=F){
+  rdata=data.frame(BALIVE = ifelse(clampba==T & ba >204, 204, 
+                                  ifelse(clampba==T & ba <93, 93, ba)),
+  PPT_yr_norm = ppt, T_yr_norm = t)
+  scaled.rdata = data.frame(scale(rdata, 
+                                  scale = r.scaling$scale[match(names(rdata), 
+                                                                names(r.scaling$scale))], 
+                                  center = r.scaling$center[match(names(rdata), 
+                                                                  names(r.scaling$center))])) 
+  scaled.rdata$CENSUS_INTERVAL = ci
+  scaled.rdata$PIEDadults1 = pa
+return(predict(model, newdata = scaled.rdata, type = "response"))
+}
+
+means<-c(mean(rdata$BALIVE,na.rm=T),
+         mean(rdata$PPT_yr_norm,na.rm=T),mean(rdata$T_yr_norm,na.rm=T),
+         mean(rdata$PIEDadults1),mean(rdata$CENSUS_INTERVAL))
+seq<-data.frame(ba=seq(cellStats(ba_raster,stat="min",na.rm=T),
+                       max(rdata$BALIVE,na.rm=T),length=50),
+                ppt=seq(cellStats(ppt_yr_raster,stat="min",na.rm=T),
+                        cellStats(ppt_yr_raster,stat="max",na.rm=T),length=50),
+                t=seq(cellStats(t_yr_raster,stat="min",na.rm=T),
+                      cellStats(t_yr_raster,stat="max",na.rm=T),length=50))
+
+rplot_data_clim<-cbind(data.frame(ppt_pred=r_fun(means[1],seq$ppt,means[3],means[4],means[5],
+                                                 rmodel.clim),
+                             t_pred=r_fun(means[1],means[2],seq$t,means[4],means[5],rmodel.clim),
+                             ppt_pred_c=r_fun(means[1],seq$ppt,means[3],means[4],means[5],
+                                              rmodel.clim,clampba=T),
+                             t_pred_c=r_fun(means[1],means[2],seq$t,means[4],means[5],rmodel.clim,
+                                            clampba=T)),seq)
+rplot_data_climcomp<-cbind(data.frame(ba_pred=r_fun(seq$ba,means[2],means[3],means[4],means[5],
+                                                    rmodel.clim.comp),
+                             ppt_pred=r_fun(means[1],seq$ppt,means[3],means[4],means[5],
+                                            rmodel.clim.comp),
+                             t_pred=r_fun(means[1],means[2],seq$t,means[4],means[5],
+                                          rmodel.clim.comp),
+                             ba_pred_c=r_fun(seq$ba,means[2],means[3],means[4],means[5],
+                                             rmodel.clim.comp,clampba=T),
+                             ppt_pred_c=r_fun(means[1],seq$ppt,means[3],means[4],means[5],
+                                              rmodel.clim.comp,clampba=T),
+                             t_pred_c=r_fun(means[1],means[2],seq$t,means[4],means[5],
+                                            rmodel.clim.comp,clampba=T)),seq)
+rplot_data_int<-cbind(data.frame(ba_pred=r_fun(seq$ba,means[2],means[3],means[4],means[5],
+                                               rmodel.int),
+                             ppt_pred=r_fun(means[1],seq$ppt,means[3],means[4],means[5],rmodel.int),
+                             t_pred=r_fun(means[1],means[2],seq$t,means[4],means[5],rmodel.int),
+                             ba_pred_c=r_fun(seq$ba,means[2],means[3],means[4],means[5],
+                                             rmodel.int,clampba=T),
+                             ppt_pred_c=r_fun(means[1],seq$ppt,means[3],means[4],means[5],rmodel.int,
+                                              clampba=T),
+                             t_pred_c=r_fun(means[1],means[2],seq$t,means[4],means[5],rmodel.int,
+                                            clampba=T)),seq)
+@
+
+<<echo=FALSE>>=
+g_legend<-function(a.gplot){
+    tmp <- ggplot_gtable(ggplot_build(a.gplot))
+    leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+    legend <- tmp$grobs[[leg]]
+    legend
+}
+@
+
+<<echo=FALSE>>=
+load("./Output/lambda_effects_lin.rda")
+FIA <- read.csv("./Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
+# when running IPM without trees killed by fire, technically should filter out those trees
+# prolly makes ~0 difference
+FIA <- FIA[!(FIA$DSTRBCD1 %in% c(30, 31, 32, 80)), ]
+
+FIA_lambda<-read.csv("./Output/FIA_lambda_lin.csv")
+@
+
+<<echo=FALSE>>=
+lambda_c<-raster("./Output/tifs/PIED.clim_lambda_lin.tif")
+lambda_ccl<-raster("./Output/tifs/PIED.climclamp_lambda_lin.tif")
+lambda_cc<-raster("./Output/tifs/PIED.climcomp_lambda_lin.tif")
+lambda_ccf<-raster("./Output/tifs/PIED.climcompfire_lambda_lin.tif")
+lambda_i<-raster("./Output/tifs/PIED.int_lambda_lin.tif")
+lambda_min<-min(c(minValue(lambda_c),minValue(lambda_ccl),minValue(lambda_cc),minValue(lambda_ccf)
+                  ,minValue(lambda_i)))
+lambda_max<-max(c(maxValue(lambda_c),maxValue(lambda_ccl),maxValue(lambda_cc),maxValue(lambda_ccf),
+                  maxValue(lambda_i)))
+
+grow_c<-raster("./Output/tifs/PIED.clim_growth_lin.tif")
+grow_ccl<-raster("./Output/tifs/PIED.climclamp_growth_lin.tif")
+grow_cc<-raster("./Output/tifs/PIED.climcomp_growth_lin.tif")
+grow_ccf<-raster("./Output/tifs/PIED.climcompfire_growth_lin.tif")
+grow_i<-raster("./Output/tifs/PIED.int_growth_lin.tif")
+grow_min<-min(c(minValue(grow_c),minValue(grow_ccl),minValue(grow_cc),minValue(grow_ccf)
+                  ,minValue(grow_i)))
+grow_max<-max(c(maxValue(grow_c),maxValue(grow_ccl),maxValue(grow_cc),maxValue(grow_ccf),
+                  maxValue(grow_i)))
+
+surv_c<-raster("./Output/tifs/PIED.clim_survival_lin.tif")
+surv_ccl<-raster("./Output/tifs/PIED.climclamp_survival_lin.tif")
+surv_cc<-raster("./Output/tifs/PIED.climcomp_survival_lin.tif")
+surv_ccf<-raster("./Output/tifs/PIED.climcompfire_survival_lin.tif")
+surv_i<-raster("./Output/tifs/PIED.int_survival_lin.tif")
+surv_min<-min(c(minValue(surv_c),minValue(surv_ccl),minValue(surv_cc),minValue(surv_ccf)
+                  ,minValue(surv_i)))
+surv_max<-max(c(maxValue(surv_c),maxValue(surv_ccl),maxValue(surv_cc),maxValue(surv_ccf),
+                  maxValue(surv_i)))
+
+repr_c<-raster("./Output/tifs/PIED.clim_reproduction_lin.tif")
+repr_ccl<-raster("./Output/tifs/PIED.climclamp_reproduction_lin.tif")
+repr_cc<-raster("./Output/tifs/PIED.climcomp_reproduction_lin.tif")
+repr_ccf<-raster("./Output/tifs/PIED.climcompfire_reproduction_lin.tif")
+repr_i<-raster("./Output/tifs/PIED.int_reproduction_lin.tif")
+repr_min<-min(c(minValue(repr_c),minValue(repr_ccl),minValue(repr_cc),minValue(repr_ccf)
+                  ,minValue(repr_i)))
+repr_max<-max(c(maxValue(repr_c),maxValue(repr_ccl),maxValue(repr_cc),maxValue(repr_ccf),
+                  maxValue(repr_i)))
+
+extrap<-raster("./Output/tifs/extrap.tif")
+@
+
+<<echo=FALSE>>=
+FIA_pa <- read.csv("./Processed/Recruitment/RecruitData.csv", header = T, stringsAsFactors = F)
+FIA_pa.plot<-FIA_pa %>%
+  group_by(plot) %>%
+  summarise(lat=mean(lat),lon=mean(lon),PApied=mean(PApied))
+FIA_pa.plot$PApied<-as.factor(FIA_pa.plot$PApied)
+
+#Make points spatial and extract lambda for each point
+Points <- SpatialPoints(coords = cbind(FIA_pa.plot$lon, FIA_pa.plot$lat), 
+                        proj4string = CRS("+proj=longlat +datum=NAD83"))
+FIA_pa.plot$lambda_c <- raster::extract(lambda_c, Points) 
+FIA_pa.plot$lambda_ccl <- raster::extract(lambda_ccl, Points) 
+FIA_pa.plot$lambda_cc <- raster::extract(lambda_cc, Points) 
+FIA_pa.plot$lambda_ccf <- raster::extract(lambda_ccf, Points) 
+FIA_pa.plot$lambda_i <- raster::extract(lambda_i, Points) 
+
+l_means<-FIA_pa.plot %>%
+  group_by(PApied) %>%
+  summarise(lambda_c=median(lambda_c),lambda_ccl=median(lambda_ccl),lambda_cc=median(lambda_cc),
+            lambda_ccf=median(lambda_ccf),lambda_i=median(lambda_i))
+@
+
+\subsection{Climate-only}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{PIED_manuscript_grow_c_d}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{PIED_manuscript_grow_c_p}
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{PIED_manuscript_grow_c_t}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+g_clim_t<-ggplot(data=grdata,aes(x=T_yr_norm))+
+  geom_rect(aes(xmin=min(grplot_data_clim$t),xmax=min(grdata$T_yr_norm),
+                ymin=-0.002,ymax=max(grplot_data_clim$t_pred)),fill="grey80",col="grey80",alpha=0.1)+
+  geom_rect(aes(xmax=max(grplot_data_clim$t),xmin=max(grdata$T_yr_norm),
+                ymin=-0.002,ymax=max(grplot_data_clim$t_pred)),fill="grey80",col="grey80",alpha=0.1)+
+  geom_point(aes(y=-0.005),size=0.1)+
+  geom_point(data=g_binned,aes(x=T,y=grow_T))+
+  geom_line(data=grplot_data_clim,aes(x=t,y=t_pred,linetype="No clamp"),col="#1b9e77",size=1.25)+
+  geom_line(data=grplot_data_clim,aes(x=t,y=t_pred_c,linetype="Clamp"),col="#1b9e77",size=1.25)+
+  labs(x="30-year temperature norm", y="Diameter increment")+
+  scale_linetype_manual("",breaks=c("No clamp","Clamp"),
+                        values=c("No clamp"="solid","Clamp"="dotted"),
+                        labels=c("No clamp","Clamp"))+
+  theme(legend.key.width=unit(2,"cm"),legend.text=element_text(size=24),
+        legend.key.size = unit(3, 'lines'))
+
+legend<-g_legend(g_clim_t)
+legend$vp$x <- unit(.25, 'npc')
+legend$vp$y <- unit(.5, 'npc')
+grid.draw(legend)
+@
+  \end{minipage}
+\caption{Growth effects plots for climate-only model. Grey shading shows values of the predictors for which the model was extrapolated beyond the values of predictors observed in the data.}
+\label{fig:grow_c}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{lin_PIED_manuscript_surv_c_d}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{lin_PIED_manuscript_surv_c_p}
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{lin_PIED_manuscript_surv_c_t}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+grid.draw(legend)
+@
+  \end{minipage}
+\caption{Survival effects plots for climate-only model. Grey shading shows values of the predictors for which the model was extrapolated beyond the values of predictors observed in the data.}
+\label{fig:surv_c}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+     \includegraphics{lin_PIED_manuscript_recr_c_p}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+     \includegraphics{lin_PIED_manuscript_recr_c_t}
+  \end{minipage}
+\caption{Recruitment effects plots for climate-only model. Grey shading shows values of the predictors for which the model was extrapolated beyond the values of predictors observed in the data.}
+\label{fig:recr_c}
+\end{figure}
+
+\begin{figure}[H]
+\begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+ggplot(data = predictorDFs_clim[[2]], aes(x = PPT_yr, y = lambda)) + 
+  geom_rect(aes(xmin=min(predictorDFs_clim[[2]]$PPT_yr),xmax=min(FIA$PPT_yr_norm),
+                ymin=min(predictorDFs_clim[[2]]$lambda),ymax=max(predictorDFs_clim[[2]]$lambda)),
+            fill="grey80",col="grey80",alpha=0.1)+
+  geom_rect(aes(xmax=max(predictorDFs_clim[[2]]$PPT_yr),xmin=max(FIA$PPT_yr_norm),
+                ymin=min(predictorDFs_clim[[2]]$lambda),ymax=max(predictorDFs_clim[[2]]$lambda)),
+            fill="grey80",col="grey80",alpha=0.1) +
+  geom_point(shape=".",size=0.5) + geom_line() +
+  geom_hline(yintercept=1,linetype="dashed")+
+  xlab("MAP") + ylab("Lambda")
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+ggplot(data = predictorDFs_clim[[3]], aes(x = T_yr, y = lambda)) +
+  geom_rect(aes(xmin=min(predictorDFs_clim[[3]]$T_yr),xmax=min(FIA$T_yr_norm),
+                ymin=min(predictorDFs_clim[[3]]$lambda),ymax=max(predictorDFs_clim[[3]]$lambda)),
+            fill="grey80",col="grey80",alpha=0.1)+
+  geom_rect(aes(xmax=max(predictorDFs_clim[[3]]$T_yr),xmin=max(FIA$T_yr_norm),
+                ymin=min(predictorDFs_clim[[3]]$lambda),ymax=max(predictorDFs_clim[[3]]$lambda)),
+            fill="grey80",col="grey80",alpha=0.1) +
+  geom_point(shape=".",size=0.5) + geom_line() +
+  geom_hline(yintercept=1,linetype="dashed")+
+  xlab("MAT") + ylab("Lambda")
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+ggplot(data = FIA_lambda, aes(x = elev, y = lambda_c)) +
+  geom_point(shape=".",size=0.5) + 
+  geom_hline(yintercept=1,linetype="dashed")+
+  xlab("Elevation") + ylab("Lambda")
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+ggplot(data = FIA_lambda, aes(x = elev, y = lambda_ccl)) +
+  geom_point(shape=".",size=0.5) + 
+  geom_hline(yintercept=1,linetype="dashed")+
+  xlab("Elevation") + ylab("Lambda")
+@
+  \end{minipage}
+\caption{Lambda effects plots for climate-only model. Grey shading shows values of the predictors for which the model was extrapolated beyond the values of predictors observed in the data.}
+\label{fig:lambda_c}
+\end{figure}
+
+\begin{figure}[H]
+<<fig=TRUE,echo=FALSE>>=
+ggplot(data=FIA_pa.plot,aes(x=lambda_c,fill=PApied)) +
+  geom_histogram(aes(y = ..density..),alpha=0.7)+
+  geom_vline(data=l_means, aes(xintercept=lambda_c,  colour=PApied),
+             linetype="dashed", size=1)+
+  scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                    name = "PIED presence", labels = c("Absent","Present"))+
+  scale_colour_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                    name = "PIED presence", labels = c("Absent","Present"))+
+  labs(x="Lambda", y="Density")+
+  theme_classic()
+@
+\caption{Distribution of population growth rates predicted by the climate-only model, without clamping, for FIA plots with (orange) and without (blue) \emph{P. edulis}. Dashed lines show the median of each distribution.}
+\label{fig:hist_c}
+\end{figure}
+
+\begin{figure}[H]
+<<fig=TRUE,echo=FALSE>>=
+ggplot(data=FIA_pa.plot,aes(x=lambda_ccl,fill=PApied)) +
+  geom_histogram(aes(y = ..density..),alpha=0.7)+
+  geom_vline(data=l_means, aes(xintercept=lambda_ccl,  colour=PApied),
+             linetype="dashed", size=1)+
+  scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                    name = "PIED presence", labels = c("Absent","Present"))+
+  scale_colour_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                      name = "PIED presence", labels = c("Absent","Present"))+
+  labs(x="Lambda", y="Density")+
+  theme_classic()
+@
+\caption{Distribution of population growth rates predicted by the climate-only model, with clamping, for FIA plots with (orange) and without (blue) \emph{P. edulis}. Dashed lines show the median of each distribution.}
+\label{fig:hist_ccl}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.6\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(lambda_c,main="Lambda")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.6\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(grow_c,main="Growth")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}
+  \begin{minipage}[b]{.6\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(surv_c,main="Survival")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.6\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(repr_c,main="Reproduction")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}
+\caption{Map of lambda and vital rate predictions for \textit{P. edulis} using the climate-only model without clamping. Grey shading shows regions where at least one predictor was beyond the range of values observed in the data.}
+\label{fig:map_c}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.6\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(lambda_ccl,main="Lambda")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.6\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(grow_ccl,main="Growth")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}
+  \begin{minipage}[b]{.6\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(surv_ccl,main="Survival")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.6\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(repr_ccl,main="Reproduction")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}
+\caption{Map of lambda and vital rate predictions for \textit{P. edulis} using the climate-only model with clamping. Grey shading shows regions where at least one predictor was beyond the range of values observed in the data.}
+\label{fig:map_ccl}
+\end{figure}
+
+%\begin{figure}[H]
+%  \begin{minipage}[b]{.6\linewidth}
+%    \includegraphics{Output/elasticities_clim1}
+%  \end{minipage}%
+%  \begin{minipage}[b]{.6\linewidth}
+%    \includegraphics{Output/elasticities_clim2}
+%  \end{minipage}
+%  \begin{minipage}[b]{.6\linewidth}
+%    \includegraphics{Output/elasticities_clim3}
+%  \end{minipage}
+%\caption{Map of vital rate elasticities for \textit{P. edulis} using the climate-only model with clamping.}
+%\label{fig:elas_ccl}
+%\end{figure}
+
+\subsection{Climate and competition, no interactions}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{PIED_manuscript_grow_cc_d}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{PIED_manuscript_grow_cc_b}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+legend2<-legend
+legend2$vp$x <- unit(0, 'npc')
+legend2$vp$y <- unit(.5, 'npc')
+grid.draw(legend2)
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{PIED_manuscript_grow_cc_p}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{PIED_manuscript_grow_cc_t}
+  \end{minipage}
+\caption{Growth effects plots for climate and competition model, no interactions. Grey shading shows values of the predictors for which the model was extrapolated beyond the values of predictors observed in the data.}
+\label{fig:grow_cc}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{PIED_manuscript_surv_cc_d}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{PIED_manuscript_surv_cc_b}
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{lin_PIED_manuscript_surv_cc_p}
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{lin_PIED_manuscript_surv_cc_t}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+surv_cc_t <- s_climcomp_t<-ggplot(data=s_binned,aes(x=T,y=mort_T))+
+  geom_rect(aes(xmin=min(splot_data_climcomp$t),xmax=min(survData$T_yr_norm),
+                ymin=-0.02,ymax=0.55),fill="grey80",col="grey80",alpha=0.1)+
+  geom_rect(aes(xmax=max(splot_data_climcomp$t),xmin=max(survData$T_yr_norm),
+                ymin=-0.02,ymax=0.55),fill="grey80",col="grey80",alpha=0.1)+
+  geom_point(data=survData,aes(x=T_yr_norm,y=-0.05),size=0.1)+
+  geom_point()+
+  geom_line(data=splot_data_climcomp,aes(x=t,y=t_pred,linetype="No clamp",col="No fire"),size=1.25)+
+  geom_line(data=splot_data_climcomp,aes(x=t,y=t_pred_c,linetype="Clamp",col="No fire"),size=1.25)+
+  geom_line(data=splot_data_fire,aes(x=t,y=t_pred,linetype="No clamp",col="Fire"),size=1.25)+
+  geom_line(data=splot_data_fire,aes(x=t,y=t_pred_c,linetype="Clamp",col="Fire"),size=1.25)+
+  labs(x="30-year temperature norm", y="Mortality")+
+  scale_linetype_manual("",breaks=c("No clamp","Clamp"),
+                        values=c("No clamp"="solid","Clamp"="dotted"),
+                        labels=c("No clamp","Clamp"))+
+  scale_colour_manual("",breaks=c("No fire","Fire"),
+                      values=c("No fire"="#1b9e77","Fire"="#d95f02"),
+                      labels=c("No fire","Fire"))+
+  theme(legend.key.width=unit(2,"cm"),legend.text=element_text(size=24),
+        legend.key.size = unit(3, 'lines'))
+legend3<-g_legend(s_climcomp_t)
+legend3$vp$x <- unit(0, 'npc')
+legend3$vp$y <- unit(.5, 'npc')
+grid.draw(legend3)
+@
+  \end{minipage}
+\caption{Survival effects plots for climate and competition model, no interactions. Grey shading shows values of the predictors for which the model was extrapolated beyond the values of predictors observed in the data.}
+\label{fig:surv_cc}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{lin_PIED_manuscript_recr_cc_b}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+grid.draw(legend)
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{lin_PIED_manuscript_recr_cc_p}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{lin_PIED_manuscript_recr_cc_t}
+  \end{minipage}
+\caption{Recruitment effects plots for climate and competition model, no interactions. Grey shading shows values of the predictors for which the model was extrapolated beyond the values of predictors observed in the data.}
+\label{fig:recr_cc}
+\end{figure}
+
+\begin{figure}[H]
+\begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+ggplot(data = predictorDFs_climcomp[[1]], aes(x = BALIVE, y = lambda)) +   
+  geom_rect(aes(xmin=min(predictorDFs_climcomp[[1]]$BALIVE),xmax=min(FIA$BALIVE),
+                ymin=min(predictorDFs_climcomp[[1]]$lambda),
+                ymax=max(predictorDFs_climcomp[[1]]$lambda)),
+            fill="grey80",col="grey80",alpha=0.1)+
+  geom_point(shape=".",size=0.5) + geom_line() +
+  geom_hline(yintercept=1,linetype="dashed")+
+  xlab("Plot basal area") + ylab("Lambda")
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+ggplot(data = predictorDFs_climcomp[[2]], aes(x = PPT_yr, y = lambda)) + 
+  geom_rect(aes(xmin=min(predictorDFs_climcomp[[2]]$PPT_yr),xmax=min(FIA$PPT_yr_norm),
+                ymin=min(predictorDFs_climcomp[[2]]$lambda),
+                ymax=max(predictorDFs_climcomp[[2]]$lambda)),fill="grey80",col="grey80",alpha=0.1)+
+  geom_rect(aes(xmax=max(predictorDFs_climcomp[[2]]$PPT_yr),xmin=max(FIA$PPT_yr_norm),
+                ymin=min(predictorDFs_climcomp[[2]]$lambda),
+                ymax=max(predictorDFs_climcomp[[2]]$lambda)),fill="grey80",col="grey80",alpha=0.1) +
+  geom_point(shape=".",size=0.5) + geom_line() +
+  geom_hline(yintercept=1,linetype="dashed")+
+  xlab("MAP") + ylab("Lambda")
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+ggplot(data = predictorDFs_climcomp[[3]], aes(x = T_yr, y = lambda)) + 
+  geom_rect(aes(xmin=min(predictorDFs_climcomp[[3]]$T_yr),xmax=min(FIA$T_yr_norm),
+                ymin=min(predictorDFs_climcomp[[3]]$lambda),
+                ymax=max(predictorDFs_climcomp[[3]]$lambda)),fill="grey80",col="grey80",alpha=0.1)+
+  geom_rect(aes(xmax=max(predictorDFs_climcomp[[3]]$T_yr),xmin=max(FIA$T_yr_norm),
+                ymin=min(predictorDFs_climcomp[[3]]$lambda),
+                ymax=max(predictorDFs_climcomp[[3]]$lambda)),fill="grey80",col="grey80",alpha=0.1) +
+  geom_point(shape=".",size=0.5) + geom_line() +
+  geom_hline(yintercept=1,linetype="dashed")+
+  xlab("MAT") + ylab("Lambda")
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+ggplot(data = FIA_lambda, aes(x = elev, y = lambda_cc)) +
+  geom_point(shape=".",size=0.5) + 
+  geom_hline(yintercept=1,linetype="dashed")+
+  xlab("Elevation") + ylab("Lambda")
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+ggplot(data = FIA_lambda, aes(x = elev, y = lambda_ccf)) +
+  geom_point(shape=".",size=0.5) + 
+  geom_hline(yintercept=1,linetype="dashed")+
+  xlab("Elevation") + ylab("Lambda")
+@
+  \end{minipage}
+\caption{Lambda effects plots for climate and competition model, without interactions. Grey shading shows values of the predictors for which the model was extrapolated beyond the values of predictors observed in the data.}
+\label{fig:lambda_cc}
+\end{figure}
+
+\begin{figure}[H]
+<<fig=TRUE,echo=FALSE>>=
+ggplot(data=FIA_pa.plot,aes(x=lambda_cc,fill=PApied)) +
+  geom_histogram(aes(y = ..density..),alpha=0.7)+
+  geom_vline(data=l_means, aes(xintercept=lambda_cc,  colour=PApied),
+             linetype="dashed", size=1)+
+  scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                    name = "PIED presence", labels = c("Absent","Present"))+
+  scale_colour_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                      name = "PIED presence", labels = c("Absent","Present"))+
+  labs(x="Lambda", y="Density")+
+  theme_classic()
+@
+\caption{Distribution of population growth rates predicted by the climate + competition model, without interactions and excluding fire-killed trees, for FIA plots with (orange) and without (blue) \emph{P. edulis}. Dashed lines show the median of each distribution.}
+\label{fig:hist_cc}
+\end{figure}
+
+\begin{figure}[H]
+<<fig=TRUE,echo=FALSE>>=
+ggplot(data=FIA_pa.plot,aes(x=lambda_ccf,fill=PApied)) +
+  geom_histogram(aes(y = ..density..),alpha=0.7)+
+  geom_vline(data=l_means, aes(xintercept=lambda_ccf,  colour=PApied),
+             linetype="dashed", size=1)+
+  scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                    name = "PIED presence", labels = c("Absent","Present"))+
+  scale_colour_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                      name = "PIED presence", labels = c("Absent","Present"))+
+  labs(x="Lambda", y="Density")+
+  theme_classic()
+@
+\caption{Distribution of population growth rates predicted by the climate + competition model, without interactions and including fire-killed trees, for FIA plots with (orange) and without (blue) \emph{P. edulis}. Dashed lines show the median of each distribution.}
+\label{fig:hist_ccf}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(lambda_cc,main="Lambda")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(grow_cc,main="Growth")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(surv_cc,main="Survival")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(repr_cc,main="Reproduction")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}
+\caption{Map of lambda and vital rate predictions for \textit{P. edulis} using the climate + competition model, without interactions, excluding fire-killed trees. Grey shading shows regions where at least one predictor was beyond the range of values observed in the data.}
+\label{fig:map_cc}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(lambda_ccf,main="Lambda")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(grow_ccf,main="Growth")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(surv_ccf,main="Survival")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(repr_ccf,main="Reproduction")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}
+\caption{Map of lambda and vital rate predictions for \textit{P. edulis} using the climate + competition model, without interactions, including fire-killed trees. Grey shading shows regions where at least one predictor was beyond the range of values observed in the data.}
+\label{fig:map_ccf}
+\end{figure}
+
+%\begin{figure}[H]
+%  \begin{minipage}[b]{.6\linewidth}
+%    \includegraphics{Output/elasticities_climcomp1}
+%  \end{minipage}%
+%  \begin{minipage}[b]{.6\linewidth}
+%    \includegraphics{Output/elasticities_climcomp2}
+%  \end{minipage}
+%  \begin{minipage}[b]{.6\linewidth}
+%    \includegraphics{Output/elasticities_climcomp3}
+%  \end{minipage}
+%\caption{Map of vital rate elasticities for \textit{P. edulis} using the climate + competition model, without interactions, excluding fire-killed trees.}
+%\label{fig:elas_cc}
+%\end{figure}
+
+\subsection{Climate and competition, interactions}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{PIED_manuscript_grow_i_d}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{PIED_manuscript_grow_i_b}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+grid.draw(legend2)
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{PIED_manuscript_grow_i_p}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{PIED_manuscript_grow_i_t}
+  \end{minipage}
+\caption{Growth effects plots for climate and competition model, with interactions. Grey shading shows values of the predictors for which the model was extrapolated beyond the values of predictors observed in the data.}
+\label{fig:grow_i}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{PIED_manuscript_surv_i_d}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{PIED_manuscript_surv_i_b}
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{lin_PIED_manuscript_surv_i_p}
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{lin_PIED_manuscript_surv_i_t}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+grid.draw(legend2)
+@
+  \end{minipage}
+\caption{Survival effects plots for climate and competition model, with interactions. Grey shading shows values of the predictors for which the model was extrapolated beyond the values of predictors observed in the data.}
+\label{fig:surv_i}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{lin_PIED_manuscript_recr_i_b}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+grid.draw(legend)
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{lin_PIED_manuscript_recr_i_p}
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+    \includegraphics{lin_PIED_manuscript_recr_i_t}
+  \end{minipage}
+\caption{Recruitment effects plots for climate and competition model, with interactions. Grey shading shows values of the predictors for which the model was extrapolated beyond the values of predictors observed in the data.}
+\label{fig:recr_i}
+\end{figure}
+
+\begin{figure}[H]
+\begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+ggplot(data = predictorDFs_int[[1]], aes(x = BALIVE, y = lambda)) + 
+  geom_rect(aes(xmin=min(predictorDFs_int[[1]]$BALIVE),xmax=min(FIA$BALIVE),
+                ymin=min(predictorDFs_int[[1]]$lambda),
+                ymax=max(predictorDFs_int[[1]]$lambda)),
+            fill="grey80",col="grey80",alpha=0.1)+
+  geom_point(shape=".",size=0.5) + geom_line() +
+  geom_hline(yintercept=1,linetype="dashed")+
+  xlab("Plot basal area") + ylab("Lambda")
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+ggplot(data = predictorDFs_int[[2]], aes(x = PPT_yr, y = lambda)) + 
+  geom_rect(aes(xmin=min(predictorDFs_int[[2]]$PPT_yr),xmax=min(FIA$PPT_yr_norm),
+                ymin=min(predictorDFs_int[[2]]$lambda),
+                ymax=max(predictorDFs_int[[2]]$lambda)),
+            fill="grey80",col="grey80",alpha=0.1)+
+  geom_rect(aes(xmax=max(predictorDFs_int[[2]]$PPT_yr),xmin=max(FIA$PPT_yr_norm),
+                ymin=min(predictorDFs_int[[2]]$lambda),
+                ymax=max(predictorDFs_int[[2]]$lambda)),
+            fill="grey80",col="grey80",alpha=0.1) +
+  geom_point(shape=".",size=0.5) + geom_line() +
+  geom_hline(yintercept=1,linetype="dashed")+
+  xlab("MAP") + ylab("Lambda")
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+ggplot(data = predictorDFs_int[[3]], aes(x = T_yr, y = lambda)) + 
+  geom_rect(aes(xmin=min(predictorDFs_int[[3]]$T_yr),xmax=min(FIA$T_yr_norm),
+                ymin=min(predictorDFs_int[[3]]$lambda),
+                ymax=max(predictorDFs_int[[3]]$lambda)),
+            fill="grey80",col="grey80",alpha=0.1)+
+  geom_rect(aes(xmax=max(predictorDFs_int[[3]]$T_yr),xmin=max(FIA$T_yr_norm),
+                ymin=min(predictorDFs_int[[3]]$lambda),
+                ymax=max(predictorDFs_int[[3]]$lambda)),
+            fill="grey80",col="grey80",alpha=0.1) +
+  geom_point(shape=".",size=0.5) + geom_line() +
+  geom_hline(yintercept=1,linetype="dashed")+
+  xlab("MAT") + ylab("Lambda")
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+ggplot(data = FIA_lambda, aes(x = elev, y = lambda_i)) +
+  geom_point(shape=".",size=0.5) + 
+  geom_hline(yintercept=1,linetype="dashed")+
+  xlab("Elevation") + ylab("Lambda")
+@
+  \end{minipage}
+\caption{Lambda effects plots for climate and competition model, with interactions. Grey shading shows values of the predictors for which the model was extrapolated beyond the values of predictors observed in the data.}
+\label{fig:lambda_i}
+\end{figure}
+
+\begin{figure}[H]
+<<fig=True,echo=FALSE>>=
+ggplot(data=FIA_pa.plot,aes(x=lambda_i,fill=PApied)) +
+  geom_histogram(aes(y = ..density..),alpha=0.7)+
+  geom_vline(data=l_means, aes(xintercept=lambda_i,  colour=PApied),
+             linetype="dashed", size=1)+
+  scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                    name = "PIED presence", labels = c("Absent","Present"))+
+  scale_colour_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                      name = "PIED presence", labels = c("Absent","Present"))+
+  labs(x="Lambda", y="Density")+
+  theme_classic()
+@
+\caption{Distribution of population growth rates predicted by the climate + competition model, with interactions, for FIA plots with (orange) and without (blue) \emph{P. edulis}. Dashed lines show the median of each distribution.}
+\label{fig:hist_i}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.6\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(lambda_i, main = "Lambda")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}%
+    \begin{minipage}[b]{.6\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(grow_i, main = "Growth")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}
+    \begin{minipage}[b]{.6\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(surv_i, main = "Survival")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}%
+    \begin{minipage}[b]{.6\linewidth}
+<<fig=TRUE,echo=FALSE>>=
+plot(repr_i, main = "Reproduction")
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+@
+  \end{minipage}
+\caption{Map of lambda and vital rate predictions for \textit{P. edulis} using the climate + competition model, with interactions. Grey shading shows regions where at least one predictor was beyond the range of values observed in the data.}
+\label{fig:map_i}
+\end{figure}
+
+%\begin{figure}[H]
+%  \begin{minipage}[b]{.6\linewidth}
+%    \includegraphics{Output/elasticities_int1}
+%  \end{minipage}%
+%  \begin{minipage}[b]{.6\linewidth}
+%    \includegraphics{Output/elasticities_int2}
+%  \end{minipage}
+%  \begin{minipage}[b]{.6\linewidth}
+%    \includegraphics{Output/elasticities_int3}
+%  \end{minipage}
+%\caption{Map of vital rate elasticities for \textit{P. edulis} using the climate + competition model, with interactions.}
+%\label{fig:elas_i}
+%\end{figure}
+
+\subsection{Climate and competition, tailored}
+For the tailored models, which are the result of more thorough model selection to optimize AIC values for the models, we have so far created only vital rate plots and not maps. It will take a bit of effort to put together the data necessary for creating these maps, so we would like your input on the model selection process before we make that effort.
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", gmodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", gmodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_yr", gmodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_yr", gmodel.best))
+@
+  \end{minipage}
+\caption{Growth effects plots for tailored model.}
+\label{fig:grow_t}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PREVDIA", smodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("BALIVE", smodel.best))
+@
+  \end{minipage}
+\caption{Survival effects plots for size and competition variables in tailored model.}
+\label{fig:surv_t1}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_c_norm", smodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_pf_norm", smodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_fs_norm", smodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("PPT_m_norm", smodel.best))
+@
+  \end{minipage}
+\caption{Survival effects plots for precipitation variables in tailored model.}
+\label{fig:surv_t2}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_c_norm", smodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_pf_norm", smodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_fs_norm", smodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(effect("T_m_norm", smodel.best))
+@
+  \end{minipage}
+\caption{Survival effects plots for temperature variables in tailored model.}
+\label{fig:surv_t3}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("BALIVE", rmodel.best))
+@
+  \end{minipage}
+\caption{Recruitment effects plots for competition in tailored model.}
+\label{fig:recr_t1}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPT_c_norm", rmodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPT_wd_norm", rmodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPT_m_norm", rmodel.best))
+@
+  \end{minipage}
+\label{fig:recr_t2}
+\caption{Recruitment effects plots for precipitation norms in tailored model.}
+\end{figure}  
+  
+\begin{figure}[H]  
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("T_c_norm", rmodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("T_wd_norm", rmodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("T_m_norm", rmodel.best))
+@
+  \end{minipage}
+\caption{Recruitment effects plots for temperature norms in tailored model.}
+\label{fig:recr_t3}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPTex_c_anom", rmodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPTex_wd_anom", rmodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("PPTex_m_anom", rmodel.best))
+@
+  \end{minipage}
+\caption{Recruitment effects plots for precipitation extremes anomalies in tailored model.}
+\label{fig:recr_t4}
+\end{figure}
+
+\begin{figure}[H]  
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("Tex_c_anom", rmodel.best))
+@
+  \end{minipage}%
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("Tex_wd_anom", rmodel.best))
+@
+  \end{minipage}
+  \begin{minipage}[b]{.5\linewidth}
+<<fig=TRUE,echo=false>>=
+plot(Effect.glmmTMB("Tex_m_anom", rmodel.best))
+@
+  \end{minipage}
+\caption{Recruitment effects plots for temperature extremes anomalies in tailored model.}
+\label{fig:recr_t5}
+\end{figure}
+
+\printbibliography
+
+\end{document}
