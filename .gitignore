@@ -8,5 +8,15 @@
 *.tex
 *.png
 *.tiff
+*.tif
 *.csv
+*.tfw
+*.xml
+*.dbf
+*.prj
+*.shp
+*.shx
+*.bib
+*.bbl
+*.rda
 
