@@ -1,0 +1,101 @@
+---
+title: "GAM ZIP models"
+author: "Emily Schultz"
+date: "November 15, 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages,include=FALSE,echo=FALSE}
+library(mgcv); library(glmmTMB); library(tidyverse)
+```
+
+The following is how I set up the scaled data and offset variable and calculate the scaling factors for our predictor variables.
+```{r data}
+rdata <- read.csv("./Processed/Recruitment/RecruitData.csv", header = T, stringsAsFactors = F)
+rdata <- subset(rdata, PIEDadults1 > 0)
+rdata$BA.all <- rdata$BA.PIED + rdata$BA.notPIED
+rdata.scaled <- rdata %>% mutate_at(scale, .vars = vars(-plot,-lat,-lon,-elev,-PApied,
+                                                        -state,-county,-plotID,
+                                                        -CONDID,-measYear, -plotPrev,
+                                                        -PREV_MEASYEAR,
+                                                        -CENSUS_INTERVAL,-recruits1, 
+                                                        -recruits12,-AGB_intra, 
+                                                        -BA.PIED, -PIEDadults1,
+                                                        -PIEDadults4, -PIEDadults8,
+                                                        -cumDIA.PIED))
+rdata.scaled$off<-log(rdata.scaled$CENSUS_INTERVAL) + log(rdata.scaled$PIEDadults1)
+
+r.predictors <- c("T_yr_norm", "PPT_yr_norm", "BALIVE") 
+
+get_scale = function(data, predictors) {
+  sc = list("scale" = NULL, "center"  = NULL)
+  for (i in predictors) {
+    sc$scale[i] = attributes(data[, i])$"scaled:scale"
+    sc$center[i] = attributes(data[, i])$"scaled:center"
+  }
+  return(sc)
+}
+
+r.scaling = get_scale(rdata.scaled, r.predictors)
+
+# remove scaling information from the dataset so that the model doesnt expect scaled data in predict()
+for (i in r.predictors) {
+  attributes(rdata.scaled[, i]) = NULL
+}
+```
+
+## Models
+
+Then I create three models. The first, rmodel.clim, is the glmmTMB model from a previous iteration of the analysis before switching to GAMs. The second, rmodel.clim.gam is the gam model that includes the offset in the formula. With this specification, I can change the offset when I use the model for predictions. The third model, rmodel.clim.gam2, is the gam model that specifies the offset as a separate argument. When predicting with this model, changing the offset will not change the prediction; the prediction will always be based on an offset of log(1).
+
+```{r models}
+rmodel.clim <- glmmTMB(recruits1 ~ 1 + PPT_yr_norm + T_yr_norm 
+                       + offset(off), 
+                       ziformula = ~ 1, data = rdata.scaled, family = "poisson")
+rmodel.clim.gam <- gam(recruits1 ~ s(PPT_yr_norm,k=5) + s(T_yr_norm,k=5)+ 
+                          offset(off),family = ziP(), data = rdata.scaled)
+rmodel.clim.gam2 <- gam(recruits1 ~ s(PPT_yr_norm,k=5) + s(T_yr_norm,k=5), 
+                       offset=(off),family = ziP(), data = rdata.scaled)
+
+```
+
+## Predictions
+When I use unscaled data to make predictions, the output scales the way I would expect, with both the glmmTMB and gam models. Also, as expected, the output from rmodel.clim.gam2 does not change when we change the offset in "newdata", and it gives the same result as rmodel.clim.gam when the offset is log(1) or 1/10 the result when the offset is log(10).
+
+```{r predict}
+rdata<-data.frame(BALIVE=200,T_yr_norm=5,PPT_yr_norm=800)
+
+predict(rmodel.clim, newdata = mutate(rdata,off=log(10)), type = "response")
+predict(rmodel.clim, newdata = mutate(rdata,off=log(1)), type = "response")
+
+predict(rmodel.clim.gam, newdata = mutate(rdata,off=log(10)), type = "response")
+predict(rmodel.clim.gam, newdata = mutate(rdata,off=log(1)), type = "response")
+
+predict(rmodel.clim.gam2, newdata = mutate(rdata,off=log(10)), type = "response")
+predict(rmodel.clim.gam2, newdata = mutate(rdata,off=log(1)), type = "response")
+
+```
+
+
+When I use scaled data, things still scale properly with the glmmTMB model, but the gam model no longer scales the same way. Again, the output from the rmodel.clim.gam2 does not change when we change the offset, and it gives the same result as rmodel.clim.gam when the offset is log(1). However, this time it is not 1/10 the result when the offset is log(10) in rmodel.clim.gam.
+
+```{r predictscale}
+rdata<-data.frame(BALIVE=200,T_yr_norm=5,PPT_yr_norm=800)
+scaled.rdata = data.frame(scale(rdata, scale = r.scaling$scale[match(names(rdata),
+                                                            names(r.scaling$scale))],
+                                  center = r.scaling$center[match(names(rdata), 
+                                                          names(r.scaling$center))]))  
+predict(rmodel.clim, newdata = mutate(scaled.rdata,off=log(10)), type = "response")
+predict(rmodel.clim, newdata = mutate(scaled.rdata,off=log(1)), type = "response")
+
+predict(rmodel.clim.gam, newdata = mutate(scaled.rdata,off=log(10)), type = "response")
+predict(rmodel.clim.gam, newdata = mutate(scaled.rdata,off=log(1)), type = "response")
+
+predict(rmodel.clim.gam2, newdata = mutate(scaled.rdata,off=log(10)), type = "response")
+predict(rmodel.clim.gam2, newdata = mutate(scaled.rdata,off=log(1)), type = "response")
+```
+
