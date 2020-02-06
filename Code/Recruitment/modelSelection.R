@@ -425,6 +425,36 @@ rmodel.int<-glmmTMB(recruits1 ~ 1
                family = "poisson")
 rmodel.best<-rmodel.5b
 
+rmodel.clim.lin<-glmmTMB(recruits1 ~ 1
+                     + PPT_yr_norm + T_yr_norm 
+                     + offset(log(CENSUS_INTERVAL))
+                     + offset(log(PIEDadults1)), # various alternatives for this offset
+                     ziformula = ~ 1,
+                     data = rdata.scaled, 
+                     family = "poisson")
+res = simulateResiduals(rmodel.clim.lin)
+plot(res, quantreg = T) #p = 0.03093
+
+rmodel.clim.comp.lin<-glmmTMB(recruits1 ~ 1
+                          + BALIVE + PPT_yr_norm + T_yr_norm 
+                          + offset(log(CENSUS_INTERVAL))
+                          + offset(log(PIEDadults1)), # various alternatives for this offset
+                          ziformula = ~ 1,
+                          data = rdata.scaled, 
+                          family = "poisson")
+res = simulateResiduals(rmodel.clim.comp.lin)
+plot(res, quantreg = T) #p = 0.15561
+
+rmodel.int.lin<-glmmTMB(recruits1 ~ 1
+                    + (BALIVE + PPT_yr_norm + T_yr_norm)^2 
+                    + offset(log(CENSUS_INTERVAL))
+                    + offset(log(PIEDadults1)), # various alternatives for this offset
+                    ziformula = ~ 1,
+                    data = rdata.scaled, 
+                    family = "poisson")
+res = simulateResiduals(rmodel.clim.lin)
+plot(res, quantreg = T) #p = 0.03093
+
 ### dealing with std'ized covariates
 
 # specify the predictors in the "best" model (or candidate best)
@@ -452,4 +482,6 @@ for (i in r.predictors) {
 }
 
 # export model for coefficients and scaling information -------------------
-save(rmodel.clim,rmodel.clim.comp,rmodel.int,rmodel.best, r.scaling, file = "./Code/IPM/RecruitRescaling.Rdata")
+save(rmodel.clim,rmodel.clim.comp,rmodel.int,rmodel.best, 
+     rmodel.clim.lin,rmodel.clim.comp.lin,rmodel.int.lin,
+     r.scaling, file = "./Code/IPM/RecruitRescaling.Rdata")

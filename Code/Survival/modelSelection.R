@@ -342,6 +342,34 @@ smodel.int<-glmer(mort ~ (PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm)^2 +
 
 smodel.best<-smodel.3b
 
+smodel.clim.lin <- glmer(mort ~ PREVDIA + PPT_yr_norm + T_yr_norm +
+                           (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                              family = binomial(link = cloglog), data = survData3.scaled,
+                              control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+res = simulateResiduals(smodel.clim.lin)
+plot(res) #p=0.25375
+
+smodel.clim.comp.lin <- glmer(mort ~ PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm + 
+                                (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                    family = binomial(link = cloglog), data = survData3.scaled,
+                    control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+res = simulateResiduals(smodel.clim.comp.lin)
+plot(res) #p=0.08394
+
+smodel.clim.comp.fire.lin <- glmer(mort ~ PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm + 
+                                     (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                              family = binomial(link = cloglog), data = survData.scaled,
+                              control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+res = simulateResiduals(smodel.clim.comp.fire.lin)
+plot(res) #p=0.35279
+
+smodel.int.lin <- glmer(mort ~ (PREVDIA + BALIVE + PPT_yr_norm + T_yr_norm)^2 + 
+                          (1|PLT_CN) + offset(log(CENSUS_INTERVAL)), 
+                              family = binomial(link = cloglog), data = survData3.scaled,
+                              control=glmerControl(optimizer = "bobyqa", optCtrl=list(maxfun=10000)))
+res = simulateResiduals(smodel.int.lin)
+plot(res) #0.09791
+
 # specify the predictors in the "best" model (or candidate best)
 #surv.predictors <- c("PREVDIA", "T_yr_norm", "PPT_yr_norm")
 surv.predictors <- c("PREVDIA", "T_yr_norm", "PPT_yr_norm", "BALIVE", "PPT_c_norm", "PPT_pf_norm", 
@@ -369,5 +397,6 @@ for (i in surv.predictors) {
 #save(smodel4.q, surv.scaling, file = "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/Code/IPM/SurvRescaling.Rdata")
 #save(smodel4, surv.scaling, file = "./Code/IPM/SurvRescalingNoFire.Rdata")
 #save(smodel3, surv.scaling, file = "./Code/IPM/SurvRescalingBA.Rdata")
-save(smodel.clim,smodel.clim.comp,smodel.clim.comp.fire,smodel.int,smodel.best, 
+save(smodel.clim,smodel.clim.comp,smodel.clim.comp.fire,smodel.int,smodel.best,
+     smodel.clim.lin,smodel.clim.comp.lin,smodel.clim.comp.fire.lin,smodel.int.lin,
      surv.scaling,  surv.scaling.fire, file = "./Code/IPM/SurvRescaling.Rdata")
