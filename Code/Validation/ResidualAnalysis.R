@@ -314,7 +314,7 @@ q_pos_i<-quantile(interpdf_i$z_diff[which(interpdf_i$z_diff>0)])
 q_i<-c(q_neg_i[2:4],q_pos_i[2:4])
 
 ## Save output
-save(FIA_lambda, pres_binned, res_binned, res2_binned, l_means, l_meds, 
+save(FIA_lambda, FIA_pied_pres, pres_binned, res_binned, res2_binned, l_means, l_meds, 
      interpdf_c, interpdf_cc, interpdf_i, q_c, q_cc, q_i, 
      file="./Output/residual_gam.rda")
 
