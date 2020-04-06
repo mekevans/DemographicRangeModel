@@ -60,25 +60,24 @@ survData.2 <- subset(survData, BALIVE > 0) # goes from 20329 to 20161
 survData.3 <- survData[!(survData$DSTRBCD1 %in% c(30, 31, 32, 80)), ] # goes from 20329 to 19867
 
 # standardize covariates
-#ELS update: no AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3 in dataframe, so I removed them from the following code
 survData.scaled <- survData %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
                                                               -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
                                                               -CENSUS_INTERVAL,
-                                                              AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3,
+                                                              -AGENTCD, -DSTRBCD1, -DSTRBCD2, -DSTRBCD3,
                                                               -AGB_INCR, -DIA_INCR, -BA_INCR,
                                                               -surv, -mort))
 
 survData2.scaled <- survData.2 %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
                                                                  -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
                                                                  -CENSUS_INTERVAL,
-                                                                 AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3,
+                                                                 -AGENTCD, -DSTRBCD1, -DSTRBCD2, -DSTRBCD3,
                                                                  -AGB_INCR, -DIA_INCR, -BA_INCR,
                                                                  -surv, -mort))
 
 survData3.scaled <- survData.3 %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PLT_CN, -PREV_PLT_CN, -CONDID,
                                                                  -STATUSCD, -MEASYEAR, -PREV_MEASYEAR, 
                                                                  -CENSUS_INTERVAL,
-                                                                 AGENTCD, DSTRBCD1, DSTRBCD2, DSTRBCD3,
+                                                                 -AGENTCD, -DSTRBCD1, -DSTRBCD2, -DSTRBCD3,
                                                                  -AGB_INCR, -DIA_INCR, -BA_INCR,
                                                                  -surv, -mort))
 survData<-survData[which(!is.na(match(survData$PLT_CN,survData3.scaled$PLT_CN))),]
@@ -584,6 +583,14 @@ l_means<-FIA_pa.plot %>%
   summarise(lambda_c=median(lambda_c),lambda_ccl=median(lambda_ccl),lambda_cc=median(lambda_cc),
             lambda_ccf=median(lambda_ccf),lambda_i=median(lambda_i))
 
+mytheme<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+               panel.background = element_blank(), axis.line = element_line(colour = "black"),
+               legend.text=element_text(size=11),legend.title=element_text(size=12),
+               legend.key = element_rect(fill = "white"),axis.text=element_text(size=12),
+               axis.title.x=element_text(size=14),axis.title.y=element_text(size=14),
+               axis.line.x = element_line(color="black", size = 0.3),
+               axis.line.y = element_line(color="black", size = 0.3))
+
 ## Climate only
 # Growth
 grow_c_d <- ggplot(data=grdata,aes(x=PREVDIA))+
@@ -591,14 +598,14 @@ grow_c_d <- ggplot(data=grdata,aes(x=PREVDIA))+
             fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(grplot_data_clim$dia),xmin=max(grdata$PREVDIA),ymin=-1.5,ymax=0.1),
             fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(aes(y=-1.6),size=0.1)+
+  #geom_point(aes(y=-1.6),size=0.1)+
   geom_point(data=g_binned,aes(x=PREVDIA,y=grow_dia_c,size=count_dia))+
   geom_line(data=grplot_data_clim,aes(x=dia,y=dia_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=grplot_data_clim,aes(x=dia,y=dia_pred_c),col="#1b9e77",linetype="dotted",
-            size=1.25)+
+  #geom_line(data=grplot_data_clim,aes(x=dia,y=dia_pred_c),col="#1b9e77",linetype="dotted",
+  #          size=1.25)+
   labs(x="Previous diameter", y="Diameter increment")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
   
 ggsave(file="PIED_manuscript_grow_c_d.png", plot=grow_c_d,dpi=400)
 
@@ -607,13 +614,13 @@ grow_c_p <- ggplot(data=grdata,aes(x=PPT_yr_norm))+
                 ymin=0.015,ymax=max(grplot_data_clim$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(grplot_data_clim$ppt),xmin=max(grdata$PPT_yr_norm),
                 ymin=0.005,ymax=max(grplot_data_clim$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(aes(y=0),size=0.1)+
+  #geom_point(aes(y=0),size=0.1)+
   geom_point(data=g_binned,aes(x=PPT,y=grow_PPT_c,size=count_PPT))+
   geom_line(data=grplot_data_clim,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=grplot_data_clim,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=grplot_data_clim,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="30-year precipitation norm", y="Diameter increment")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_grow_c_p.png", plot=grow_c_p,dpi=400)
 
@@ -622,13 +629,13 @@ grow_c_t<-ggplot(data=grdata,aes(x=T_yr_norm))+
                 ymin=-0.002,ymax=max(grplot_data_clim$t_pred)),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(grplot_data_clim$t),xmin=max(grdata$T_yr_norm),
                 ymin=-0.002,ymax=max(grplot_data_clim$t_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(aes(y=-0.005),size=0.1)+
+  #geom_point(aes(y=-0.005),size=0.1)+
   geom_point(data=g_binned,aes(x=T,y=grow_T_c,size=count_T))+
   geom_line(data=grplot_data_clim,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=grplot_data_clim,aes(x=t,y=t_pred_c),linetype="dotted",col="#1b9e77",size=1.25)+
+  #geom_line(data=grplot_data_clim,aes(x=t,y=t_pred_c),linetype="dotted",col="#1b9e77",size=1.25)+
   labs(x="30-year temperature norm", y="Diameter increment")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_grow_c_t.png", plot=grow_c_t,dpi=400)
 
@@ -638,15 +645,15 @@ surv_c_d <- ggplot(data=survData,aes(x=PREVDIA))+
             fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(splot_data_clim$dia),xmin=max(survData$PREVDIA),ymin=-0.02,ymax=0.7),
             fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=survData,aes(x=PREVDIA,y=-0.05),size=0.1)+
+  #geom_point(data=survData,aes(x=PREVDIA,y=-0.05),size=0.1)+
   geom_point(data=s_binned,aes(x=PREVDIA,y=mort_dia_c,size=count_dia))+
   geom_line(data=splot_data_clim,aes(x=dia,y=dia_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=splot_data_clim,aes(x=dia,y=dia_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=splot_data_clim,aes(x=dia,y=dia_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   #geom_line(data=splot_data_clim.lin,aes(x=dia,y=dia_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=splot_data_clim.lin,aes(x=dia,y=dia_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="Previous diameter", y="Mortality")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_surv_c_d.png", plot=surv_c_d,dpi=400)
 
@@ -655,15 +662,15 @@ surv_c_p <- ggplot(data=survData,aes(x=PPT_yr_norm))+
                 ymin=-0.02,ymax=0.35),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(splot_data_clim$ppt),xmin=max(survData$PPT_yr_norm),
                 ymin=-0.02,ymax=0.35),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=survData,aes(x=PPT_yr_norm,y=-0.05),size=0.1)+
+  #geom_point(data=survData,aes(x=PPT_yr_norm,y=-0.05),size=0.1)+
   geom_point(data=s_binned,aes(x=PPT,y=mort_PPT_c,size=count_PPT))+
   geom_line(data=splot_data_clim,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=splot_data_clim,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=splot_data_clim,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   #geom_line(data=splot_data_clim.lin,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=splot_data_clim.lin,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="30-year precipitation norm", y="Mortality")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
   
 ggsave(file="PIED_manuscript_surv_c_p.png", plot=surv_c_p,dpi=400)
 
@@ -672,15 +679,15 @@ surv_c_t <- ggplot(data=survData,aes(x=T_yr_norm))+
                 ymin=-0.02,ymax=0.45),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(splot_data_clim$t),xmin=max(survData$T_yr_norm),
                 ymin=-0.02,ymax=0.45),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=survData,aes(x=T_yr_norm,y=-0.05),size=0.1)+
+  #geom_point(data=survData,aes(x=T_yr_norm,y=-0.05),size=0.1)+
   geom_point(data=s_binned,aes(x=T,y=mort_T_c,size=count_T))+
   geom_line(data=splot_data_clim,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=splot_data_clim,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=splot_data_clim,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   #geom_line(data=splot_data_clim.lin,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=splot_data_clim.lin,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="30-year temperature norm", y="Mortality")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
   
 ggsave(file="PIED_manuscript_surv_c_t.png", plot=surv_c_t,dpi=400)
 
@@ -691,14 +698,14 @@ recr_c_p <- ggplot(data=rdata.scaled,aes(x=PPT_yr_norm))+
   geom_rect(aes(xmax=max(rplot_data_clim$ppt),xmin=max(rdata$PPT_yr_norm),
                 ymin=-0.05,ymax=max(rplot_data_clim$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
   geom_point(data=r_binned,aes(x=PPT,y=recr_PPT_c,size=count_PPT))+
-  geom_point(aes(y=-0.15),size=0.1)+
+  #geom_point(aes(y=-0.15),size=0.1)+
   geom_line(data=rplot_data_clim,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=rplot_data_clim,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=rplot_data_clim,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   #geom_line(data=rplot_data_clim.lin,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=rplot_data_clim.lin,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="30-year precipitation norm", y="Number recruits")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
   
 ggsave(file="PIED_manuscript_recr_c_p.png", plot=recr_c_p,dpi=400)
 
@@ -708,14 +715,14 @@ recr_c_t <- ggplot(data=rdata,aes(x=T_yr_norm))+
   geom_rect(aes(xmax=max(rplot_data_clim$t),xmin=max(rdata$T_yr_norm),
                 ymin=-0.05,ymax=max(rplot_data_clim$t_pred)),fill="grey80",col="grey80",alpha=0.1)+
   geom_point(data=r_binned,aes(x=T,y=recr_T_c,size=count_T))+
-  geom_point(aes(y=-0.1),size=0.1)+
+  #geom_point(aes(y=-0.1),size=0.1)+
   geom_line(data=rplot_data_clim,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=rplot_data_clim,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=rplot_data_clim,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   #geom_line(data=rplot_data_clim.lin,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=rplot_data_clim.lin,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="30-year temperature norm", y="Number recruits")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_recr_c_t.png", plot=recr_c_t,dpi=400)
 
@@ -727,28 +734,28 @@ grow_cc_d <- ggplot(data=grdata,aes(x=PREVDIA))+
             fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(grplot_data_climcomp$dia),xmin=max(grdata$PREVDIA),ymin=-1.5,ymax=0.1),
             fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(aes(y=-1.6),size=0.1)+
+  #geom_point(aes(y=-1.6),size=0.1)+
   geom_point(data=g_binned,aes(x=PREVDIA,y=grow_dia_cc,size=count_dia))+
   geom_line(data=grplot_data_climcomp,aes(x=dia,y=dia_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=grplot_data_climcomp,aes(x=dia,y=dia_pred_c),col="#1b9e77",linetype="dotted",
-            size=1.25)+
+  #geom_line(data=grplot_data_climcomp,aes(x=dia,y=dia_pred_c),col="#1b9e77",linetype="dotted",
+  #          size=1.25)+
   labs(x="Previous diameter", y="Diameter increment")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_grow_cc_d.png", plot=grow_cc_d,dpi=400)
 
 grow_cc_b <- ggplot(data=grdata,aes(x=BALIVE))+
   geom_rect(aes(xmin=min(grplot_data_climcomp$ba),xmax=min(grdata$BALIVE),
                 ymin=-0.002,ymax=0.1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(aes(y=-0.005),size=0.1)+
+  #geom_point(aes(y=-0.005),size=0.1)+
   geom_point(data=g_binned,aes(x=BALIVE,y=grow_ba_cc,size=count_ba))+
   geom_line(data=grplot_data_climcomp,aes(x=ba,y=ba_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=grplot_data_climcomp,aes(x=ba,y=ba_pred_c),col="#1b9e77",linetype="dotted",
-            size=1.25)+
+  #geom_line(data=grplot_data_climcomp,aes(x=ba,y=ba_pred_c),col="#1b9e77",linetype="dotted",
+  #          size=1.25)+
   labs(x="Live basal area", y="Diameter increment")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_grow_cc_b.png", plot=grow_cc_b,dpi=400)
 
@@ -759,14 +766,14 @@ grow_cc_p <- ggplot(data=grdata,aes(x=PPT_yr_norm))+
   geom_rect(aes(xmax=max(grplot_data_climcomp$ppt),xmin=max(grdata$PPT_yr_norm),
                 ymin=0.015,ymax=max(grplot_data_climcomp$ppt_pred)),
             fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(aes(y=0.01),size=0.1)+
+  #geom_point(aes(y=0.01),size=0.1)+
   geom_point(data=g_binned,aes(x=PPT,y=grow_PPT_cc,size=count_PPT))+
   geom_line(data=grplot_data_climcomp,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=grplot_data_climcomp,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",
-            size=1.25)+
+  #geom_line(data=grplot_data_climcomp,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",
+  #          size=1.25)+
   labs(x="30-year precipitation norm", y="Diameter increment")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_grow_cc_p.png", plot=grow_cc_p,dpi=400)
 
@@ -777,13 +784,13 @@ grow_cc_t <- ggplot(data=grdata,aes(x=T_yr_norm))+
   geom_rect(aes(xmax=max(grplot_data_climcomp$t),xmin=max(grdata$T_yr_norm),
                 ymin=-0.002,ymax=max(grplot_data_climcomp$t_pred)),
             fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(aes(y=-0.005),size=0.1)+
+  #geom_point(aes(y=-0.005),size=0.1)+
   geom_point(data=g_binned,aes(x=T,y=grow_T_cc,size=count_T))+
   geom_line(data=grplot_data_climcomp,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=grplot_data_climcomp,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=grplot_data_climcomp,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="30-year temperature norm", y="Diameter increment")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_grow_cc_t.png", plot=grow_cc_t,dpi=400)
 
@@ -793,32 +800,32 @@ surv_cc_d <- ggplot(data=survData,aes(x=PREVDIA))+
                 ymin=-0.02,ymax=0.7),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(splot_data_climcomp$dia),xmin=max(survData$PREVDIA),
                 ymin=-0.02,ymax=0.7),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=survData,aes(x=PREVDIA,y=-0.05),size=0.1)+
+  #geom_point(data=survData,aes(x=PREVDIA,y=-0.05),size=0.1)+
   geom_point(data=s_binned,aes(x=PREVDIA,y=mort_dia_cc,size=count_dia))+
   geom_line(data=splot_data_climcomp,aes(x=dia,y=dia_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=splot_data_climcomp,aes(x=dia,y=dia_pred_c),col="#1b9e77",linetype="dotted",
-            size=1.25)+
-  geom_line(data=splot_data_fire,aes(x=dia,y=dia_pred),col="#d95f02",size=1.25)+
-  geom_line(data=splot_data_fire,aes(x=dia,y=dia_pred_c),col="#d95f02",linetype="dotted",size=1.25)+
+  #geom_line(data=splot_data_climcomp,aes(x=dia,y=dia_pred_c),col="#1b9e77",linetype="dotted",
+  #          size=1.25)+
+  #geom_line(data=splot_data_fire,aes(x=dia,y=dia_pred),col="#d95f02",size=1.25)+
+  #geom_line(data=splot_data_fire,aes(x=dia,y=dia_pred_c),col="#d95f02",linetype="dotted",size=1.25)+
   labs(x="Previous diameter", y="Mortality")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_surv_cc_d.png", plot=surv_cc_d,dpi=400)
 
 surv_cc_b <- ggplot(data=survData,aes(x=BALIVE))+
   geom_rect(aes(xmin=min(splot_data_climcomp$ba),xmax=min(survData$BALIVE),ymin=-0.02,ymax=1),
             fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=survData,aes(x=BALIVE,y=-0.05),size=0.1)+
+  #geom_point(data=survData,aes(x=BALIVE,y=-0.05),size=0.1)+
   geom_point(data=s_binned,aes(x=BALIVE,y=mort_ba_cc,size=count_ba))+
   geom_line(data=splot_data_climcomp,aes(x=ba,y=ba_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=splot_data_climcomp,aes(x=ba,y=ba_pred_c),col="#1b9e77",linetype="dotted",
-            size=1.25)+
-  geom_line(data=splot_data_fire,aes(x=ba,y=ba_pred),col="#d95f02",size=1.25)+
-  geom_line(data=splot_data_fire,aes(x=ba,y=ba_pred_c),col="#d95f02",linetype="dotted",size=1.25)+
+  #geom_line(data=splot_data_climcomp,aes(x=ba,y=ba_pred_c),col="#1b9e77",linetype="dotted",
+  #          size=1.25)+
+  #geom_line(data=splot_data_fire,aes(x=ba,y=ba_pred),col="#d95f02",size=1.25)+
+  #geom_line(data=splot_data_fire,aes(x=ba,y=ba_pred_c),col="#d95f02",linetype="dotted",size=1.25)+
   labs(x="Live basal area", y="Mortality")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_surv_cc_b.png", plot=surv_cc_b,dpi=400)
 
@@ -827,21 +834,21 @@ surv_cc_p <- ggplot(data=survData,aes(x=PPT_yr_norm))+
                 ymin=-0.02,ymax=0.35),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(splot_data_climcomp$ppt),xmin=max(survData$PPT_yr_norm),
                 ymin=-0.02,ymax=0.35),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=survData,aes(x=PPT_yr_norm,y=-0.05),size=0.1)+
+  #geom_point(data=survData,aes(x=PPT_yr_norm,y=-0.05),size=0.1)+
   geom_point(data=s_binned,aes(x=PPT,y=mort_PPT_cc,size=count_PPT))+
   geom_line(data=splot_data_climcomp,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=splot_data_climcomp,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",
-            size=1.25)+
+  #geom_line(data=splot_data_climcomp,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",
+  #          size=1.25)+
   #geom_line(data=splot_data_climcomp.lin,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=splot_data_climcomp.lin,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",
   #          size=1.25)+
-  geom_line(data=splot_data_fire,aes(x=ppt,y=ppt_pred),col="#d95f02",size=1.25)+
-  geom_line(data=splot_data_fire,aes(x=ppt,y=ppt_pred_c),col="#d95f02",linetype="dotted",size=1.25)+
+  #geom_line(data=splot_data_fire,aes(x=ppt,y=ppt_pred),col="#d95f02",size=1.25)+
+  #geom_line(data=splot_data_fire,aes(x=ppt,y=ppt_pred_c),col="#d95f02",linetype="dotted",size=1.25)+
   #geom_line(data=splot_data_fire.lin,aes(x=ppt,y=ppt_pred),col="#d95f02",size=1.25)+
   #geom_line(data=splot_data_fire.lin,aes(x=ppt,y=ppt_pred_c),col="#d95f02",linetype="dotted",size=1.25)+
   labs(x="30-year precipitation norm", y="Mortality")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_surv_cc_p.png", plot=surv_cc_p,dpi=400)
 
@@ -850,19 +857,19 @@ surv_cc_t <- ggplot(data=survData,aes(x=T_yr_norm))+
                 ymin=-0.02,ymax=0.45),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(splot_data_climcomp$t),xmin=max(survData$T_yr_norm),
                 ymin=-0.02,ymax=0.45),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=survData,aes(x=T_yr_norm,y=-0.05),size=0.1)+
+  #geom_point(data=survData,aes(x=T_yr_norm,y=-0.05),size=0.1)+
   geom_point(data=s_binned,aes(x=T,y=mort_T_cc,size=count_T))+
   geom_line(data=splot_data_climcomp,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=splot_data_climcomp,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=splot_data_climcomp,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   #geom_line(data=splot_data_climcomp.lin,aes(x=t,y=t_pred,linetype="No clamp",col="No fire"),size=1.25)+
   #geom_line(data=splot_data_climcomp.lin,aes(x=t,y=t_pred_c,linetype="Clamp",col="No fire"),size=1.25)+
-  geom_line(data=splot_data_fire,aes(x=t,y=t_pred),col="#d95f02",size=1.25)+
-  geom_line(data=splot_data_fire,aes(x=t,y=t_pred_c),col="#d95f02",linetype="dotted",size=1.25)+
+  #geom_line(data=splot_data_fire,aes(x=t,y=t_pred),col="#d95f02",size=1.25)+
+  #geom_line(data=splot_data_fire,aes(x=t,y=t_pred_c),col="#d95f02",linetype="dotted",size=1.25)+
   #geom_line(data=splot_data_fire.lin,aes(x=t,y=t_pred,linetype="No clamp",col="Fire"),size=1.25)+
   #geom_line(data=splot_data_fire.lin,aes(x=t,y=t_pred_c,linetype="Clamp",col="Fire"),size=1.25)+
   labs(x="30-year temperature norm", y="Mortality")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_surv_cc_t.png", plot=surv_cc_t,dpi=400)
 
@@ -871,16 +878,16 @@ recr_cc_b <- ggplot(data=rdata,aes(x=BALIVE))+
   geom_rect(aes(xmin=min(rplot_data_climcomp$ba),xmax=min(rdata$BALIVE),
                 ymin=-0.05,ymax=2),fill="grey80",col="grey80",alpha=0.1)+
   geom_point(data=r_binned,aes(x=BALIVE,y=recr_ba_cc,size=count_ba))+
-  geom_point(aes(y=-0.2),size=0.1)+
+  #geom_point(aes(y=-0.2),size=0.1)+
   geom_line(data=rplot_data_climcomp,aes(x=ba,y=ba_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=rplot_data_climcomp,aes(x=ba,y=ba_pred_c),col="#1b9e77",linetype="dotted",
-            size=1.25)+
+  #geom_line(data=rplot_data_climcomp,aes(x=ba,y=ba_pred_c),col="#1b9e77",linetype="dotted",
+  #          size=1.25)+
   #geom_line(data=rplot_data_climcomp.lin,aes(x=ba,y=ba_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=rplot_data_climcomp.lin,aes(x=ba,y=ba_pred_c),col="#1b9e77",linetype="dotted",
   #          size=1.25)+
   labs(x="Live basal area", y="Number recruits")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_recr_cc_b.png", plot=recr_cc_b,dpi=400)
 
@@ -890,16 +897,16 @@ recr_cc_p <- ggplot(data=rdata,aes(x=PPT_yr_norm))+
   geom_rect(aes(xmax=max(rplot_data_climcomp$ppt),xmin=max(rdata$PPT_yr_norm),
                 ymin=-0.05,ymax=2),fill="grey80",col="grey80",alpha=0.1)+
   geom_point(data=r_binned,aes(x=PPT,y=recr_PPT_cc,size=count_PPT))+
-  geom_point(aes(y=-0.15),size=0.1)+
+  #geom_point(aes(y=-0.15),size=0.1)+
   geom_line(data=rplot_data_climcomp,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=rplot_data_climcomp,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",
-            size=1.25)+
+  #geom_line(data=rplot_data_climcomp,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",
+  #          size=1.25)+
   #geom_line(data=rplot_data_climcomp.lin,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=rplot_data_climcomp.lin,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",
   #          size=1.25)+
   labs(x="30-year precipitation norm", y="Number recruits")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_recr_cc_p.png", plot=recr_cc_p,dpi=400)
 
@@ -909,14 +916,14 @@ recr_cc_t <- ggplot(data=rdata,aes(x=T_yr_norm))+
   geom_rect(aes(xmax=max(rplot_data_climcomp$t),xmin=max(rdata$T_yr_norm),
                 ymin=-0.05,ymax=0.8),fill="grey80",col="grey80",alpha=0.1)+
   geom_point(data=r_binned,aes(x=T,y=recr_T_cc,size=count_T))+
-  geom_point(aes(y=-0.1),size=0.1)+
+  #geom_point(aes(y=-0.1),size=0.1)+
   geom_line(data=rplot_data_climcomp,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=rplot_data_climcomp,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=rplot_data_climcomp,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   #geom_line(data=rplot_data_climcomp.lin,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=rplot_data_climcomp.lin,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="30-year temperature norm", y="Number recruits")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_recr_cc_t.png", plot=recr_cc_t,dpi=400)
 
@@ -928,26 +935,26 @@ grow_i_d <- ggplot(data=grdata,aes(x=PREVDIA))+
             fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(grplot_data_int$dia),xmin=max(grdata$PREVDIA),ymin=-1.53,ymax=0.1),
             fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(aes(y=-1.6),size=0.1)+
+  #geom_point(aes(y=-1.6),size=0.1)+
   geom_point(data=g_binned,aes(x=PREVDIA,y=grow_dia_i,size=count_dia))+
   geom_line(data=grplot_data_int,aes(x=dia,y=dia_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=grplot_data_int,aes(x=dia,y=dia_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=grplot_data_int,aes(x=dia,y=dia_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="Previous diameter", y="Diameter increment")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_grow_i_d.png", plot=grow_i_d,dpi=400)
 
 grow_i_b <- ggplot(data=grdata,aes(x=BALIVE))+
   geom_rect(aes(xmin=min(grplot_data_int$ba),xmax=min(grdata$BALIVE),
                 ymin=-0.002,ymax=0.1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(aes(y=-0.005),size=0.1)+
+  #geom_point(aes(y=-0.005),size=0.1)+
   geom_point(data=g_binned,aes(x=BALIVE,y=grow_ba_i,size=count_ba))+
   geom_line(data=grplot_data_int,aes(x=ba,y=ba_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=grplot_data_int,aes(x=ba,y=ba_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=grplot_data_int,aes(x=ba,y=ba_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="Live basal area", y="Diameter increment")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_grow_i_b.png", plot=grow_i_b,dpi=400)
 
@@ -956,13 +963,13 @@ grow_i_p <- ggplot(data=grdata,aes(x=PPT_yr_norm))+
                 ymin=0.015,ymax=max(grplot_data_int$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(grplot_data_int$ppt),xmin=max(grdata$PPT_yr_norm),
                 ymin=0.015,ymax=max(grplot_data_int$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(aes(y=0.01),size=0.1)+
+  #geom_point(aes(y=0.01),size=0.1)+
   geom_point(data=g_binned,aes(x=PPT,y=grow_PPT_i,size=count_PPT))+
   geom_line(data=grplot_data_int,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=grplot_data_int,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=grplot_data_int,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="30-year precipitation norm", y="Diameter increment")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_grow_i_p.png", plot=grow_i_p,dpi=400)
 
@@ -971,13 +978,13 @@ grow_i_t <- ggplot(data=grdata,aes(x=T_yr_norm))+
                 ymin=-0.002,ymax=max(grplot_data_int$t_pred)),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(grplot_data_int$t),xmin=max(grdata$T_yr_norm),
                 ymin=-0.002,ymax=max(grplot_data_int$t_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(aes(y=-0.005),size=0.1)+
+  #geom_point(aes(y=-0.005),size=0.1)+
   geom_point(data=g_binned,aes(x=T,y=grow_T_i,size=count_T))+
   geom_line(data=grplot_data_int,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=grplot_data_int,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=grplot_data_int,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="30-year temperature norm", y="Diameter increment")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_grow_i_t.png", plot=grow_i_t,dpi=400)
 
@@ -987,26 +994,26 @@ surv_i_d <- ggplot(data=survData,aes(x=PREVDIA))+
                 ymin=-0.02,ymax=0.7),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(splot_data_int$dia),xmin=max(survData$PREVDIA),
                 ymin=-0.02,ymax=0.7),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=survData,aes(x=PREVDIA,y=-0.05),size=0.1)+
+  #geom_point(data=survData,aes(x=PREVDIA,y=-0.05),size=0.1)+
   geom_point(data=s_binned,aes(x=PREVDIA,y=mort_dia_i,size=count_dia))+
   geom_line(data=splot_data_int,aes(x=dia,y=dia_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=splot_data_int,aes(x=dia,y=dia_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=splot_data_int,aes(x=dia,y=dia_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="Previous diameter", y="Mortality")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_surv_i_d.png", plot=surv_i_d,dpi=400)
 
 surv_i_b <- ggplot(data=survData,aes(x=BALIVE))+
   geom_rect(aes(xmin=min(splot_data_int$ba),xmax=min(survData$BALIVE),ymin=-0.02,ymax=1),
             fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=survData,aes(x=BALIVE,y=-0.08),size=0.1)+
+  #geom_point(data=survData,aes(x=BALIVE,y=-0.08),size=0.1)+
   geom_point(data=s_binned,aes(x=BALIVE,y=mort_ba_i,size=count_ba))+
   geom_line(data=splot_data_int,aes(x=ba,y=ba_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=splot_data_int,aes(x=ba,y=ba_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=splot_data_int,aes(x=ba,y=ba_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="Live basal area", y="Mortality")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_surv_i_b.png", plot=surv_i_b,dpi=400)
 
@@ -1015,15 +1022,15 @@ surv_i_p <- ggplot(data=survData,aes(x=PPT_yr_norm))+
                 ymin=-0.02,ymax=0.35),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(splot_data_int$ppt),xmin=max(survData$PPT_yr_norm),
                 ymin=-0.02,ymax=0.35),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=survData,aes(x=PPT_yr_norm,y=-0.08),size=0.1)+
+  #geom_point(data=survData,aes(x=PPT_yr_norm,y=-0.08),size=0.1)+
   geom_point(data=s_binned,aes(x=PPT,y=mort_PPT_i,size=count_PPT))+
   geom_line(data=splot_data_int,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=splot_data_int,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=splot_data_int,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   #geom_line(data=splot_data_int.lin,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=splot_data_int.lin,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="30-year precipitation norm", y="Mortality")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_surv_i_p.png", plot=surv_i_p,dpi=400)
 
@@ -1032,15 +1039,15 @@ surv_i_t <- ggplot(data=survData,aes(x=T_yr_norm))+
                 ymin=-0.02,ymax=0.45),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(splot_data_int$t),xmin=max(survData$T_yr_norm),
                 ymin=-0.02,ymax=0.45),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=survData,aes(x=T_yr_norm,y=-0.07),size=0.1)+
+  #geom_point(data=survData,aes(x=T_yr_norm,y=-0.07),size=0.1)+
   geom_point(data=s_binned,aes(x=T,y=mort_T_i,size=count_T))+
   geom_line(data=splot_data_int,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=splot_data_int,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=splot_data_int,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   #geom_line(data=splot_data_int.lin,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=splot_data_int.lin,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="30-year temperature norm", y="Mortality")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
   
 ggsave(file="PIED_manuscript_surv_i_t.png", plot=surv_i_t,dpi=400)
 
@@ -1049,14 +1056,14 @@ recr_i_b <- ggplot(data=rdata,aes(x=BALIVE))+
   geom_rect(aes(xmin=min(rplot_data_int$ba),xmax=min(rdata$BALIVE),
                 ymin=-0.4,ymax=3),fill="grey80",col="grey80",alpha=0.1)+
   geom_point(data=r_binned,aes(x=BALIVE,y=recr_ba_i,size=count_ba))+
-  geom_point(aes(y=-1),size=0.1)+
+  #geom_point(aes(y=-1),size=0.1)+
   geom_line(data=rplot_data_int,aes(x=ba,y=ba_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=rplot_data_int,aes(x=ba,y=ba_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=rplot_data_int,aes(x=ba,y=ba_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   #geom_line(data=rplot_data_int.lin,aes(x=ba,y=ba_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=rplot_data_int.lin,aes(x=ba,y=ba_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="Live basal area", y="Number recruits")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_recr_i_b.png", plot=recr_i_b,dpi=400)
 
@@ -1066,14 +1073,14 @@ recr_i_p <- ggplot(data=rdata,aes(x=PPT_yr_norm))+
   geom_rect(aes(xmax=max(rplot_data_int$ppt),xmin=max(rdata$PPT_yr_norm),
                 ymin=-0.05,ymax=2),fill="grey80",col="grey80",alpha=0.1)+
   geom_point(data=r_binned,aes(x=PPT,y=recr_PPT_i,size=count_PPT))+
-  geom_point(aes(y=-0.15),size=0.1)+
+  #geom_point(aes(y=-0.15),size=0.1)+
   geom_line(data=rplot_data_int,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=rplot_data_int,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=rplot_data_int,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   #geom_line(data=rplot_data_int.lin,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=rplot_data_int.lin,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="30-year precipitation norm", y="Number recruits")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
 
 ggsave(file="PIED_manuscript_recr_i_p.png", plot=recr_i_p,dpi=400)
 
@@ -1083,14 +1090,14 @@ recr_i_t <- ggplot(data=rdata,aes(x=T_yr_norm))+
   geom_rect(aes(xmax=max(rplot_data_int$t),xmin=max(rdata$T_yr_norm),
                 ymin=-0.05,ymax=0.8),fill="grey80",col="grey80",alpha=0.1)+
   geom_point(data=r_binned,aes(x=T,y=recr_T_i,size=count_T))+
-  geom_point(aes(y=-0.1),size=0.1)+
+  #geom_point(aes(y=-0.1),size=0.1)+
   geom_line(data=rplot_data_int,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
-  geom_line(data=rplot_data_int,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  #geom_line(data=rplot_data_int,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   #geom_line(data=rplot_data_int.lin,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=rplot_data_int.lin,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   labs(x="30-year temperature norm", y="Number recruits")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top")
+  theme(legend.position="top")+mytheme
   
 ggsave(file="PIED_manuscript_recr_i_t.png", plot=recr_i_t,dpi=400)
 
@@ -1202,3 +1209,37 @@ recr_i_p_resid<-plot(est)
 
 est<-Effect("T_yr_norm", partial.residuals=T, rmodel.int)
 recr_i_t_resid<-plot(est)
+
+# Best
+est<-Effect("PREVDIA", smodel.best)
+surv_b_d_resid<-plot(est,xlab="Tree diameter",ylab="Mortality",
+                     main=F)
+
+est<-Effect("BALIVE", smodel.best)
+surv_b_b_resid<-plot(est)
+
+est<-Effect("PPT_yr_norm", partial.residuals=T, smodel.int)
+surv_i_p_resid<-plot(est)
+
+est<-Effect("T_yr_norm", partial.residuals=T, smodel.int)
+surv_i_t_resid<-plot(est)
+
+est<-Effect("BALIVE", rmodel.best)
+recr_b_b_resid<-plot(est)
+
+est<-Effect("PPT_c_norm", rmodel.best)
+recr_b_pc_resid<-plot(est)
+est<-Effect("PPT_wd_norm", rmodel.best)
+recr_b_pwd_resid<-plot(est)
+est<-Effect("PPT_m_norm", rmodel.best)
+recr_b_pm_resid<-plot(est)
+
+est<-Effect("T_c_norm", rmodel.best)
+#recr_b_tc_resid<-
+  plot(est,xlab="Cool season temperature (scaled)",ylab="Number recruits",
+                      main=F,axes=list(y=list(ticks=list(at=c(1,10,100,1000,10000,100000)))))
+  #axis(side=2)
+est<-Effect("T_wd_norm", rmodel.best)
+recr_b_twd_resid<-plot(est)
+est<-Effect("T_m_norm", rmodel.best)
+recr_b_tm_resid<-plot(est)
