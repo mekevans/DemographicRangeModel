@@ -80,6 +80,31 @@ for (i in 1:ncol(predictors)) {
                                                    data=predictorVals[j,],
                                                    s.t.clamp=F,g.t.clamp=F,g.ba.clamp=F,r.ba.clamp=F))$values[1])
   }
+  predictorDFs_climint[[i]] <- predictorVals
+}
+
+predictorNames <- c("BALIVE", "PPT_yr_norm", "T_yr_norm") #, "T_wd_norm", "T_c_norm", "T_m_norm")
+predictors <- FIA[, predictorNames]
+predictorDFs_climint <- list()
+for (i in 1:ncol(predictors)) {
+  currentPredictor <- predictorNames[i]
+  predictorVals <- data.frame(BALIVE = rep(median(FIA$BALIVE), noPoints), 
+                              PPT_yr = rep(median(FIA$PPT_yr_norm), noPoints), 
+                              T_yr = rep(median(FIA$T_yr_norm), noPoints), 
+                              #T_wd_norm = rep(median(FIA$T_wd_norm), noPoints), 
+                              #T_c_norm = rep(median(FIA$T_c_norm), noPoints), 
+                              #T_m_norm = rep(median(FIA$T_m_norm), noPoints), 
+                              lambda = rep(0, noPoints))
+  predictorVals[, i] <- seq(mins[i], maxs[i], length.out = noPoints)
+  for (j in 1:nrow(predictorVals)) {
+    predictorVals[j, "lambda"] <- Re(eigen(ipm_fun(min=min.size, max=max.size, n=n_dim, 
+                                                   gmodel=gmodel.clim.int.gam, 
+                                                   smodel=smodel.clim.int.gam, 
+                                                   rmodel=rmodel.clim.int.gam, 
+                                                   gSD=growSD.clim.int.gam,
+                                                   data=predictorVals[j,],
+                                                   s.t.clamp=F,g.t.clamp=F,g.ba.clamp=F,r.ba.clamp=F))$values[1])
+  }
   predictorDFs_clim[[i]] <- predictorVals
 }
 
@@ -157,6 +182,6 @@ for (i in 1:ncol(predictors)) {
   predictorDFs_int[[i]] <- predictorVals
 }
 
-save(predictorDFs_clim, predictorDFs_climcomp, 
-     predictorDFs_int, file="./Output/lambda_effects_gam.rda")
+save(predictorDFs_clim, predictorDFs_climint, predictorDFs_climcomp, 
+     predictorDFs_int, FIA, file="./Output/lambda_effects_gam.rda")
 

@@ -20,25 +20,6 @@ PRISM.norm.path <-  "./ClimateData/PRISM/Normals/"
 
 # load models and scaling --------------------------------------------------
 
-# growth model + scaling
-# from modelSelection_Growth.R
-load("./Code/IPM/GrRescaling.Rdata")
-
-# survival model + scaling
-# from modelSelection_Survival.R
-# load(paste0(path, "Code/IPM/SurvRescaling.Rdata"))
-load("./Code/IPM/SurvRescaling.Rdata")
-#load(paste0(path, "Code/IPM/SurvRescalingBA.Rdata"))
-
-# recruitment model + scaling
-# from modelSelection_Recruit.R
-load("./Code/IPM/RecruitRescaling.Rdata")
-
-# information on the size distribution of recruits (ingrowth)
-# from dataPrepRecruitment.R
-load("./Code/IPM/recrstats.rda")
-
-# Alternative models - gams
 load("./Code/IPM/GrRescaling_gam.Rdata")
 load("./Code/IPM/SurvRescaling_gam.Rdata")
 load("./Code/IPM/RecruitRescaling_gam.Rdata")
@@ -121,18 +102,12 @@ plot(y, d_recruit, type = "l", ylab = "density")
 # these created using the script "current.R"
 ppt_yr_raster <- raster(paste0(PRISM.norm.path, "PPT_year.tif"))
 t_yr_raster <- raster(paste0(PRISM.norm.path, "T_year.tif"))
-t_wd_raster <- raster(paste0(PRISM.norm.path, "T_wd.tif"))
-t_c_raster <- raster(paste0(PRISM.norm.path, "T_c.tif"))
-t_m_raster <- raster(paste0(PRISM.norm.path, "T_m.tif"))
 # stand-level basal area raster
 ba_raster <- raster("./BA/balive_RF.tif")
 # ba_raster <- raster("C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/BA/BA.tif")
 
 ppt_yr_raster <- resample(ppt_yr_raster, ba_raster)
 t_yr_raster <- resample(t_yr_raster, ba_raster)
-t_wd_raster <- resample(t_wd_raster, ba_raster)
-t_c_raster <- resample(t_c_raster, ba_raster)
-t_m_raster <- resample(t_m_raster, ba_raster)
 
 extrap <- ppt_yr_raster
 for (i in 1:nrow(extrap)) {
@@ -231,8 +206,8 @@ for (i in 1:nrow(ppt_yr_raster)) {
       next
     }
     # Calculate lambda
-    K<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.int.gam, smodel=smodel.int.gam, 
-               rmodel=rmodel.int.gam, gSD=growSD.int.gam,
+    K<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.clim.int.gam, smodel=smodel.clim.int.gam, 
+               rmodel=rmodel.clim.int.gam, gSD=growSD.clim.int.gam,
                data=pred_data,
                s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F)
     lambda_val <- Re(eigen(K)$values[1])
@@ -275,7 +250,7 @@ for (i in 1:nrow(ppt_yr_raster)) {
 }
 
 # Export
-writeRaster(lambda, "./Output/tifs/PIED.int_lambda_gam.tif", overwrite = T)
+writeRaster(lambda, "./Output/tifs/PIED.clim.int_lambda_gam.tif", overwrite = T)
 writeRaster(growth, "./Output/tifs/PIED.int_growth_gam.tif", overwrite = T)
 writeRaster(survival, "./Output/tifs/PIED.int_survival_gam.tif", overwrite = T)
 writeRaster(reproduction, "./Output/tifs/PIED.int_reproduction_gam.tif", overwrite = T)
