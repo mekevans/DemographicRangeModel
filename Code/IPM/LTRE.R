@@ -82,8 +82,8 @@ lambda_ltre_g <- setValues(lambda_ltre_g, 0)
 lambda_ltre_s <- lambda_ltre_g 
 lambda_ltre_r <- lambda_ltre_g 
 
-for (i in 1:nrow(ppt_yr_raster)) {
-  for (j in 1:ncol(ppt_yr_raster)){
+for (i in 1:nrow(ppt_yr_raster)) { #
+  for (j in 1:ncol(ppt_yr_raster)){ #
     
   # Extract climate for cell
   #  pred_data <- data.frame(PPT_yr=mean(as.numeric(ppt_yr_raster[i,j]),mean_ppt_pied),
@@ -91,7 +91,7 @@ for (i in 1:nrow(ppt_yr_raster)) {
   #                          BALIVE=mean(as.numeric(ba_raster[i,j]),mean_ba_pied))
   
   #Number of perturbation steps
-  inc=5
+  inc=1
   
   # Climate at mean
   pred_data <- data.frame(PPT_yr=mean_ppt_pied,
@@ -111,28 +111,21 @@ for (i in 1:nrow(ppt_yr_raster)) {
     next
   }
   
-  # Calculate change in vital rate
-  g_perturb<-g.mean(model=gmodel.int.gam, size.x = mean(FIA$PREVDIA), data=pred_data_new)-
-    g.mean(model=gmodel.int.gam, size.x = mean(FIA$PREVDIA), data=pred_data)
-  s_perturb<-s.x(model=smodel.int.gam, size.x = mean(FIA$PREVDIA), data=pred_data_new)-
-    s.x(model=smodel.int.gam, size.x = mean(FIA$PREVDIA), data=pred_data)
-  r_perturb<-f.mean(model=rmodel.int.gam, data=pred_data_new)-
-    f.mean(model=rmodel.int.gam, data=pred_data)
+  # Calculate change in predictors
+  d_pred_data<-pred_data_new-pred_data
   
   #Divide change in each parameter into amount to perturb each time
-  dparam.dclim <- c(g_perturb,s_perturb,r_perturb)
-  perturb_inc<-dparam.dclim/inc
-  perturb<-c(0,0,0)
+  d_pred_data_inc<-d_pred_data/inc
+  #perturb<-c(0,0,0)
   
   lambda_old <- lambda_mean
-  
+  pred_data_inc<-list(pred_data,pred_data,pred_data)
   for (p in 1:inc){# Calculate lambda
     dlambda<-rep(NA,3)
     for (v in 1:3) {
-      perturb[v]<-perturb[v]+perturb_inc[v]
-      K<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.int.gam, smodel=smodel.int.gam, 
-                 rmodel=rmodel.int.gam, gSD=growSD.int.gam, data=pred_data, 
-                 gperturb=perturb[1],sperturb=perturb[2], rperturb=perturb[3],
+      pred_data_inc[[v]]<-pred_data_inc[[v]]+d_pred_data_inc
+      K<-ipm_ltre(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.int.gam, smodel=smodel.int.gam, 
+                 rmodel=rmodel.int.gam, gSD=growSD.int.gam, data_g=pred_data_inc[[1]],data_s=pred_data_inc[[2]],data_r=pred_data_inc[[3]], 
                  s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F)
       lambda<-Re(eigen(K)$values[1])
       dlambda[v]<-lambda-lambda_old
@@ -143,7 +136,7 @@ for (i in 1:nrow(ppt_yr_raster)) {
     lambda_ltre_s[i,j] <- lambda_ltre_s[i,j]+dlambda[2] 
     lambda_ltre_r[i,j] <- lambda_ltre_r[i,j]+dlambda[3] 
   }
-  print(i)
+  print(j)
   }
   print(paste0("Finished row ", i, " of ", nrow(ppt_yr_raster)))
   plot(lambda_ltre_g, main = "Lambda"); points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
@@ -151,6 +144,10 @@ for (i in 1:nrow(ppt_yr_raster)) {
 
 lambda_ltre_vital<-sum(lambda_ltre_g,lambda_ltre_s,lambda_ltre_r)
 
+writeRaster(lambda_ltre_vital, "./Output/tifs/PIED.int_ltre_vital.tif", overwrite = T)
+writeRaster(lambda_ltre_g, "./Output/tifs/PIED.int_ltre_g.tif", overwrite = T)
+writeRaster(lambda_ltre_s, "./Output/tifs/PIED.int_ltre_s.tif", overwrite = T)
+writeRaster(lambda_ltre_r, "./Output/tifs/PIED.int_ltre_r.tif", overwrite = T)
 
 # LTRE map environmental predictors
 lambda_ltre_p <- ppt_yr_raster
@@ -286,62 +283,7 @@ for (i in 60:nrow(ppt_yr_raster)) {
 
 lambda_ltre_env<-sum(lambda_ltre_p,lambda_ltre_t,lambda_ltre_b)
 
-writeRaster(lambda_ltre_p, "./Output/tifs/PIED.int_ltre_p.tif", overwrite = T)
-writeRaster(lambda_ltre_t, "./Output/tifs/PIED.int_ltre_t.tif", overwrite = T)
-writeRaster(lambda_ltre_b, "./Output/tifs/PIED.int_ltre_b.tif", overwrite = T)
-writeRaster(lambda_ltre_env, "./Output/tifs/PIED.int_ltre_env.tif", overwrite = T)
 
-min_p<-min(values(lambda_ltre_p),na.rm=T)
-max_p<-max((values(lambda_ltre_p)),na.rm=T)
-min_t<-min(values(lambda_ltre_t),na.rm=T)
-max_t<-max((values(lambda_ltre_t)),na.rm=T)
-min_b<-min(values(lambda_ltre_b),na.rm=T)
-max_b<-max((values(lambda_ltre_b)),na.rm=T)
-
-max_env<-max(max_p,max_t,max_b)
-min_env<-min(min_p,min_t,min_b)
-max_abs_env<-max(abs(c(max_env,min_env)))
-
-ltre_p_rgb<-(lambda_ltre_p-min_env)
-ltre_t_rgb<-(lambda_ltre_t-min_env)
-ltre_b_rgb<-(lambda_ltre_b-min_env)
-
-ltre_rgb<-stack(ltre_p_rgb,ltre_t_rgb,ltre_b_rgb)
-
-plotRGB(ltre_rgb,scale=max(values(ltre_rgb),na.rm=T))
-
-pal_div1 <- colorRampPalette(brewer.pal(n=11, name = "BrBG"))
-pal_div2 <- colorRampPalette(brewer.pal(n=11, name = "PiYG"))
-pal_div3 <- colorRampPalette(brewer.pal(n=11, name = "PuOr"))
-
-cuts<-c(seq(-max_abs_env,0,length=31),
-        seq(0,max_abs_env,length=31)[2:31])
-
-png(file="./Output/PIED_ltre_env_p.png",4,4,units="in",type="cairo",res=600)
-plot(lambda_ltre_p,col=pal_div1(61)) #,breaks=cuts
-points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-dev.off()
-
-png(file="./Output/PIED_ltre_env_t.png",4,4,units="in",type="cairo",res=600)
-plot(lambda_ltre_t,col=pal_div2(61)) #,breaks=cuts,alpha=0.5,add=T)
-points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-dev.off()
-
-png(file="./Output/PIED_PIED_ltre_env_b.png",4,4,units="in",type="cairo",res=600)
-plot(lambda_ltre_b,col=pal_div3(61)) #,breaks=cuts,alpha=0.5,add=T)
-points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-dev.off()
-
-plot(NA,NA,xlim=c(0,1),ylim=c(0,1),asp=1,bty="n",axes=F,xlab="",ylab="")
-sm <- 500
-x <- do.call(c, sapply(1:(sm*sqrt(3)/2)/sm, 
-                       function(i) (i*sm/sqrt(3)):(sm-i*sm/sqrt(3))/sm))
-y <- do.call(c, sapply(1:(sm*sqrt(3)/2)/sm, 
-                       function(i) rep(i, length((i*sm/sqrt(3)):(sm-i*sm/sqrt(3))))))
-d.red = y
-d.green = abs(sqrt(3) * x - y) / sqrt(3 + 1)
-d.blue = abs(- sqrt(3) * x - y + sqrt(3)) / sqrt(3 + 1)
-points(x, y, col=rgb(d.red,d.green,d.blue), pch=19)
 
 ### Elevation - lambda "LTRE"
 mytheme2<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
@@ -391,8 +333,8 @@ for (i in 1:length(elev_seq)) {
                                            type = "response", re.form = NA)) #, exclude = "s(PLT_CN_factor)"
 
     # Calculate lambda
-    K<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.int.gam, smodel=smodel.int.gam, 
-               rmodel=rmodel.int.gam, gSD=growSD.int.gam,
+    K<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.clim.int.gam, smodel=smodel.clim.int.gam, 
+               rmodel=rmodel.clim.int.gam, gSD=growSD.clim.int.gam,
                data=pred_data,
                s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F)
     lambda_val <- Re(eigen(K)$values[1])
@@ -464,6 +406,8 @@ lines(elev_seq,test)
 
 lam_elev_data_c<-data.frame(Elevation=elev_seq,Lambda=lambda_elev)
 lam_elev_data_c$Model="c"
+lam_elev_data_ci<-data.frame(Elevation=elev_seq,Lambda=lambda_elev)
+lam_elev_data_ci$Model="ci"
 lam_elev_data_cc<-data.frame(Elevation=elev_seq,Lambda=lambda_elev)
 lam_elev_data_cc$Model="cc"
 lam_elev_data_i<-data.frame(Elevation=elev_seq,Lambda=lambda_elev)
