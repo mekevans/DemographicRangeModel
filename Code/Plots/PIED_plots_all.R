@@ -13,6 +13,8 @@ library(RColorBrewer)
 library(scales)
 library(ggalt)
 library(raster)
+library(gtools)
+library(ggforce)
 
 ### Set up theme for ggplot figures
 mytheme<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
@@ -23,12 +25,12 @@ mytheme<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_bl
                 axis.line.x = element_line(color="black", size = 0.3),
                 axis.line.y = element_line(color="black", size = 0.3))
 
-legend<-function(a.gplot){
-  tmp <- ggplot_gtable(ggplot_build(a.gplot))
-  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
-  legend <- tmp$grobs[[leg]]
-  legend
-}
+#legend<-function(a.gplot){
+#  tmp <- ggplot_gtable(ggplot_build(a.gplot))
+#  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+#  legend <- tmp$grobs[[leg]]
+#  legend
+#}
 
 ### Predictor covariance ----
 
@@ -254,7 +256,7 @@ grow_ci_d <- ggplot(data=grdata,aes(x=PREVDIA))+
             fill="grey80",col="grey80",alpha=0.1)+
   geom_point(data=g_binned,aes(x=PREVDIA,y=grow_dia_ci,size=count_dia),alpha=0.7)+
   geom_line(data=grplot_data_climint,aes(x=dia,y=dia_pred),col="#1b9e77",size=1.25)+
-  labs(x="Previous diameter", y="Diameter increment", title="c")+
+  labs(x="Previous diameter", y="Diameter increment", title="a")+
   guides(size=guide_legend(title="Count")) +
   theme(legend.position="none") + mytheme
 
@@ -298,7 +300,7 @@ surv_ci_d <- ggplot(data=survData,aes(x=PREVDIA))+
             fill="grey80",col="grey80",alpha=0.1)+
   geom_point(data=s_binned,aes(x=PREVDIA,y=mort_dia_ci,size=count_dia),alpha=0.7)+ #,col="#1b9e77"
   geom_line(data=splot_data_climint,aes(x=dia,y=dia_pred),col="#1b9e77",size=1.25)+
-  labs(x="Previous diameter", y="Survival", title="d")+
+  labs(x="Previous diameter", y="Survival", title="b")+
   guides(size=guide_legend(title="Count")) +
   theme(legend.position="none") + mytheme
 
@@ -531,7 +533,7 @@ grow_i_d <- ggplot(data=grdata,aes(x=PREVDIA))+
             fill="grey80",col="grey80",alpha=0.1)+
   geom_point(data=g_binned,aes(x=PREVDIA,y=grow_dia_i,size=count_dia),alpha=0.5)+
   geom_line(data=grplot_data_int,aes(x=dia,y=dia_pred),col="#1b9e77",size=1.25)+
-  labs(x="Previous diameter", y="Diameter increment", title="e")+
+  labs(x="Previous diameter", y="Diameter increment", title="c")+
   guides(size=guide_legend(title="Count")) +
   theme(legend.position="top",legend.box.margin=margin(-10,-10,-10,-10)) + mytheme
 
@@ -594,7 +596,7 @@ surv_i_d <- ggplot(data=survData,aes(x=PREVDIA))+
                 ymin=0.5,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
   geom_point(data=s_binned,aes(x=PREVDIA,y=mort_dia_i,size=count_dia),alpha=0.5)+ #,col="#1b9e77"
   geom_line(data=splot_data_int,aes(x=dia,y=dia_pred),col="#1b9e77",size=1.25)+
-  labs(x="Previous diameter", y="Survival", title="f")+
+  labs(x="Previous diameter", y="Survival", title="d")+
   guides(size=guide_legend(title="Count")) +
   theme(legend.position="top",legend.box.margin=margin(-10,-10,-10,-10)) + mytheme
 
@@ -820,7 +822,7 @@ lambda_c_b <- ggplot(data = predictorDFs_clim[[1]], aes(x = BALIVE, y = lambda))
                 ymin=min(predictorDFs_clim[[1]]$lambda),ymax=max(predictorDFs_clim[[1]]$lambda)),
             fill="grey80",col="grey80",alpha=0.1)+
   geom_line(col="#1b9e77",size=1.25) +
-  xlab("Plot basal area") + ylab("Lambda") + mytheme
+  xlab("Plot basal area") + ylab("Lambda") + mytheme 
 
 lambda_c_p <- ggplot(data = predictorDFs_clim[[2]], aes(x = PPT_yr, y = lambda)) + 
   geom_rect(aes(xmin=min(predictorDFs_clim[[2]]$PPT_yr),xmax=min(FIA$PPT_yr),
@@ -838,6 +840,34 @@ lambda_c_t <- ggplot(data = predictorDFs_clim[[3]], aes(x = T_yr, y = lambda)) +
             fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmin=max(FIA$T_yr),xmax=max(predictorDFs_clim[[3]]$T_yr),
                 ymin=min(predictorDFs_clim[[3]]$lambda),ymax=max(predictorDFs_clim[[3]]$lambda)),
+            fill="grey80",col="grey80",alpha=0.1)+
+  geom_line(col="#1b9e77",size=1.25) +
+  xlab("MAT") + ylab("Lambda") + mytheme
+
+## Climate-only, interactions
+lambda_ci_b <- ggplot(data = predictorDFs_climint[[1]], aes(x = BALIVE, y = lambda)) + 
+  geom_rect(aes(xmin=min(predictorDFs_climint[[1]]$BALIVE),xmax=min(FIA$BALIVE),
+                ymin=min(predictorDFs_climint[[1]]$lambda),ymax=max(predictorDFs_climint[[1]]$lambda)),
+            fill="grey80",col="grey80",alpha=0.1)+
+  geom_line(col="#1b9e77",size=1.25) +
+  xlab("Plot basal area") + ylab("Lambda") + mytheme 
+
+lambda_ci_p <- ggplot(data = predictorDFs_climint[[2]], aes(x = PPT_yr, y = lambda)) + 
+  geom_rect(aes(xmin=min(predictorDFs_climint[[2]]$PPT_yr),xmax=min(FIA$PPT_yr),
+                ymin=min(predictorDFs_climint[[2]]$lambda),ymax=max(predictorDFs_climint[[2]]$lambda)),
+            fill="grey80",col="grey80",alpha=0.1)+
+  geom_rect(aes(xmin=max(FIA$PPT_yr),xmax=max(predictorDFs_climint[[2]]$PPT_yr),
+                ymin=min(predictorDFs_climint[[2]]$lambda),ymax=max(predictorDFs_climint[[2]]$lambda)),
+            fill="grey80",col="grey80",alpha=0.1)+
+  geom_line(col="#1b9e77",size=1.25) +
+  xlab("MAP") + ylab("Lambda") + mytheme
+
+lambda_ci_t <- ggplot(data = predictorDFs_climint[[3]], aes(x = T_yr, y = lambda)) + 
+  geom_rect(aes(xmin=min(predictorDFs_climint[[3]]$T_yr),xmax=min(FIA$T_yr),
+                ymin=min(predictorDFs_climint[[3]]$lambda),ymax=max(predictorDFs_climint[[3]]$lambda)),
+            fill="grey80",col="grey80",alpha=0.1)+
+  geom_rect(aes(xmin=max(FIA$T_yr),xmax=max(predictorDFs_climint[[3]]$T_yr),
+                ymin=min(predictorDFs_climint[[3]]$lambda),ymax=max(predictorDFs_climint[[3]]$lambda)),
             fill="grey80",col="grey80",alpha=0.1)+
   geom_line(col="#1b9e77",size=1.25) +
   xlab("MAT") + ylab("Lambda") + mytheme
@@ -872,11 +902,11 @@ lambda_cc_t <- ggplot(data = predictorDFs_climcomp[[3]], aes(x = T_yr, y = lambd
 
 ## Climate + competition, interactions
 lambda_i_b <- ggplot(data = predictorDFs_int[[1]], aes(x = BALIVE, y = lambda)) + 
-  geom_rect(aes(xmin=min(predictorDFs_int[[1]]$BALIVE),xmax=min(FIA$BALIVE),
-                ymin=min(predictorDFs_int[[1]]$lambda),ymax=max(predictorDFs_int[[1]]$lambda)),
-            fill="grey80",col="grey80",alpha=0.1)+
+  #geom_rect(aes(xmin=min(predictorDFs_int[[1]]$BALIVE),xmax=min(FIA$BALIVE),
+                #ymin=min(predictorDFs_int[[1]]$lambda),ymax=max(predictorDFs_int[[1]]$lambda)),
+            #fill="grey80",col="grey80",alpha=0.1)+
   geom_line(col="#1b9e77",size=1.25) +
-  xlab("Plot basal area") + ylab("Lambda") + mytheme
+  xlab("Plot basal area") + ylab("Lambda") + mytheme + coord_cartesian(ylim = c(0.8, 1.05))
 
 lambda_i_p <- ggplot(data = predictorDFs_int[[2]], aes(x = PPT_yr, y = lambda)) + 
   geom_rect(aes(xmin=min(predictorDFs_int[[2]]$PPT_yr),xmax=min(FIA$PPT_yr),
@@ -902,6 +932,10 @@ lambda_i_t <- ggplot(data = predictorDFs_int[[3]], aes(x = T_yr, y = lambda)) +
 ggsave(file="gam_lam_c_b.png", plot=lambda_c_b,width=4,height=3,units="in",dpi=600)
 ggsave(file="gam_lam_c_p.png", plot=lambda_c_p,width=4,height=3,units="in",dpi=600)
 ggsave(file="gam_lam_c_t.png", plot=lambda_c_t,width=4,height=3,units="in",dpi=600)
+
+ggsave(file="gam_lam_ci_b.png", plot=lambda_ci_b,width=4,height=3,units="in",dpi=600)
+ggsave(file="gam_lam_ci_p.png", plot=lambda_ci_p,width=4,height=3,units="in",dpi=600)
+ggsave(file="gam_lam_ci_t.png", plot=lambda_ci_t,width=4,height=3,units="in",dpi=600)
 
 ggsave(file="gam_lam_cc_b.png", plot=lambda_cc_b,width=4,height=3,units="in",dpi=600)
 ggsave(file="gam_lam_cc_p.png", plot=lambda_cc_p,width=4,height=3,units="in",dpi=600)
@@ -930,30 +964,38 @@ vital_lambda_plot_c<-plot_grid(grow_c_p,grow_c_t,surv_c_p,surv_c_t,recr_c_p,recr
 
 ## Data
 lambda_c<-raster("./Output/tifs/PIED.clim_lambda_gam.tif")
+lambda_ci<-raster("./Output/tifs/PIED.climint_lambda_gam.tif")
 lambda_ccl<-raster("./Output/tifs/PIED.climclamp_lambda.tif")
 lambda_cc<-raster("./Output/tifs/PIED.climcomp_lambda_gam.tif")
 lambda_ccf<-raster("./Output/tifs/PIED.climcompfire_lambda.tif")
 lambda_i<-raster("./Output/tifs/PIED.int_lambda_gam.tif")
 
 growth_c<-raster("./Output/tifs/PIED.clim_growth_gam.tif")
+#growth_ci<-raster("./Output/tifs/PIED.climint_growth_gam.tif")
 growth_ccl<-raster("./Output/tifs/PIED.climclamp_growth.tif")
 growth_cc<-raster("./Output/tifs/PIED.climcomp_growth_gam.tif")
 growth_ccf<-raster("./Output/tifs/PIED.climcompfire_growth.tif")
 growth_i<-raster("./Output/tifs/PIED.int_growth_gam.tif")
 
 survival_c<-raster("./Output/tifs/PIED.clim_survival_gam.tif")
+#survival_ci<-raster("./Output/tifs/PIED.climint_survival_gam.tif")
 survival_ccl<-raster("./Output/tifs/PIED.climclamp_survival.tif")
 survival_cc<-raster("./Output/tifs/PIED.climcomp_survival_gam.tif")
 survival_ccf<-raster("./Output/tifs/PIED.climcompfire_survival.tif")
 survival_i<-raster("./Output/tifs/PIED.int_survival_gam.tif")
 
 reproduction_c<-raster("./Output/tifs/PIED.clim_reproduction_gam.tif")
+reproduction_ci<-raster("./Output/tifs/PIED.climint_reproduction_gam.tif")
 reproduction_ccl<-raster("./Output/tifs/PIED.climclamp_reproduction.tif")
 reproduction_cc<-raster("./Output/tifs/PIED.climcomp_reproduction_gam.tif")
 reproduction_ccf<-raster("./Output/tifs/PIED.climcompfire_reproduction.tif")
 reproduction_i<-raster("./Output/tifs/PIED.int_reproduction_gam.tif")
 
 extrap <- raster("./Output/tifs/extrap.tif")
+
+FIA <- read.csv("./Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
+# filter out trees killed by fire
+FIA <- FIA[!(FIA$DSTRBCD1 %in% c(30, 31, 32, 80)), ]
 
 ## Color palettes
 pal_seq <- colorRampPalette(brewer.pal(n=9, name = "PuBuGn"))
@@ -990,6 +1032,38 @@ legend_text<-(c(cuts_round[1],cuts_round[11],cuts_round[21],cuts_round[31],cuts_
 
 png(file="./Output/PIED_clim_gam_lam_div.png",4,4,units="in",type="cairo",res=600)
 plot(lambda_c, breaks=cuts, col=pal_div(61), xlab="Longitude", ylab="Latitude",cex.axis=0.8,cex.lab=0.9,
+     axis.args=list(cex.axis=0.8),legend=F) 
+color.legend(-100,33,-99,40.5,
+             legend=legend_text,rect.col=pal_div(61),align="rb",gradient="y",cex=0.9)
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+legend(x=-102,y=43,legend=expression(lambda),bty = "n",cex=1.5)
+dev.off()
+
+## Climate-only, interactions
+pdf("./Output/PIED_climint_gam.pdf")
+plot(lambda_ci, main = "Lambda", col=pal_seq(50)); points(LAT ~ LON, FIA, pch = 19, cex = 0.05); plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+plot(growth_ci, main = "Growth", col=pal_seq(50)); points(LAT ~ LON, FIA, pch = 19, cex = 0.05); plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+plot(survival_ci, main = "Survival",col=pal_seq(50)); points(LAT ~ LON, FIA, pch = 19, cex = 0.05); plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+plot(reproduction_ci, main = "Reproduction", col=pal_seq(50)); points(LAT ~ LON, FIA, pch = 19, cex = 0.05); plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+dev.off()
+
+png(file="./Output/PIED_climint_gam_lam.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ci, col=pal_seq(50), xlab="Longitude", ylab="Latitude",cex.axis=0.8,cex.lab=0.9,
+     legend.args=list(text='Lambda',adj=0,cex=0.9),
+     axis.args=list(cex.axis=0.8)) 
+plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+dev.off()
+
+cuts<-c(seq(min(na.omit(values(lambda_ci))),1,length=31),
+        seq(1,max(na.omit(values(lambda_ci))),length=31)[2:31])
+
+cuts_round<-round(cuts,2)
+legend_text<-(c(cuts_round[1],cuts_round[11],cuts_round[21],cuts_round[31],cuts_round[41],cuts_round[51],cuts_round[61]))
+
+png(file="./Output/PIED_climint_gam_lam_div.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ci, breaks=cuts, col=pal_div(61), xlab="Longitude", ylab="Latitude",cex.axis=0.8,cex.lab=0.9,
      axis.args=list(cex.axis=0.8),legend=F) 
 color.legend(-100,33,-99,40.5,
              legend=legend_text,rect.col=pal_div(61),align="rb",gradient="y",cex=0.9)
@@ -1053,13 +1127,13 @@ cuts_round<-round(cuts,2)
 legend_text<-(c(cuts_round[1],cuts_round[11],cuts_round[21],cuts_round[31],cuts_round[41],cuts_round[51],cuts_round[61]))
 
 png(file="./Output/PIED_int_gam_lam_div.png",4,4,units="in",type="cairo",res=600)
-plot(lambda_i, breaks=cuts, col=pal(61), xlab="Longitude", ylab="Latitude",cex.axis=0.8,cex.lab=0.9,
+plot(lambda_i, breaks=cuts, col=pal_div(61), xlab="Longitude", ylab="Latitude",cex.axis=0.8,cex.lab=0.9,
      axis.args=list(cex.axis=0.8),legend=F) 
 color.legend(-100,33,-99,40.5,
-             legend=legend_text,rect.col=pal(61),align="rb",gradient="y",cex=0.9)
+             legend=legend_text,rect.col=pal_div(61),align="rb",gradient="y",cex=0.9)
 plot(extrap,col=grey(0.1),legend=F,alpha=0.2,add=T)
 points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
-legend(x=-102,y=43,legend=expression(lambda),bty = "n",cex=1.5)
+text(x=-99.6,y=41.3,labels=expression(lambda),cex=1)
 dev.off()
 
 
@@ -1075,6 +1149,16 @@ pres_plot_c<-ggplot(data=subset(pres_binned,model=="c"),aes(x=lam,y=pres))+
   annotate("label", x = 0.89, y = 0.5, 
            label = paste("Deviance=",round(pa_c$deviance,2),
                          "\nAIC =",round(pa_c$aic,2)),
+           hjust = 0, vjust = 1, size=5)+
+  guides(size=guide_legend(title="Count")) +
+  mytheme+labs(x = "lambda", y = "Probability of occurrence")
+
+pres_plot_ci<-ggplot(data=subset(pres_binned,model=="ci"),aes(x=lam,y=pres))+
+  geom_point(aes(size=count_lam))+
+  geom_line(aes(y=pred),size=1)+
+  annotate("label", x = 0.81, y = 0.5, 
+           label = paste("Deviance=",round(pa_ci$deviance,2),
+                         "\nAIC =",round(pa_ci$aic,2)),
            hjust = 0, vjust = 1, size=5)+
   guides(size=guide_legend(title="Count")) +
   mytheme+labs(x = "lambda", y = "Probability of occurrence")
@@ -1103,6 +1187,7 @@ pres_plot_i<-ggplot(data=subset(pres_binned,model=="i"),aes(x=lam,y=pres))+
 
 # Save plots
 save_plot(file="pres_plot_c_gam.png",pres_plot_c)
+save_plot(file="pres_plot_ci_gam.png",pres_plot_ci)
 save_plot(file="pres_plot_cc_gam.png",pres_plot_cc)
 save_plot(file="pres_plot_i_gam.png",pres_plot_i)
 
@@ -1110,6 +1195,17 @@ save_plot(file="pres_plot_i_gam.png",pres_plot_i)
 lambdaHist_c<-ggplot(data=FIA_lambda,aes(x=lambda_c,fill=PApied_f)) +
   geom_histogram(aes(y = ..density..),alpha=0.7)+
   geom_vline(data=l_means, aes(xintercept=lambda_c,  colour=PApied_f),
+             linetype="dashed", size=1)+
+  scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                    name = "PIED presence", labels = c("Absent","Present"))+
+  scale_colour_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
+                      name = "PIED presence", labels = c("Absent","Present"))+
+  labs(x="Lambda", y="Density")+
+  mytheme
+
+lambdaHist_ci<-ggplot(data=FIA_lambda,aes(x=lambda_ci,fill=PApied_f)) +
+  geom_histogram(aes(y = ..density..),alpha=0.7)+
+  geom_vline(data=l_means, aes(xintercept=lambda_ci,  colour=PApied_f),
              linetype="dashed", size=1)+
   scale_fill_manual(values = c("#1b9e77","#d95f02"), limits = c("0","1"), breaks = c("0","1"),
                     name = "PIED presence", labels = c("Absent","Present"))+
@@ -1142,31 +1238,48 @@ lambdaHist_i<-ggplot(data=FIA_lambda,aes(x=lambda_i,fill=PApied_f)) +
 
 # Save plots
 save_plot(file="lam_hist_c.png",lambdaHist_c,base_asp = 1.2)
+save_plot(file="lam_hist_ci.png",lambdaHist_ci,base_asp = 1.2)
 save_plot(file="lam_hist_cc.png",lambdaHist_cc,base_asp = 1.2)
 save_plot(file="lam_hist_i.png",lambdaHist_i,base_asp = 1.2)
 
 ## Niche space plots
+cuts_c<-c(seq(min(na.omit(interpdf_c$z)),1,length=5),
+        seq(1,max(na.omit(interpdf_c$z)),length=5)[2:5])
+cuts_ci<-c(seq(min(na.omit(interpdf_ci$z)),1,length=5),
+          seq(1,max(na.omit(interpdf_ci$z)),length=5)[2:5])
+cuts_cc<-c(seq(min(na.omit(interpdf_cc$z)),1,length=5),
+          seq(1,max(na.omit(interpdf_cc$z)),length=5)[2:5])
+cuts_i<-c(seq(min(na.omit(interpdf_i$z)),1,length=5),
+          seq(1,max(na.omit(interpdf_i$z)),length=5)[2:5])
+
 # Raw lambda
 niche_c<-ggplot(data=interpdf_c,aes(x=x,y=y))+
   geom_tile(aes(fill=z))+
   geom_density2d(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),color="black")+
   geom_encircle(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),col="black",expand=0.01)+
-  scale_fill_distiller(palette="PuBuGn",direction=1,name="Lambda")+
-  labs(x="MAP",y="MAT")
+  scale_fill_distiller(palette="BrBG",values=rescale(cuts_c),name="Lambda",direction=1)+
+  labs(x="MAP",y="MAT") + mytheme
+
+niche_ci<-ggplot(data=interpdf_ci,aes(x=x,y=y))+
+  geom_tile(aes(fill=z))+
+  geom_density2d(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),color="black")+
+  geom_encircle(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),col="black",expand=0.01)+
+  scale_fill_distiller(palette="BrBG",values=rescale(cuts_ci),name=expression(lambda),direction=1)+
+  labs(x="MAP",y="MAT") + mytheme
 
 niche_cc<-ggplot(data=interpdf_cc,aes(x=x,y=y))+
   geom_tile(aes(fill=z))+
   geom_density2d(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),color="black")+
   geom_encircle(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),col="black",expand=0.01)+
-  scale_fill_distiller(palette="PuBuGn",direction=1,name="Lambda")+
-  labs(x="MAP",y="MAT")
+  scale_fill_distiller(palette="BrBG",values=rescale(cuts_cc),direction=1,name="Lambda")+
+  labs(x="MAP",y="MAT") + mytheme
 
 niche_i<-ggplot(data=interpdf_i,aes(x=x,y=y))+
   geom_tile(aes(fill=z))+
   geom_density2d(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),color="black")+
   geom_encircle(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),col="black",expand=0.01)+
-  scale_fill_distiller(palette="PuBuGn",direction=1,name="Lambda")+
-  labs(x="MAP",y="MAT")
+  scale_fill_distiller(palette="BrBG",values=rescale(cuts_i),direction=1,name="Lambda")+
+  labs(x="MAP",y="MAT") + mytheme
 
 # Deviation from mean lambda
 niche_c_diff<-ggplot(data=interpdf_c,aes(x=x,y=y))+
@@ -1174,6 +1287,14 @@ niche_c_diff<-ggplot(data=interpdf_c,aes(x=x,y=y))+
   geom_density2d(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),color="black")+
   geom_encircle(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),col="black",expand=0.01)+
   scale_fill_distiller(palette="BrBG",direction=1,values=rescale(q_c),
+                       name="Deviation \nin lambda")+
+  labs(x="MAP",y="MAT")+mytheme
+
+niche_ci_diff<-ggplot(data=interpdf_ci,aes(x=x,y=y))+
+  geom_tile(aes(fill=z_diff))+
+  geom_density2d(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),color="black")+
+  geom_encircle(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),col="black",expand=0.01)+
+  scale_fill_distiller(palette="BrBG",direction=1,values=rescale(q_ci),
                        name="Deviation \nin lambda")+
   labs(x="MAP",y="MAT")+mytheme
 
@@ -1189,16 +1310,19 @@ niche_i_diff<-ggplot(data=interpdf_i,aes(x=x,y=y))+
   geom_tile(aes(fill=z_diff))+
   geom_density2d(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),color="black")+
   geom_encircle(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),col="black",expand=0.01)+
+  geom_point(data=subset(rdata,Fire==1),aes(x=PPT_yr_norm,y=T_yr_norm))+
   scale_fill_distiller(palette="BrBG",direction=1,values=rescale(q_i),
                        name="Deviation \nin lambda")+
   labs(x="MAP",y="MAT")+mytheme
 
 # Save plots
 save_plot(file="niche_c.png",niche_c,base_asp = 1.5)
+save_plot(file="niche_ci.png",niche_ci,base_asp = 1.5)
 save_plot(file="niche_cc.png",niche_cc,base_asp = 1.5)
 save_plot(file="niche_i.png",niche_i,base_asp = 1.5)
 
 save_plot(file="niche_c_diff.png",niche_c_diff,base_asp = 1.5)
+save_plot(file="niche_ci_diff.png",niche_ci_diff,base_asp = 1.5)
 save_plot(file="niche_cc_diff.png",niche_cc_diff,base_asp = 1.5)
 save_plot(file="niche_i_diff.png",niche_i_diff,base_asp = 1.5)
 
@@ -1238,35 +1362,35 @@ t_resid_i_plot<-ggplot(data=res_binned,aes(x=t_binned,y=resid_i_t,size=count_t))
   geom_point()+mytheme+labs(x = "MAT", y = "Scaled residuals")
 
 # Unscaled residuals
-ba_resid2_plot<-ggplot(data=res2_binned,aes(x=ba,y=resid_ba,colour=model))+
+ba_resid2_plot<-ggplot(data=subset(res2_binned,model=="ci"|model=="i"),aes(x=ba,y=resid_ba,colour=model))+
   geom_abline(intercept=0,slope=0)+
   geom_point(aes(size=count_ba))+
-  scale_colour_manual(breaks=c("c","ci","cc","i"), 
-                      values=c("c"="#1b9e77","ci"="#d95f02","cc"="#7570b3",
-                               "i"="#e7298a"),
-                      labels=c("Clim","ClimInt","ClimComp","ClimCompInt"),
+  scale_colour_manual(breaks=c("ci","i"), 
+                      values=c("ci"="#d95f02",
+                               "i"="#1b9e77"),
+                      labels=c("Clim","Clim + Comp"),
                       name="Model")+
   guides(size=guide_legend(title="Count")) +
   mytheme+labs(x = "Basal area", y = "Residuals")
 
-ppt_resid2_plot<-ggplot(data=res2_binned,aes(x=ppt,y=resid_ppt,colour=model))+
+ppt_resid2_plot<-ggplot(data=subset(res2_binned,model=="ci"|model=="i"),aes(x=ppt,y=resid_ppt,colour=model))+
   geom_abline(intercept=0,slope=0)+
   geom_point(aes(size=count_ppt))+
-  scale_colour_manual(breaks=c("c","ci","cc","i"), 
-                      values=c("c"="#1b9e77","ci"="#d95f02","cc"="#7570b3",
-                               "i"="#e7298a"),
-                      labels=c("Clim","ClimInt","ClimComp","ClimCompInt"),
+  scale_colour_manual(breaks=c("ci","i"), 
+                      values=c("ci"="#d95f02",
+                               "i"="#1b9e77"),
+                      labels=c("Clim","Clim + Comp"),
                       name="Model")+
   guides(size=guide_legend(title="Count")) +
   mytheme+labs(x = "MAP", y = "Residuals")
 
-t_resid2_plot<-ggplot(data=res2_binned,aes(x=t,y=resid_t,colour=model))+
+t_resid2_plot<-ggplot(data=subset(res2_binned,model=="ci"|model=="i"),aes(x=t,y=resid_t,colour=model))+
   geom_abline(intercept=0,slope=0)+
   geom_point(aes(size=count_t))+
-  scale_colour_manual(breaks=c("c","ci","cc","i"), 
-                      values=c("c"="#1b9e77","ci"="#d95f02","cc"="#7570b3",
-                               "i"="#e7298a"),
-                      labels=c("Clim","ClimInt","ClimComp","ClimCompInt"),
+  scale_colour_manual(breaks=c("ci","i"), 
+                      values=c("ci"="#d95f02",
+                               "i"="#1b9e77"),
+                      labels=c("Clim","Clim + Comp"),
                       name="Model")+
   guides(size=guide_legend(title="Count")) +
   mytheme+labs(x = "MAT", y = "Residuals")
@@ -1357,6 +1481,17 @@ lam_elev_plot_c<-ggplot(data=subset(lam_elev_data, Model=="c"),aes(x=Elevation,y
   labs(x = "Elevation (ft)", y = expression(lambda))+
   mytheme
 
+lam_elev_plot_ci<-ggplot(data=subset(lam_elev_data, Model=="ci"),aes(x=Elevation,y=Lambda))+
+  geom_rect(aes(xmin=min(lam_elev_data$Elevation),xmax=min_elev_pied,
+                ymin=min(lam_elev_data$Lambda),ymax=max(lam_elev_data$Lambda)),
+            fill="grey80",col="grey80",alpha=0.1)+
+  geom_rect(aes(xmin=max_elev_pied,xmax=max(lam_elev_data$Elevation),
+                ymin=min(lam_elev_data$Lambda),ymax=max(lam_elev_data$Lambda)),
+            fill="grey80",col="grey80",alpha=0.1)+
+  geom_line(size=1)+
+  labs(x = "Elevation (ft)", y = expression(lambda))+
+  mytheme
+
 lam_elev_plot_cc<-ggplot(data=subset(lam_elev_data, Model=="cc"),aes(x=Elevation,y=Lambda))+
   geom_rect(aes(xmin=min(lam_elev_data$Elevation),xmax=min_elev_pied,
                 ymin=min(lam_elev_data$Lambda),ymax=max(lam_elev_data$Lambda)),
@@ -1396,6 +1531,7 @@ lam_elev_plot<-ggplot(data=lam_elev_data,aes(x=Elevation,y=Lambda,colour=Model))
 
 ## Save plots
 ggsave(file="lam_elev_plot_c.png", plot=lam_elev_plot_c,width=4,height=3,units="in",dpi=600)
+ggsave(file="lam_elev_plot_ci.png", plot=lam_elev_plot_ci,width=4,height=3,units="in",dpi=600)
 ggsave(file="lam_elev_plot_cc.png", plot=lam_elev_plot_cc,width=4,height=3,units="in",dpi=600)
 ggsave(file="lam_elev_plot_i.png", plot=lam_elev_plot_i,width=4,height=3,units="in",dpi=600)
 ggsave(file="lam_elev_plot.png", plot=lam_elev_plot,width=4,height=3,units="in",dpi=600)
@@ -1594,3 +1730,321 @@ ltre_plot_i<-ggplot(data=ltre_data_env,aes(x=Elev,y=Env_i,col=Predictor))+
 ggsave(file="ltre_plot_c.png", plot=ltre_plot_c,width=4,height=3,units="in",dpi=600)
 ggsave(file="ltre_plot_cc.png", plot=ltre_plot_cc,width=4,height=3,units="in",dpi=600)
 ggsave(file="ltre_plot_i.png", plot=ltre_plot_i,width=4,height=3,units="in",dpi=600)
+
+### LTRE - maps ----
+lambda_ltre_g <- raster("./Output/tifs/PIED.int_ltre_g.tif")
+lambda_ltre_s <- raster("./Output/tifs/PIED.int_ltre_s.tif")
+lambda_ltre_r <- raster("./Output/tifs/PIED.int_ltre_r.tif")
+lambda_ltre_vital <- raster("./Output/tifs/PIED.int_ltre_vital.tif")
+
+lambda_ltre_p <- raster("./Output/tifs/PIED.int_ltre_p.tif")
+lambda_ltre_t <- raster("./Output/tifs/PIED.int_ltre_t.tif")
+lambda_ltre_b <- raster("./Output/tifs/PIED.int_ltre_b.tif")
+lambda_ltre_env <- raster("./Output/tifs/PIED.int_ltre_env.tif")
+
+FIA <- read.csv("./Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
+# filter out trees killed by fire
+FIA <- FIA[!(FIA$DSTRBCD1 %in% c(30, 31, 32, 80)), ]
+
+# Set up diverging color palettes
+pal_div1 <- colorRampPalette(brewer.pal(n=11, name = "BrBG"))
+pal_div2 <- colorRampPalette(brewer.pal(n=11, name = "PiYG"))
+pal_div3 <- colorRampPalette(brewer.pal(n=11, name = "PuOr"))
+
+# Vital rates
+min_g<-min(values(lambda_ltre_g),na.rm=T)
+max_g<-max(values(lambda_ltre_g),na.rm=T)
+min_s<-min(values(lambda_ltre_s),na.rm=T)
+max_s<-max(values(lambda_ltre_s),na.rm=T)
+min_r<-min(values(lambda_ltre_r),na.rm=T)
+max_r<-max(values(lambda_ltre_r),na.rm=T)
+
+max_vital<-max(max_g,max_s,max_r)
+min_vital<-min(min_g,min_s,min_r)
+max_abs_vital<-max(abs(c(max_vital,min_vital)))
+
+cuts<-c(seq(-max_abs_vital,0,length=31),
+        seq(0,max_abs_vital,length=31)[2:31])
+
+cuts_round<-round(cuts,2)
+legend_text<-cuts_round[c(1,11,21,31,41,51,61)]
+color_val<-data.frame(Value=legend_text,col_g=pal_div1(61)[c(1,11,21,31,41,51,61)],
+                      col_s=pal_div2(61)[c(1,11,21,31,41,51,61)],col_r=pal_div3(61)[c(1,11,21,31,41,51,61)])
+  
+png(file="./Output/PIED_ltre_vital_g.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ltre_g,breaks=cuts,col=pal_div1(61),legend=F) 
+color.legend(-101,32.5,-100,40,
+             legend=legend_text,rect.col=pal_div1(61),align="rb",gradient="y",cex=0.9)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+text(x=-100.3,y=41.4,labels=expression(paste(Delta,lambda)),cex=1.2)
+dev.off()
+
+png(file="./Output/PIED_ltre_vital_s.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ltre_s,breaks=cuts,col=pal_div2(61),legend=F) #,alpha=0.5,add=T)
+color.legend(-101,32.5,-100,40,
+             legend=legend_text,rect.col=pal_div2(61),align="rb",gradient="y",cex=0.9)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+text(x=-100.3,y=41.4,labels=expression(paste(Delta,lambda)),cex=1.2)
+dev.off()
+
+png(file="./Output/PIED_ltre_vital_r.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ltre_r,breaks=cuts,col=pal_div3(61),legend=F) #,alpha=0.5,add=T)
+color.legend(-101,32.5,-100,40,
+             legend=legend_text,rect.col=pal_div3(61),align="rb",gradient="y",cex=0.9)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+text(x=-100.3,y=41.4,labels=expression(paste(Delta,lambda)),cex=1.2)
+dev.off()
+
+png(file="./Output/PIED_ltre_vital.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ltre_g,breaks=cuts,col=pal_div1(61),legend=F) 
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+color.legend(-101,32.5,-100,40,
+             legend=legend_text,rect.col=pal_div2(61),align="rb",gradient="y",cex=0.9)
+text(x=-100.3,y=41.4,labels=expression(paste(Delta,lambda)),cex=1.2)
+plot(lambda_ltre_r,breaks=cuts,col=pal_div3(61),legend=F,alpha=0.5,add=T)
+plot(lambda_ltre_s,breaks=cuts,col=pal_div2(61),legend=F,alpha=0.5,add=T)
+dev.off()
+
+cuts<-c(seq(min_vital,0,length=31),
+        seq(0,max_vital,length=31)[2:31])
+
+cuts_round<-round(cuts,3)
+legend_text<-cuts_round[c(1,11,21,31,41,51,61)]
+color_val<-data.frame(Value=legend_text,col_g=pal_div1(61)[c(1,11,21,31,41,51,61)],
+                      col_s=pal_div2(61)[c(1,11,21,31,41,51,61)],col_r=pal_div3(61)[c(1,11,21,31,41,51,61)])
+
+png(file="./Output/PIED_ltre_vital_g2.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ltre_g,breaks=cuts,col=pal_div1(61),legend=F) 
+color.legend(-101,32.5,-100,40,
+             legend=legend_text,rect.col=pal_div1(61),align="rb",gradient="y",cex=0.9)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+text(x=-100.3,y=41.4,labels=expression(paste(Delta,lambda)),cex=1.2)
+dev.off()
+
+png(file="./Output/PIED_ltre_vital_s2.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ltre_s,breaks=cuts,col=pal_div2(61),legend=F) #,alpha=0.5,add=T)
+color.legend(-101,32.5,-100,40,
+             legend=legend_text,rect.col=pal_div2(61),align="rb",gradient="y",cex=0.9)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+text(x=-100.3,y=41.4,labels=expression(paste(Delta,lambda)),cex=1.2)
+dev.off()
+
+png(file="./Output/PIED_ltre_vital_r2.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ltre_r,breaks=cuts,col=pal_div3(61),legend=F) #,alpha=0.5,add=T)
+color.legend(-101,32.5,-100,40,
+             legend=legend_text,rect.col=pal_div3(61),align="rb",gradient="y",cex=0.9)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+text(x=-100.3,y=41.4,labels=expression(paste(Delta,lambda)),cex=1.2)
+dev.off()
+
+png(file="./Output/PIED_ltre_vital2.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ltre_g,breaks=cuts,col=pal_div1(61),legend=F, xlab="Longitude", ylab="Latitude") 
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+#color.legend(-101,32.5,-100,40,
+ #            legend=legend_text,rect.col=pal_div2(61),align="rb",gradient="y",cex=0.9)
+#legend(x=-103.5,y=42.5,legend=expression(lambda),bty = "n",cex=1.2)
+plot(lambda_ltre_r,breaks=cuts,col=pal_div3(61),legend=F,alpha=0.7,add=T)
+plot(lambda_ltre_s,breaks=cuts,col=pal_div2(61),legend=F,alpha=0.5,add=T)
+dev.off()
+
+circleFun <- function(center = c(0,0),diameter = 1, npoints = 61, angle = 0){
+  r = diameter / 2
+  d <- seq(-r,r,length=npoints)
+  dx<-r*seq(cos(angle),cos(angle+pi),length=npoints)
+  x <- dx - dx[1]
+  y <- x/(cos(pi-angle))
+  x2 <- r-y
+  tt <- acos(x2/r)
+  xx <- center[1] + r*cos(angle + tt)
+  xx_end <- center[1] + r*cos(angle - tt)
+  yy <- center[2] - r*sin(angle + tt)
+  yy_end <- center[2] - r*sin(angle - tt)
+  return(data.frame(x = xx, xend = xx_end, y = yy, yend = yy_end))
+}
+
+df.venn <- data.frame(x = c(0, 0, 0),
+                      y = c(0, 0, 0),
+                      labels = c('A', 'B', 'C'))
+
+df.seg1 <- circleFun()
+df.seg2 <- circleFun(angle=(2*pi/3))
+df.seg3 <- circleFun(angle=(pi/3))
+
+df.pt<-data.frame(x=c(df.venn$x[1],df.venn$x[2],df.venn$x[3],df.seg1$x[1],df.seg2$x[1],df.seg3$x[1],df.seg1$x[nrow(df.seg1)],df.seg2$x[nrow(df.seg2)],df.seg3$x[nrow(df.seg3)]),
+                  y=c(df.venn$y[1],df.venn$y[2],df.venn$y[3],df.seg1$y[1],df.seg2$y[1],df.seg3$y[1],df.seg1$y[nrow(df.seg1)],df.seg2$y[nrow(df.seg2)],df.seg3$y[nrow(df.seg3)]), 
+                  label=c(0,0,0,legend_text[length(legend_text)],legend_text[1],legend_text[length(legend_text)],legend_text[1],legend_text[length(legend_text)],legend_text[1]))
+df.lab<-data.frame(x=c(0.5,-0.34,-0.18),y=c(-0.08,-0.4,0.49),label=c("G","R","S"))
+
+ltre_vital_leg<-ggplot(df.venn, aes(x0 = x, y0 = y, r=0.5)) +
+  geom_segment(data=df.seg1,aes(x=x,y=y,xend=x,yend=yend),alpha=1,color=pal_div1(61)[61:1],size=1.1) +
+  geom_segment(data=df.seg2,aes(x=x,y=y,xend=xend,yend=yend),alpha=0.7,color=pal_div3(61),size=1.1) +
+  geom_segment(data=df.seg3,aes(x=x,y=y,xend=xend,yend=yend),alpha=0.5,color=pal_div2(61)[61:1],size=1.1) +
+  geom_segment(data=df.seg1,aes(x=x[1],y=y[1],xend=x[nrow(df.seg1)],yend=yend[nrow(df.seg1)]),
+               color="black",size=0.8) +
+  geom_segment(data=df.seg2,aes(x=x[1],y=y[1],xend=xend[nrow(df.seg2)],yend=yend[nrow(df.seg2)]),
+               color="black",size=0.8) +
+  geom_segment(data=df.seg3,aes(x=x[1],y=y[1],xend=xend[nrow(df.seg1)],yend=yend[nrow(df.seg1)]),
+               color="black",size=0.8) +
+  geom_circle(alpha = .3, size = 1, colour = 'grey') +
+  geom_point(data=df.pt,aes(x=x,y=y)) + #,shape="|",size=3
+  geom_text(data=df.pt,aes(x=x,y=y,label=label),size=3,
+            hjust=c(0.5,0.5,0.5,0.4,-0.2,1.2,0.4,-0.3,1.2), vjust=c(-0.8,-0.8,-0.8,-0.5,1,1,-0.5,1,1)) +
+  geom_text(data=df.lab,aes(x=x,y=y,label=label),size=4) +
+  coord_cartesian(ylim = c(0.55, -0.55),xlim = c(0.55, -0.55)) +
+  theme_void() + labs(title=expression(paste(Delta,lambda)))+
+  theme(plot.title = element_text(hjust = 0.5,size=18))
+ltre_vital_leg
+
+png(file="./Output/PIED_ltre_vital_leg.png",2,2.3,units="in",type="cairo",res=600)
+ltre_vital_leg
+dev.off()
+
+# Predictors
+min_p<-min(values(lambda_ltre_p),na.rm=T)
+max_p<-max(values(lambda_ltre_p),na.rm=T)
+min_t<-min(values(lambda_ltre_t),na.rm=T)
+max_t<-max(values(lambda_ltre_t),na.rm=T)
+min_b<-min(values(lambda_ltre_b),na.rm=T)
+max_b<-max(values(lambda_ltre_b),na.rm=T)
+
+max_env<-max(max_p,max_t,max_b)
+min_env<-min(min_p,min_t,min_b)
+max_abs_env<-max(abs(c(max_env,min_env)))
+
+cuts<-c(seq(-max_abs_env,0,length=31),
+        seq(0,max_abs_env,length=31)[2:31])
+
+cuts_round<-round(cuts,2)
+legend_text<-(c(cuts_round[1],cuts_round[11],cuts_round[21],cuts_round[31],cuts_round[41],cuts_round[51],cuts_round[61]))
+
+png(file="./Output/PIED_ltre_env_p.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ltre_p,breaks=cuts,col=pal_div1(61),legend=F) 
+color.legend(-101,32.5,-100,40,
+             legend=legend_text,rect.col=pal_div1(61),align="rb",gradient="y",cex=0.9)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+text(x=-100.3,y=41.4,labels=expression(paste(Delta,lambda)),cex=1.2)
+dev.off()
+
+png(file="./Output/PIED_ltre_env_t.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ltre_t,breaks=cuts,col=pal_div2(61),legend=F) #,alpha=0.5,add=T)
+color.legend(-101,32.5,-100,40,
+             legend=legend_text,rect.col=pal_div2(61),align="rb",gradient="y",cex=0.9)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+text(x=-100.3,y=41.4,labels=expression(paste(Delta,lambda)),cex=1.2)
+dev.off()
+
+png(file="./Output/PIED_ltre_env_b.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ltre_b,breaks=cuts,col=pal_div3(61),legend=F) #,alpha=0.5,add=T)
+color.legend(-101,32.5,-100,40,
+             legend=legend_text,rect.col=pal_div3(61),align="rb",gradient="y",cex=0.9)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+text(x=-100.3,y=41.4,labels=expression(paste(Delta,lambda)),cex=1.2)
+dev.off()
+
+png(file="./Output/PIED_ltre_env.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ltre_b,breaks=cuts,col=pal_div1(61),legend=F) 
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+color.legend(-101,32.5,-100,40,
+             legend=legend_text,rect.col=pal_div2(61),align="rb",gradient="y",cex=0.9)
+text(x=-100.3,y=41.4,labels=expression(paste(Delta,lambda)),cex=1.2)
+plot(lambda_ltre_p,breaks=cuts,col=pal_div3(61),legend=F,alpha=0.5,add=T)
+plot(lambda_ltre_t,breaks=cuts,col=pal_div2(61),legend=F,alpha=0.5,add=T)
+dev.off()
+
+cuts<-c(seq(min_env,0,length=31),
+        seq(0,max_env,length=31)[2:31])
+
+cuts_round<-round(cuts,2)
+legend_text<-(c(cuts_round[1],cuts_round[11],cuts_round[21],cuts_round[31],cuts_round[41],cuts_round[51],cuts_round[61]))
+
+png(file="./Output/PIED_ltre_env_p2.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ltre_p,breaks=cuts,col=pal_div1(61),legend=F) 
+color.legend(-101,32.5,-100,40,
+             legend=legend_text,rect.col=pal_div1(61),align="rb",gradient="y",cex=0.9)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+text(x=-100.3,y=41.4,labels=expression(paste(Delta,lambda)),cex=1.2)
+dev.off()
+
+png(file="./Output/PIED_ltre_env_t2.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ltre_t,breaks=cuts,col=pal_div2(61),legend=F) #,alpha=0.5,add=T)
+color.legend(-101,32.5,-100,40,
+             legend=legend_text,rect.col=pal_div2(61),align="rb",gradient="y",cex=0.9)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+text(x=-100.3,y=41.4,labels=expression(paste(Delta,lambda)),cex=1.2)
+dev.off()
+
+png(file="./Output/PIED_ltre_env_b2.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ltre_b,breaks=cuts,col=pal_div3(61),legend=F) #,alpha=0.5,add=T)
+color.legend(-101,32.5,-100,40,
+             legend=legend_text,rect.col=pal_div3(61),align="rb",gradient="y",cex=0.9)
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+text(x=-100.3,y=41.4,labels=expression(paste(Delta,lambda)),cex=1.2)
+dev.off()
+
+png(file="./Output/PIED_ltre_env2.png",4,4,units="in",type="cairo",res=600)
+plot(lambda_ltre_b,breaks=cuts,col=pal_div1(61),legend=F,xlab="Longitude", ylab="Latitude") 
+points(LAT ~ LON, FIA, pch = 19, cex = 0.05)
+#color.legend(-101,32.5,-100,40,
+ #            legend=legend_text,rect.col=pal_div2(61),align="rb",gradient="y",cex=0.9)
+#text(x=-100.3,y=41.4,labels=expression(paste(Delta,lambda)),cex=1.2)
+plot(lambda_ltre_p,breaks=cuts,col=pal_div3(61),legend=F,alpha=0.7,add=T)
+plot(lambda_ltre_t,breaks=cuts,col=pal_div2(61),legend=F,alpha=0.5,add=T)
+dev.off()
+
+circleFun <- function(center = c(0,0),diameter = 1, npoints = 61, angle = 0){
+  r = diameter / 2
+  d <- seq(-r,r,length=npoints)
+  dx<-r*seq(cos(angle),cos(angle+pi),length=npoints)
+  x <- dx - dx[1]
+  y <- x/(cos(pi-angle))
+  x2 <- r-y
+  tt <- acos(x2/r)
+  xx <- center[1] + r*cos(angle + tt)
+  xx_end <- center[1] + r*cos(angle - tt)
+  yy <- center[2] - r*sin(angle + tt)
+  yy_end <- center[2] - r*sin(angle - tt)
+  return(data.frame(x = xx, xend = xx_end, y = yy, yend = yy_end))
+}
+
+df.venn <- data.frame(x = c(0, 0, 0),
+                      y = c(0, 0, 0),
+                      labels = c('A', 'B', 'C'))
+
+df.seg1 <- circleFun()
+df.seg2 <- circleFun(angle=(2*pi/3))
+df.seg3 <- circleFun(angle=(pi/3))
+
+df.pt<-data.frame(x=c(df.venn$x[1],df.venn$x[2],df.venn$x[3],df.seg1$x[1],df.seg2$x[1],df.seg3$x[1],df.seg1$x[nrow(df.seg1)],df.seg2$x[nrow(df.seg2)],df.seg3$x[nrow(df.seg3)]),
+                  y=c(df.venn$y[1],df.venn$y[2],df.venn$y[3],df.seg1$y[1],df.seg2$y[1],df.seg3$y[1],df.seg1$y[nrow(df.seg1)],df.seg2$y[nrow(df.seg2)],df.seg3$y[nrow(df.seg3)]), 
+                  label=c(0,0,0,legend_text[length(legend_text)],legend_text[1],legend_text[length(legend_text)],legend_text[1],legend_text[length(legend_text)],legend_text[1]))
+df.lab<-data.frame(x=c(0.5,-0.34,-0.13),y=c(-0.08,-0.4,0.49),label=c("MAP","BA","MAT"))
+
+ltre_env_leg<-ggplot(df.venn, aes(x0 = x, y0 = y, r=0.5)) +
+  geom_segment(data=df.seg1,aes(x=x,y=y,xend=x,yend=yend),alpha=1,color=pal_div1(61)[61:1],size=1.1) +
+  geom_segment(data=df.seg2,aes(x=x,y=y,xend=xend,yend=yend),alpha=0.7,color=pal_div3(61),size=1.1) +
+  geom_segment(data=df.seg3,aes(x=x,y=y,xend=xend,yend=yend),alpha=0.5,color=pal_div2(61)[61:1],size=1.1) +
+  geom_segment(data=df.seg1,aes(x=x[1],y=y[1],xend=x[nrow(df.seg1)],yend=yend[nrow(df.seg1)]),
+               color="black",size=0.8) +
+  geom_segment(data=df.seg2,aes(x=x[1],y=y[1],xend=xend[nrow(df.seg2)],yend=yend[nrow(df.seg2)]),
+               color="black",size=0.8) +
+  geom_segment(data=df.seg3,aes(x=x[1],y=y[1],xend=xend[nrow(df.seg1)],yend=yend[nrow(df.seg1)]),
+               color="black",size=0.8) +
+  geom_circle(alpha = .3, size = 1, colour = 'grey') +
+  geom_point(data=df.pt,aes(x=x,y=y)) + #,shape="|",size=3
+  geom_text(data=df.pt,aes(x=x,y=y,label=label),size=3,
+            hjust=c(0.5,0.5,0.5,0.4,-0.3,1.2,0.4,-0.3,1.2), vjust=c(-0.8,-0.8,-0.8,-0.5,1,1,-0.5,1,1)) +
+  geom_text(data=df.lab,aes(x=x,y=y,label=label),size=4) +
+  coord_cartesian(ylim = c(0.55, -0.55),xlim = c(0.55, -0.55)) +
+  theme_void() + labs(title=expression(paste(Delta,lambda)))+
+  theme(plot.title = element_text(hjust = 0.5,size=18))
+ltre_env_leg
+
+png(file="./Output/PIED_ltre_env_leg.png",2,2.3,units="in",type="cairo",res=600)
+ltre_env_leg
+dev.off()
+
+df.venn <- data.frame(x = c(0, 0.25, -0.25),
+                      y = c(0, -sqrt((0.5^2)-(0.25^2)), -sqrt((0.5^2)-(0.25^2))),
+                      labels = c('A', 'B', 'C'))
+df.seg2 <- circleFun(center=c(0.25,-sqrt((0.5^2)-(0.25^2))),angle=(2*pi/3))
+df.seg3 <- circleFun(center=c(-0.25,-sqrt((0.5^2)-(0.25^2))),angle=(pi/3))
