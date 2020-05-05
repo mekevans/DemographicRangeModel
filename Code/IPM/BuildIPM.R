@@ -196,8 +196,8 @@ fec <- function(model, size.y, size.x, data, interval = 1, elast = F, perturb = 
  }
  
  
- ipm_elas<-function(min, max, n=500, gmodel, smodel, rmodel, gSD,
-                   data, elas=F, gperturb=0, sperturb=0, rperturb=0,
+ ipm_ltre<-function(min, max, n=500, gmodel, smodel, rmodel, gSD,
+                   data_g, data_s, data_r, elast=F, gperturb=0, sperturb=0, rperturb=0,
                    s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F){
    b <- min+c(0:n)*(max-min)/n # these are the n+1 "edges" of the size bins
    y <- 0.5*(b[1:n]+b[2:(n+1)]) # these are the mid-points of the n size classes
@@ -205,28 +205,20 @@ fec <- function(model, size.y, size.x, data, interval = 1, elast = F, perturb = 
    h <- y[2]-y[1] # bin width 
    
    # Growth and survival
-   G <- h*outer(y, y, g.yx, model = gmodel, growSD = gSD, data = data, elas = elas, perturb = gperturb, t.clamp = g.t.clamp, ba.clamp = g.ba.clamp) # G is an n*n matrix, currently 500*500 = 250,000
+   G <- outer(y, b[1:500], g.yx, model = gmodel, growSD = gSD, h = h, data = data_g, elast = elast, perturb = gperturb, t.clamp = g.t.clamp, ba.clamp = g.ba.clamp)
+   # G is an n*n matrix, currently 500*500 = 250,000
    # each column is one of n sizes at time t (the mid-points), each row is the transition probability to a new size at time t+dt
    #plot(y, G[,10], type = "l", ylab = "density", xlim = c(0,55)) # try with larger and larger values for the G column, the PD marches down/across
    # S <- s.x(y, PPTann = ppt_yr_val, Tann = t_yr_val, interval = 1)
-   S <- s.x(model = smodel, y, data = data, interval = 1, elas = elas, perturb = sperturb, t.clamp = s.t.clamp)
-   
-   # Recruitment
-   R <- h*outer(y, y, fec, model = rmodel, data = data, elas = elas, perturb = rperturb, ba.clamp = r.ba.clamp)
-   
-   if(gperturb!=0){
-     big.one=which(G[row,]*stable.dist==max(G[row,]*stable.dist)); 
-     delta=0.1*h*G[row,big.one];
-     Gup=G; Gup[row,big.one] = G[row,big.one]+delta/h;
-     Gdown=KD; Gdown[row,big.one] = G[row,big.one]-delta/h;  
-   }
+   S <- s.x(model = smodel, y, data = data_s, interval = 1, elast = elast, perturb = sperturb, t.clamp = s.t.clamp)
    
    P <- G
    for (k in 1:n) P[,k] <- G[,k]*S #survival*growth subkernel
    
+   # Recruitment
+   R <- h*outer(y, y, fec, model = rmodel, data = data_r, elast = elast, perturb = rperturb, ba.clamp = r.ba.clamp)
    # Entire kernel
    K <- P + R
-   
    return(K)
  }
  
