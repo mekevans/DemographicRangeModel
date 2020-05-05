@@ -8,7 +8,6 @@ library(tidyverse)
 # Read data
 # start with the same data file that is used for analysis of survival/mortality
 grdata <- read.csv("./Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
-grdata <- read.csv("./Processed/Survival/SurvivalData2.csv", header = T, stringsAsFactors = F)
 
 # Only keep trees that didn't die
 grdata <- subset(grdata, STATUSCD == 1) #18204
@@ -52,7 +51,6 @@ grdata.scaled <- grdata %>% mutate_at(scale, .vars = vars(-CN, -PREV_TRE_CN, -PL
 ## Survival data
 # Read in data
 survData <- read.csv("./Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
-survData <- read.csv("./Processed/Survival/SurvivalData2.csv", header = T, stringsAsFactors = F)
 
 # Create increment columns
 # not needed for survival/mort analysis
