@@ -19,5 +19,7 @@
 *.bib
 *.bbl
 *.rda
-
-.Rproj.user
+*.grd
+*.gri
+*.vrt
+*.rds
