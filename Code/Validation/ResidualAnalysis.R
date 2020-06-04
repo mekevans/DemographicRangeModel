@@ -324,7 +324,7 @@ q_i<-c(q_neg_i[2:4],q_pos_i[2:4])
 
 ## Save output
 save(FIA_lambda, FIA_pied_pres, pres_binned, res_binned, res2_binned, l_means, l_meds, 
-     interpdf_c, interpdf_ci, interpdf_cc, interpdf_i, q_c, q_ci, q_cc, q_i, 
+     interpdf_c, interpdf_ci, interpdf_cc, interpdf_i, q_c, q_ci, q_cc, q_i, pa_c, pa_ci, pa_cc, pa_i,
      file="./Output/residual_gam.rda")
 
 save(FIA_pres, FIA_abs, pres_cov, pres_cor, abs_cov, abs_cor, file="./Output/covariance.rda")

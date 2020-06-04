@@ -310,7 +310,7 @@ elev_env<-data.frame(Elevation = elev_seq,
                      MAP = predict(elev_ppt,newdata = data.frame(elev=elev_seq)),
                      MAT = predict(elev_t,newdata = data.frame(elev=elev_seq)))
 
-save(FIA2,elev_ba,elev_ppt,elev_t,file="./Output/elev_models.rda")
+save(FIA2,elev_ba,elev_ppt,elev_t,elev_env,file="./Output/elev_models.rda")
 
 min_elev_pied <- min(subset(FIA2,PApied==1)$elev)
 max_elev_pied <- max(subset(FIA2,PApied==1)$elev)
@@ -527,16 +527,16 @@ for (i in 1:length(elev_seq)) {
                                          type = "response", re.form = NA)) #, exclude = "s(PLT_CN_factor)"
   
   # Calculate lambda
-  K_g<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.int.gam, smodel=smodel.int.gam, 
-               rmodel=rmodel.int.gam, gSD=growSD.int.gam,
+  K_g<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.clim.int.gam, smodel=smodel.clim.int.gam, 
+               rmodel=rmodel.clim.int.gam, gSD=growSD.clim.int.gam,
                data=pred_data, elas=T, gperturb=perturb,
                s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F)
-  K_s<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.int.gam, smodel=smodel.int.gam, 
-               rmodel=rmodel.int.gam, gSD=growSD.int.gam,
+  K_s<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.clim.int.gam, smodel=smodel.clim.int.gam, 
+               rmodel=rmodel.clim.int.gam, gSD=growSD.clim.int.gam,
                data=pred_data, elas=T, sperturb=perturb,
                s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F)
-  K_r<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.int.gam, smodel=smodel.int.gam, 
-               rmodel=rmodel.int.gam, gSD=growSD.int.gam,
+  K_r<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.clim.int.gam, smodel=smodel.clim.int.gam, 
+               rmodel=rmodel.clim.int.gam, gSD=growSD.clim.int.gam,
                data=pred_data, elas=T, rperturb=perturb,
                s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F)
   elev_elast[i,1] <- Re(eigen(K_g)$values[1])
@@ -557,6 +557,7 @@ elast_data_vital<-data.frame(Elev=c(elev_seq,elev_seq,elev_seq),
                             Elast_c=c(elast_vital[,1],elast_vital[,2],elast_vital[,3]),
                             Rate=c(rep("Growth",length(elev_seq)),rep("Survival",length(elev_seq)),rep("Recruitment",length(elev_seq))))
 
+elast_data_vital$Elast_ci<-c(elast_vital[,1],elast_vital[,2],elast_vital[,3])
 elast_data_vital$Elast_cc<-c(elast_vital[,1],elast_vital[,2],elast_vital[,3])
 elast_data_vital$Elast_i<-c(elast_vital[,1],elast_vital[,2],elast_vital[,3])
 
@@ -576,16 +577,16 @@ pred_data <- data.frame(PPT_yr=predict(elev_ppt, newdata = data.frame(elev=max_e
 for (i in 1:length(perturb_seq)) {
 
   # Calculate lambda
-  K_g<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.int.gam, smodel=smodel.int.gam, 
-               rmodel=rmodel.int.gam, gSD=growSD.int.gam,
+  K_g<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.clim.int.gam, smodel=smodel.clim.int.gam, 
+               rmodel=rmodel.clim.int.gam, gSD=growSD.clim.int.gam,
                data=pred_data, elas=T, gperturb=perturb_seq[i],
                s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F)
-  K_s<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.int.gam, smodel=smodel.int.gam, 
-               rmodel=rmodel.int.gam, gSD=growSD.int.gam,
+  K_s<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.clim.int.gam, smodel=smodel.clim.int.gam, 
+               rmodel=rmodel.clim.int.gam, gSD=growSD.clim.int.gam,
                data=pred_data, elas=T, sperturb=perturb_seq[i],
                s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F)
   K_r<-ipm_fun(min=min.size, max=max.size, n=n_dim, gmodel=gmodel.int.gam, smodel=smodel.int.gam, 
-               rmodel=rmodel.int.gam, gSD=growSD.int.gam,
+               rmodel=rmodel.clim.int.gam, gSD=growSD.clim.int.gam,
                data=pred_data, elas=T, rperturb=perturb_seq[i],
                s.t.clamp=F, g.t.clamp=F, g.ba.clamp=F,r.ba.clamp=F)
   elev_perturb[i,1] <- Re(eigen(K_g)$values[1])
@@ -599,6 +600,12 @@ for (i in 1:length(perturb_seq)) {
 perturb_data_vital<-data.frame(Perturb=c(perturb_seq,perturb_seq,perturb_seq),
                              Elast_c=c(elev_perturb[,1],elev_perturb[,2],elev_perturb[,3]),
                              Rate=c(rep("Growth",length(perturb_seq)),rep("Survival",length(perturb_seq)),rep("Recruitment",length(perturb_seq))))
+
+
+perturb_data_vital<-data.frame(Perturb=c(perturb_seq,perturb_seq,perturb_seq),
+                               Rate=c(rep("Growth",length(perturb_seq)),rep("Survival",length(perturb_seq)),rep("Recruitment",length(perturb_seq))),
+                               Model=rep("Elast_ci",(3*length(perturb_seq))),
+                               Lambda=c(elev_perturb[,1],elev_perturb[,2],elev_perturb[,3]))
 
 perturb_data_vital$Elast_cc<-c(elev_perturb[,1],elev_perturb[,2],elev_perturb[,3])
 perturb_data_vital$Elast_i<-c(elev_perturb[,1],elev_perturb[,2],elev_perturb[,3])
