@@ -714,17 +714,18 @@ recr_c_t <- ggplot(data=rdata,aes(x=T_yr_norm))+
                 ymin=-0.05,ymax=max(rplot_data_clim$t_pred)),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(rplot_data_clim$t),xmin=max(rdata$T_yr_norm),
                 ymin=-0.05,ymax=max(rplot_data_clim$t_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=r_binned,aes(x=T,y=recr_T_c,size=count_T))+
+  geom_point(data=r_binned,aes(x=T,y=recr_T_c,size=count_T),alpha=0.5)+
   #geom_point(aes(y=-0.1),size=0.1)+
   geom_line(data=rplot_data_clim,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=rplot_data_clim,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   #geom_line(data=rplot_data_clim.lin,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=rplot_data_clim.lin,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
-  labs(x="30-year temperature norm", y="Number recruits")+
+  labs(x=expression(paste("MAT (",degree,"C)")), y="Number recruits",tag="C")+
   guides(size=guide_legend(title="Count")) +
   theme(legend.position="top")+mytheme
 
-ggsave(file="PIED_manuscript_recr_c_t.png", plot=recr_c_t,dpi=400)
+ggsave(file="PIED_manuscript_recr_c_t.png", plot=recr_c_t,
+       width=4,height=3,units="in",dpi=600)
 
 ## Climate + competition
 
@@ -896,7 +897,7 @@ recr_cc_p <- ggplot(data=rdata,aes(x=PPT_yr_norm))+
                 ymin=-0.05,ymax=2),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(rplot_data_climcomp$ppt),xmin=max(rdata$PPT_yr_norm),
                 ymin=-0.05,ymax=2),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=r_binned,aes(x=PPT,y=recr_PPT_cc,size=count_PPT))+
+  geom_point(data=r_binned,aes(x=PPT,y=recr_PPT_cc,size=count_PPT),alpha=0.5)+
   #geom_point(aes(y=-0.15),size=0.1)+
   geom_line(data=rplot_data_climcomp,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=rplot_data_climcomp,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",
@@ -904,11 +905,12 @@ recr_cc_p <- ggplot(data=rdata,aes(x=PPT_yr_norm))+
   #geom_line(data=rplot_data_climcomp.lin,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=rplot_data_climcomp.lin,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",
   #          size=1.25)+
-  labs(x="30-year precipitation norm", y="Number recruits")+
+  labs(x="MAP (mm)", y="Number recruits", tag="D")+
   guides(size=guide_legend(title="Count")) +
   theme(legend.position="top")+mytheme
 
-ggsave(file="PIED_manuscript_recr_cc_p.png", plot=recr_cc_p,dpi=400)
+ggsave(file="PIED_manuscript_recr_cc_p.png", plot=recr_cc_p,
+       width=4,height=3,units="in",dpi=600)
 
 recr_cc_t <- ggplot(data=rdata,aes(x=T_yr_norm))+
   geom_rect(aes(xmin=min(rplot_data_climcomp$t),xmax=min(rdata$T_yr_norm),
@@ -1218,10 +1220,13 @@ surv_b_d_resid<-plot(est,xlab="Tree diameter",ylab="Mortality",
 est<-Effect("BALIVE", smodel.best)
 surv_b_b_resid<-plot(est)
 
-est<-Effect("PPT_yr_norm", partial.residuals=T, smodel.int)
-surv_i_p_resid<-plot(est)
+est<-Effect("PPT_fs_norm", smodel.best)
+png(file="./PIED_best_surv.png",4,3,units="in",type="cairo",res=600)
+plot(est,xlab="Pre-monsoon precipitation (scaled)",ylab="Mortality",
+     main=F)
+dev.off()
 
-est<-Effect("T_yr_norm", partial.residuals=T, smodel.int)
+est<-Effect("T_c_norm", smodel.best)
 surv_i_t_resid<-plot(est)
 
 est<-Effect("BALIVE", rmodel.best)
@@ -1235,10 +1240,11 @@ est<-Effect("PPT_m_norm", rmodel.best)
 recr_b_pm_resid<-plot(est)
 
 est<-Effect("T_c_norm", rmodel.best)
-#recr_b_tc_resid<-
-  plot(est,xlab="Cool season temperature (scaled)",ylab="Number recruits",
+png(file="./PIED_best_recr.png",4,3,units="in",type="cairo",res=600)
+plot(est,xlab="Cool season temperature (scaled)",ylab="Number recruits",
                       main=F,axes=list(y=list(ticks=list(at=c(1,10,100,1000,10000,100000)))))
-  #axis(side=2)
+dev.off()
+
 est<-Effect("T_wd_norm", rmodel.best)
 recr_b_twd_resid<-plot(est)
 est<-Effect("T_m_norm", rmodel.best)

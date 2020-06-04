@@ -614,17 +614,18 @@ recr_c_p <- ggplot(data=rdata.scaled,aes(x=PPT_yr_norm))+
                 ymin=-0.05,ymax=max(rplot_data_clim.lin$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(rplot_data_clim.lin$ppt),xmin=max(rdata$PPT_yr_norm),
                 ymin=-0.05,ymax=max(rplot_data_clim.lin$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=r_binned,aes(x=PPT,y=recr_PPT_cl,size=count_PPT))+
+  geom_point(data=r_binned,aes(x=PPT,y=recr_PPT_cl,size=count_PPT),alpha=0.5)+
   #geom_point(aes(y=-0.15),size=0.1)+
   #geom_line(data=rplot_data_clim,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=rplot_data_clim,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   geom_line(data=rplot_data_clim.lin,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=rplot_data_clim.lin,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
-  labs(x="30-year precipitation norm", y="Number recruits")+
+  labs(x="MAP (mm)", y="Number recruits", tag="A")+
   guides(size=guide_legend(title="Count")) +
   theme(legend.position="top")+mytheme
 
-ggsave(file="lin_PIED_manuscript_recr_c_p.png", plot=recr_c_p,dpi=400)
+ggsave(file="lin_PIED_manuscript_recr_c_p.png", plot=recr_c_p,
+       width=4,height=3,units="in",dpi=600)
 
 recr_c_t <- ggplot(data=rdata,aes(x=T_yr_norm))+
   geom_rect(aes(xmin=min(rplot_data_clim.lin$t),xmax=min(rdata$T_yr_norm),
@@ -924,16 +925,17 @@ surv_i_p <- ggplot(data=survData,aes(x=PPT_yr_norm))+
   geom_rect(aes(xmax=max(splot_data_int.lin$ppt),xmin=max(survData$PPT_yr_norm),
                 ymin=-0.02,ymax=0.4),fill="grey80",col="grey80",alpha=0.1)+
   #geom_point(data=survData,aes(x=PPT_yr_norm,y=-0.08),size=0.1)+
-  geom_point(data=s_binned,aes(x=PPT,y=mort_PPT_il,size=count_PPT))+
+  geom_point(data=s_binned,aes(x=PPT,y=mort_PPT_il,size=count_PPT),alpha=0.5)+
   #geom_line(data=splot_data_int,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=splot_data_int,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   geom_line(data=splot_data_int.lin,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=splot_data_int.lin,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
-  labs(x="30-year precipitation norm", y="Mortality")+
+  labs(x="MAP (mm)", y="Mortality")+
   guides(size=guide_legend(title="Count")) +
   theme(legend.position="top")+mytheme
 
-ggsave(file="lin_PIED_manuscript_surv_i_p.png", plot=surv_i_p,dpi=400)
+ggsave(file="lin_PIED_manuscript_surv_i_p.png", plot=surv_i_p,
+       width=4,height=3,units="in",dpi=600)
 
 surv_i_t <- ggplot(data=survData,aes(x=T_yr_norm))+
   geom_rect(aes(xmin=min(splot_data_int.lin$t),xmax=min(survData$T_yr_norm),
