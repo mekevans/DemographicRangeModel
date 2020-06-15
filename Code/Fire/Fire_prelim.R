@@ -1,5 +1,10 @@
 ### Fire
+rdata <- read.csv("./Processed/Recruitment/RecruitData.csv", header = T, stringsAsFactors = F)
+conds <- read.csv("./FIAdata/COND_COMBINED.csv", header = T, stringsAsFactors = F)
+
 rdata$DSTRBCD1<-conds$DSTRBCD1[match(rdata$plot, conds$PLT_CN)]
+
+survData <- read.csv("./Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
 
 survFire<-subset(survData,DSTRBCD1==30|DSTRBCD1==31|DSTRBCD1==32)
 
