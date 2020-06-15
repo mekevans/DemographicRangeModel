@@ -19,14 +19,6 @@ library(ggalt)
 
 invlogit<-function(x){exp(x)/(1+exp(x))}
 
-mytheme2<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
-                panel.background = element_blank(), axis.line = element_line(colour = "black"),
-                legend.text=element_text(size=11),legend.title=element_text(size=11),
-                legend.key = element_rect(fill = "white"),axis.text=element_text(size=11),
-                axis.title.x=element_text(size=12),axis.title.y=element_text(size=12),
-                axis.line.x = element_line(color="black", size = 0.3),
-                axis.line.y = element_line(color="black", size = 0.3))
-
 PApied<-raster("./Processed/Validation/presenceAbsenceRaster2.tif")
 
 PRISM.norm.path <-  "./ClimateData/PRISM/Normals/"
@@ -165,6 +157,11 @@ res_ci = simulateResiduals(pa_ci)
 res_cc = simulateResiduals(pa_cc)
 res_i = simulateResiduals(pa_i)
 
+res_c = residuals(pa_c,"deviance")
+res_ci = residuals(pa_ci,"deviance")
+res_cc = residuals(pa_cc,"deviance")
+res_i = residuals(pa_i,"deviance")
+
 FIA_lambda$resid_c<-res_c$scaledResiduals
 FIA_lambda$resid_ci<-res_ci$scaledResiduals
 FIA_lambda$resid_cc<-res_cc$scaledResiduals
@@ -174,10 +171,10 @@ FIA_lambda$pred_ci<-invlogit(pa_ci$coefficients[1]+pa_ci$coefficients[2]*FIA_lam
 FIA_lambda$pred_cc<-invlogit(pa_cc$coefficients[1]+pa_cc$coefficients[2]*FIA_lambda$lambda_cc)
 FIA_lambda$pred_i<-invlogit(pa_i$coefficients[1]+pa_i$coefficients[2]*FIA_lambda$lambda_i)
 
-FIA_lambda$resid_c2<-FIA_lambda$pred_c-FIA_lambda$PApied
-FIA_lambda$resid_ci2<-FIA_lambda$pred_ci-FIA_lambda$PApied
-FIA_lambda$resid_cc2<-FIA_lambda$pred_cc-FIA_lambda$PApied
-FIA_lambda$resid_i2<-FIA_lambda$pred_i-FIA_lambda$PApied
+FIA_lambda$resid_c2<-res_c #FIA_lambda$pred_c-FIA_lambda$PApied
+FIA_lambda$resid_ci2<-res_ci #FIA_lambda$pred_ci-FIA_lambda$PApied
+FIA_lambda$resid_cc2<-res_cc #FIA_lambda$pred_cc-FIA_lambda$PApied
+FIA_lambda$resid_i2<-res_i #FIA_lambda$pred_i-FIA_lambda$PApied
 
 testSpatialAutocorrelation(simulationOutput = res_c, x = FIA_lambda$lon, y= FIA_lambda$lat)
 testSpatialAutocorrelation(simulationOutput = res_c)
@@ -201,7 +198,7 @@ chopsize_t<-cut(FIA_lambda$T_yr,ncuts)
 #resid_i_binned_elev<-as.vector(sapply(split(FIA_lambda$resid_i,chopsize_elev),mean,na.rm=T))
 #resid_i2_binned_elev<-as.vector(sapply(split(FIA_lambda$resid_i2,chopsize_elev),mean,na.rm=T))
 
-count_binned_ba<-as.vector(sapply(split(FIA_lambda$resid_c,chopsize_ba),length))
+count_binned_ba<-as.vector(sapply(split(FIA_lambda$resid_c2,chopsize_ba),length))
 ba_binned<-as.vector(sapply(split(FIA_lambda$BALIVE,chopsize_ba),mean,na.rm=T))
 resid_c_binned_ba<-as.vector(sapply(split(FIA_lambda$resid_c,chopsize_ba),mean,na.rm=T))
 resid_c2_binned_ba<-as.vector(sapply(split(FIA_lambda$resid_c2,chopsize_ba),mean,na.rm=T))
@@ -212,7 +209,7 @@ resid_cc2_binned_ba<-as.vector(sapply(split(FIA_lambda$resid_cc2,chopsize_ba),me
 resid_i_binned_ba<-as.vector(sapply(split(FIA_lambda$resid_i,chopsize_ba),mean,na.rm=T))
 resid_i2_binned_ba<-as.vector(sapply(split(FIA_lambda$resid_i2,chopsize_ba),mean,na.rm=T))
 
-count_binned_ppt<-as.vector(sapply(split(FIA_lambda$resid_c,chopsize_ppt),length))
+count_binned_ppt<-as.vector(sapply(split(FIA_lambda$resid_c2,chopsize_ppt),length))
 ppt_binned<-as.vector(sapply(split(FIA_lambda$PPT_yr,chopsize_ppt),mean,na.rm=T))
 resid_c_binned_ppt<-as.vector(sapply(split(FIA_lambda$resid_c,chopsize_ppt),mean,na.rm=T))
 resid_c2_binned_ppt<-as.vector(sapply(split(FIA_lambda$resid_c2,chopsize_ppt),mean,na.rm=T))
@@ -223,7 +220,7 @@ resid_cc2_binned_ppt<-as.vector(sapply(split(FIA_lambda$resid_cc2,chopsize_ppt),
 resid_i_binned_ppt<-as.vector(sapply(split(FIA_lambda$resid_i,chopsize_ppt),mean,na.rm=T))
 resid_i2_binned_ppt<-as.vector(sapply(split(FIA_lambda$resid_i2,chopsize_ppt),mean,na.rm=T))
 
-count_binned_t<-as.vector(sapply(split(FIA_lambda$resid_c,chopsize_t),length))
+count_binned_t<-as.vector(sapply(split(FIA_lambda$resid_c2,chopsize_t),length))
 t_binned<-as.vector(sapply(split(FIA_lambda$T_yr,chopsize_t),mean,na.rm=T))
 resid_c_binned_t<-as.vector(sapply(split(FIA_lambda$resid_c,chopsize_t),mean,na.rm=T))
 resid_c2_binned_t<-as.vector(sapply(split(FIA_lambda$resid_c2,chopsize_t),mean,na.rm=T))
