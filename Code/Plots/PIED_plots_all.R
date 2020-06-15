@@ -36,7 +36,7 @@ legend_fun<-function(a.gplot){
 }
 
 BAconvert<-function(x){
-  return((0.3048^2)*x/0.00404685642)
+  return((0.3048^2)*x/0.404685642) # convert ft^2/acre to m^2/hectare
 }
 
 ### Predictor covariance ----
@@ -100,7 +100,7 @@ load("./Output/elev_models.rda")
 elev_ba_plot<-ggplot(data=FIA2,aes(x=0.3048*elev,y=BAconvert(BALIVE)))+
   geom_point(alpha=0.5)+
   geom_line(data=elev_env,aes(x=0.3048*Elevation,y=BAconvert(BA)),col="#1b9e77",size=1.25)+
-  labs(x="Elevation (m)", y=expression(paste("Basal area","  ","(m"^2,"/km"^2,")")), tag="C") + mytheme
+  labs(x="Elevation (m)", y=expression(paste("Basal area","  ","(m"^2,"/ha)")), tag="C") + mytheme
 
 elev_ppt_plot<-ggplot(data=FIA2,aes(x=0.3048*elev,y=PPT_yr_norm))+
   geom_point(alpha=0.5)+
@@ -122,139 +122,23 @@ ggsave(file="elev_t.png", plot=elev_t_plot,width=4,height=3,units="in",dpi=600)
 ## Data
 load("./Output/vital_effects_gam.rda")
 
-## Climate-only, no interactions
+max_size<-max(c(g_binned$count_dia,g_binned$count_ba,g_binned$count_PPT,g_binned$count_T,
+                s_binned$count_dia,s_binned$count_ba,s_binned$count_PPT,s_binned$count_T,
+                r_binned$count_ba,r_binned$count_PPT,r_binned$count_T),na.rm=T)
+
+## Climate-only
 # Growth
-grow_c_leg_plot_h<-ggplot(data=g_binned,aes(x=PPT,y=grow_PPT_c,size=count_PPT))+
-  geom_point()+
-  guides(size=guide_legend(title="Count")) + theme(legend.position="top") + mytheme
-grow_c_leg_plot_v<-ggplot(data=g_binned,aes(x=PPT,y=grow_PPT_c,size=count_PPT))+
-  geom_point()+
-  guides(size=guide_legend(title="Count")) + mytheme
+leg_ci_dat<-data.frame(Fire=c(rep("Fire",nrow(splot_data_climint_fire)),rep("NoFire",nrow(splot_data_climint))),
+                       ppt=c(splot_data_climint_fire$ppt,splot_data_climint$ppt),
+                       ppt_pred=c(splot_data_climint_fire$ppt_pred,splot_data_climint$ppt_pred))
+ci_leg_plot_col<-ggplot(leg_ci_dat,aes(x=ppt,y=ppt_pred,col=Fire))+
+  geom_line(size=1.25)+
+  scale_color_manual(values=c(NoFire="#1b9e77",Fire="#d95f02"),
+                     labels=c(NoFire="No exposure",Fire="Exposure")) + mytheme +
+  theme(legend.position="top", legend.key.width = unit(0.8,"cm"),
+        legend.text=element_text(size=9),legend.title=element_text(size=11)) 
 
-g_c_leg_h<-legend_fun(grow_c_leg_plot_h)
-g_c_leg_v<-legend_fun(grow_c_leg_plot_v)
-
-grow_c_d <- ggplot(data=grdata,aes(x=PREVDIA))+
-  geom_rect(aes(xmin=min(grplot_data_clim$dia),xmax=min(grdata$PREVDIA),ymin=-0.3,ymax=0.1),
-            fill="grey80",col="grey80",alpha=0.1)+
-  geom_rect(aes(xmax=max(grplot_data_clim$dia),xmin=max(grdata$PREVDIA),ymin=-0.3,ymax=0.1),
-            fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=g_binned,aes(x=PREVDIA,y=grow_dia_c,size=count_dia),alpha=0.7)+
-  geom_line(data=grplot_data_clim,aes(x=dia,y=dia_pred),col="#1b9e77",size=1.25)+
-  labs(x="Previous diameter", y="Diameter increment", title="a")+
-  theme(legend.position="none")+mytheme
-
-grow_c_p <- ggplot(data=grdata,aes(x=PPT_yr_norm))+
-  geom_rect(aes(xmin=min(grplot_data_clim$ppt),xmax=min(grdata$PPT_yr_norm),
-                ymin=0.015,ymax=max(grplot_data_clim$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_rect(aes(xmax=max(grplot_data_clim$ppt),xmin=max(grdata$PPT_yr_norm),
-                ymin=0.005,ymax=max(grplot_data_clim$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=g_binned,aes(x=PPT,y=grow_PPT_c,size=count_PPT),alpha=0.7)+
-  geom_line(data=grplot_data_clim,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
-  labs(x="30-year precipitation norm", y="Diameter increment", title="a")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none")+mytheme
-  #theme(plot.title = element_text(vjust = -8))
-
-grow_c_t<-ggplot(data=grdata,aes(x=T_yr_norm))+
-  geom_rect(aes(xmin=min(grplot_data_clim$t),xmax=min(grdata$T_yr_norm),
-                ymin=-0.002,ymax=max(grplot_data_clim$t_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_rect(aes(xmax=max(grplot_data_clim$t),xmin=max(grdata$T_yr_norm),
-                ymin=-0.002,ymax=max(grplot_data_clim$t_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=g_binned,aes(x=T,y=grow_T_c,size=count_T),alpha=0.7)+
-  geom_line(data=grplot_data_clim,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
-  labs(x="30-year temperature norm", y="Diameter increment", title="b")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none")+mytheme
-
-# Survival
-surv_c_leg_plot_h<-ggplot(data=s_binned,aes(x=PPT,y=mort_PPT_c,size=count_PPT))+
-  geom_point()+
-  guides(size=guide_legend(title="Count")) + theme(legend.position="top") + mytheme
-surv_c_leg_plot_v<-ggplot(data=s_binned,aes(x=PPT,y=mort_PPT_c,size=count_PPT))+
-  geom_point()+
-  guides(size=guide_legend(title="Count")) + mytheme
-
-s_c_leg_h<-legend_fun(surv_c_leg_plot_h)
-s_c_leg_v<-legend_fun(surv_c_leg_plot_v)
-
-surv_c_d <- ggplot(data=survData,aes(x=PREVDIA))+
-  geom_rect(aes(xmin=min(splot_data_clim$dia),xmax=min(survData$PREVDIA),ymin=0.5,ymax=1),
-            fill="grey80",col="grey80",alpha=0.1)+
-  geom_rect(aes(xmax=max(splot_data_clim$dia),xmin=max(survData$PREVDIA),ymin=0.5,ymax=1),
-            fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=s_binned,aes(x=PREVDIA,y=mort_dia_c,size=count_dia),alpha=0.7)+ #,col="#1b9e77"
-  geom_line(data=splot_data_clim,aes(x=dia,y=dia_pred),size=1.25,col="#1b9e77")+ 
-  labs(x="Previous diameter", y="Survival", title="b")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none")+mytheme
-
-surv_c_p <- ggplot(data=survData,aes(x=PPT_yr_norm))+
-  geom_rect(aes(xmin=min(splot_data_clim$ppt),xmax=min(survData$PPT_yr_norm),
-                ymin=0.6,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_rect(aes(xmax=max(splot_data_clim$ppt),xmin=max(survData$PPT_yr_norm),
-                ymin=0.6,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=s_binned,aes(x=PPT,y=mort_PPT_c,size=count_PPT),alpha=0.7)+ #,col="#1b9e77"
-  geom_line(data=splot_data_clim,aes(x=ppt,y=ppt_pred),size=1.25,col="#1b9e77")+
-  labs(x="30-year precipitation norm", y="Survival", title="c")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none")+mytheme
-
-surv_c_t <- ggplot(data=survData,aes(x=T_yr_norm))+
-  geom_rect(aes(xmin=min(splot_data_clim$t),xmax=min(survData$T_yr_norm),
-                ymin=0,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_rect(aes(xmax=max(splot_data_clim$t),xmin=max(survData$T_yr_norm),
-                ymin=0,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=s_binned,aes(x=T,y=mort_T_c,size=count_T),alpha=0.7)+ #,col="#1b9e77"
-  geom_line(data=splot_data_clim,aes(x=t,y=t_pred),size=1.25,col="#1b9e77")+
-  labs(x="30-year temperature norm", y="Survival", title="d")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none")+mytheme
-
-# Recruit
-recr_c_leg_plot_h<-ggplot(data=r_binned,aes(x=PPT,y=recr_PPT_c,size=count_PPT))+
-  geom_point()+
-  guides(size=guide_legend(title="Count")) + theme(legend.position="top") + mytheme
-recr_c_leg_plot_v<-ggplot(data=r_binned,aes(x=PPT,y=recr_PPT_c,size=count_PPT))+
-  geom_point()+
-  guides(size=guide_legend(title="Count")) + mytheme
-
-r_c_leg_h<-legend_fun(recr_c_leg_plot_h)
-r_c_leg_v<-legend_fun(recr_c_leg_plot_v)
-
-recr_c_p <- ggplot(data=rdata,aes(x=PPT_yr_norm))+
-  geom_rect(aes(xmin=min(rplot_data_clim$ppt),xmax=min(rdata$PPT_yr_norm),
-                ymin=-0.05,ymax=max(rplot_data_clim$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_rect(aes(xmax=max(rplot_data_clim$ppt),xmin=max(rdata$PPT_yr_norm),
-                ymin=-0.05,ymax=max(rplot_data_clim$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=r_binned,aes(x=PPT,y=recr_PPT_c,size=count_PPT),alpha=0.7)+
-  geom_line(data=rplot_data_clim,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
-  labs(x="30-year precipitation norm", y="Number recruits", title="e")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none") + mytheme
-
-recr_c_t <- ggplot(data=rdata,aes(x=T_yr_norm))+
-  geom_rect(aes(xmin=min(rplot_data_clim$t),xmax=min(rdata$T_yr_norm),
-                ymin=-0.05,ymax=max(r_binned$recr_T_c,na.rm=T)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_rect(aes(xmax=max(rplot_data_clim$t),xmin=max(rdata$T_yr_norm),
-                ymin=-0.05,ymax=max(r_binned$recr_T_c,na.rm=T)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=r_binned,aes(x=T,y=recr_T_c,size=count_T),alpha=0.7)+
-  geom_line(data=rplot_data_clim,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
-  labs(x="30-year temperature norm", y="Number recruits", title="f")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none") + mytheme
-
-## Climate-only, interactions
-# Growth
-grow_ci_leg_plot_h<-ggplot(data=g_binned,aes(x=PPT,y=grow_PPT_ci,size=count_PPT))+
-  geom_point()+
-  guides(size=guide_legend(title="Count")) + theme(legend.position="top") + mytheme
-grow_ci_leg_plot_v<-ggplot(data=g_binned,aes(x=PPT,y=grow_PPT_ci,size=count_PPT))+
-  geom_point()+
-  guides(size=guide_legend(title="Count")) + mytheme
-
-g_ci_leg_h<-legend_fun(grow_ci_leg_plot_h)
-g_ci_leg_v<-legend_fun(grow_ci_leg_plot_v)
+ci_leg_col<-legend_fun(ci_leg_plot_col)
 
 grow_ci_d <- ggplot(data=grdata,aes(x=2.54*PREVDIA))+
   geom_rect(aes(xmin=min(2.54*grplot_data_clim$dia),xmax=min(2.54*grdata$PREVDIA),
@@ -263,33 +147,36 @@ grow_ci_d <- ggplot(data=grdata,aes(x=2.54*PREVDIA))+
   geom_rect(aes(xmax=max(2.54*grplot_data_clim$dia),xmin=max(2.54*grdata$PREVDIA),
                 ymin=2.54*(min(g_binned$grow_dia_ci,na.rm=T)),ymax=2.54*(max(g_binned$grow_dia_ci,na.rm=T))),
             fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=g_binned,aes(x=2.54*PREVDIA,y=2.54*grow_dia_ci,size=count_dia),alpha=0.7)+
+  geom_point(data=g_binned,aes(x=2.54*PREVDIA,y=2.54*grow_dia_ci,size=count_dia),alpha=0.5)+
   geom_line(data=grplot_data_climint,aes(x=2.54*dia,y=2.54*dia_pred),col="#1b9e77",size=1.25)+
+  scale_size(limits=c(0,max_size)) + 
   labs(x="Previous diameter (cm)", y="Diameter increment (cm)", tag="A")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top") + mytheme
+  guides(size=guide_legend(title="Count")) + mytheme +
+  theme(legend.position="none", axis.title.x=element_blank()) 
 
 grow_ci_p <- ggplot(data=grdata,aes(x=PPT_yr_norm))+
   geom_rect(aes(xmin=min(grplot_data_climint$ppt),xmax=min(grdata$PPT_yr_norm),
                 ymin=2.54*min(g_binned$grow_PPT_ci,na.rm=T),ymax=2.54*max(grplot_data_climint$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(grplot_data_climint$ppt),xmin=max(grdata$PPT_yr_norm),
                 ymin=2.54*min(g_binned$grow_PPT_ci,na.rm=T),ymax=2.54*max(grplot_data_climint$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=g_binned,aes(x=PPT,y=2.54*grow_PPT_ci,size=count_PPT),alpha=0.7)+
+  geom_point(data=g_binned,aes(x=PPT,y=2.54*grow_PPT_ci,size=count_PPT),alpha=0.5)+
   geom_line(data=grplot_data_climint,aes(x=ppt,y=2.54*ppt_pred),col="#1b9e77",size=1.25)+
+  scale_size(limits=c(0,max_size)) + 
   labs(x="MAP (mm)", y="Diameter increment (cm)", tag="A")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top") + mytheme
+  guides(size=guide_legend(title="Count")) + mytheme +
+  theme(legend.position="none") 
 
 grow_ci_t<-ggplot(data=grdata,aes(x=T_yr_norm))+
   geom_rect(aes(xmin=min(grplot_data_clim$t),xmax=min(grdata$T_yr_norm),
                 ymin=2.54*min(g_binned$grow_T_ci),ymax=2.54*max(grplot_data_climint$t_pred)),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(grplot_data_clim$t),xmin=max(grdata$T_yr_norm),
                 ymin=2.54*min(g_binned$grow_T_ci),ymax=2.54*max(grplot_data_climint$t_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=g_binned,aes(x=T,y=2.54*grow_T_ci,size=count_T),alpha=0.7)+
+  geom_point(data=g_binned,aes(x=T,y=2.54*grow_T_ci,size=count_T),alpha=0.5)+
   geom_line(data=grplot_data_climint,aes(x=t,y=2.54*t_pred),col="#1b9e77",size=1.25)+
+  scale_size(limits=c(0,max_size)) + 
   labs(x=expression(paste("MAT (",degree,"C)")), y="Diameter increment (cm)", tag="B")+
   guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top") + mytheme
+  theme(legend.position="none") + mytheme
 
 # Survival
 surv_ci_leg_plot_h<-ggplot(data=s_binned,aes(x=PPT,y=mort_PPT_ci,size=count_PPT))+
@@ -307,33 +194,39 @@ surv_ci_d <- ggplot(data=survData,aes(x=2.54*PREVDIA))+
             fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=2.54*max(splot_data_clim$dia),xmin=2.54*max(survData$PREVDIA),ymin=0.4,ymax=1),
             fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=s_binned,aes(x=2.54*PREVDIA,y=mort_dia_ci,size=count_dia),alpha=0.7)+ #,col="#1b9e77"
+  geom_point(data=s_binned,aes(x=2.54*PREVDIA,y=mort_dia_ci,size=count_dia),alpha=0.5)+ #,col="#1b9e77"
   geom_line(data=splot_data_climint,aes(x=2.54*dia,y=dia_pred),col="#1b9e77",size=1.25)+
+  #geom_line(data=splot_data_climint_fire,aes(x=2.54*dia,y=dia_pred),col="#d95f02",size=1.25)+
+  scale_size(limits=c(0,max_size)) + 
   labs(x="Previous diameter (cm)", y="Survival", tag="C")+
   guides(size=guide_legend(title="Count")) + mytheme +
-  theme(legend.position="top", legend.key.width = unit(0.15,"cm"),legend.text=element_text(size=10))
+  theme(legend.position="none",plot.margin = unit(c(0,0.5,0,0), "cm"))
 
 surv_ci_p <- ggplot(data=survData,aes(x=PPT_yr_norm))+
   geom_rect(aes(xmin=min(splot_data_clim$ppt),xmax=min(survData$PPT_yr_norm),
                 ymin=0.6,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(splot_data_clim$ppt),xmin=max(survData$PPT_yr_norm),
                 ymin=0.6,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=s_binned,aes(x=PPT,y=mort_PPT_ci,size=count_PPT),alpha=0.7)+ #,col="#1b9e77"
+  geom_point(data=s_binned,aes(x=PPT,y=mort_PPT_ci,size=count_PPT),alpha=0.5)+ #,col="#1b9e77"
   geom_line(data=splot_data_climint,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
+  geom_line(data=splot_data_climint_fire,aes(x=ppt,y=ppt_pred),col="#d95f02",size=1.25)+
+  scale_size(limits=c(0,max_size)) + 
   labs(x="MAP (mm)", y="Survival", tag="C")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top", legend.key.width = unit(0.3,"cm")) + mytheme
+  guides(size=guide_legend(title="Count")) + mytheme +
+  theme(legend.position="none", legend.key.width = unit(0.3,"cm")) 
 
 surv_ci_t <- ggplot(data=survData,aes(x=T_yr_norm))+
   geom_rect(aes(xmin=min(splot_data_clim$t),xmax=min(survData$T_yr_norm),
                 ymin=0,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(splot_data_clim$t),xmin=max(survData$T_yr_norm),
                 ymin=0,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=s_binned,aes(x=T,y=mort_T_ci,size=count_T),alpha=0.7)+ #,col="#1b9e77"
+  geom_point(data=s_binned,aes(x=T,y=mort_T_ci,size=count_T),alpha=0.5)+ #,col="#1b9e77"
   geom_line(data=splot_data_climint,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
+  geom_line(data=splot_data_climint_fire,aes(x=t,y=t_pred),col="#d95f02",size=1.25)+
+  scale_size(limits=c(0,max_size)) + 
   labs(x=expression(paste("MAT (",degree,"C)")), y="Survival", tag="D")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top", legend.key.width = unit(0.3,"cm")) + mytheme
+  guides(size=guide_legend(title="Count")) + mytheme +
+  theme(legend.position="none", legend.key.width = unit(0.3,"cm")) 
 
 # Recruit
 recr_ci_leg_plot_h<-ggplot(data=r_binned,aes(x=PPT,y=recr_PPT_ci,size=count_PPT))+
@@ -351,179 +244,28 @@ recr_ci_p <- ggplot(data=rdata,aes(x=PPT_yr_norm))+
                 ymin=-0.05,ymax=max(rplot_data_climint$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(rplot_data_climint$ppt),xmin=max(rdata$PPT_yr_norm),
                 ymin=-0.05,ymax=max(rplot_data_climint$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=r_binned,aes(x=PPT,y=recr_PPT_ci,size=count_PPT),alpha=0.7)+
+  geom_point(data=r_binned,aes(x=PPT,y=recr_PPT_ci,size=count_PPT),alpha=0.5)+
   geom_line(data=rplot_data_climint,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
   geom_line(data=rplot_data_climint,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  scale_size(limits=c(0,max_size)) + 
   labs(x="MAP (mm)", y="Number recruits", tag="E")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top") + mytheme
+  guides(size=guide_legend(title="Count")) + mytheme +
+  theme(legend.position="none") 
 
 recr_ci_t <- ggplot(data=rdata,aes(x=T_yr_norm))+
   geom_rect(aes(xmin=min(rplot_data_climint$t),xmax=min(rdata$T_yr_norm),
                 ymin=-0.05,ymax=max(r_binned$recr_T_ci,na.rm=T)),fill="grey80",col="grey80",alpha=0.1)+
   geom_rect(aes(xmax=max(rplot_data_climint$t),xmin=max(rdata$T_yr_norm),
                 ymin=-0.05,ymax=max(r_binned$recr_T_ci,na.rm=T)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=r_binned,aes(x=T,y=recr_T_ci,size=count_T),alpha=0.7)+
+  geom_point(data=r_binned,aes(x=T,y=recr_T_ci,size=count_T),alpha=0.5)+
   geom_line(data=rplot_data_climint,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
   geom_line(data=rplot_data_climint,aes(x=t,y=t_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
+  scale_size(limits=c(0,max_size)) + 
   labs(x=expression(paste("MAT (",degree,"C)")), y="Number recruits", tag="F")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="top") + mytheme
+  guides(size=guide_legend(title="Count")) + mytheme +
+  theme(legend.position="none") 
 
-## Climate + competition, no interactions
-# Growth
-grow_cc_leg_plot_h<-ggplot(data=g_binned,aes(x=BALIVE,y=grow_ba_cc,size=count_ba))+
-  geom_point()+
-  guides(size=guide_legend(title="Count")) + theme(legend.position="top") + mytheme
-grow_cc_leg_plot_v<-ggplot(data=g_binned,aes(x=BALIVE,y=grow_ba_cc,size=count_ba))+
-  geom_point()+
-  guides(size=guide_legend(title="Count")) + mytheme
-
-g_cc_leg_h<-legend_fun(grow_cc_leg_plot_h)
-g_cc_leg_v<-legend_fun(grow_cc_leg_plot_v)
-
-grow_cc_d <- ggplot(data=grdata,aes(x=PREVDIA))+
-  geom_rect(aes(xmin=min(grplot_data_climcomp$dia),xmax=min(grdata$PREVDIA),ymin=-0.3,ymax=0.1),
-            fill="grey80",col="grey80",alpha=0.1)+
-  geom_rect(aes(xmax=max(grplot_data_climcomp$dia),xmin=max(grdata$PREVDIA),ymin=-0.3,ymax=0.1),
-            fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=g_binned,aes(x=PREVDIA,y=grow_dia_cc,size=count_dia),alpha=0.7)+
-  geom_line(data=grplot_data_climcomp,aes(x=dia,y=dia_pred),col="#1b9e77",size=1.25)+
-  labs(x="Previous diameter", y="Diameter increment", title="c")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none") + mytheme
-
-grow_cc_b <- ggplot(data=grdata,aes(x=BALIVE))+
-  geom_rect(aes(xmin=min(grplot_data_climcomp$ba),xmax=min(grdata$BALIVE),
-                ymin=-0.002,ymax=0.1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=g_binned,aes(x=BALIVE,y=grow_ba_cc,size=count_ba),alpha=0.7)+
-  geom_line(data=grplot_data_climcomp,aes(x=ba,y=ba_pred),col="#1b9e77",size=1.25)+
-  labs(x="Live basal area", y="Diameter increment", title="a")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none") + mytheme
-
-grow_cc_p <- ggplot(data=grdata,aes(x=PPT_yr_norm))+
-  geom_rect(aes(xmin=min(grplot_data_climcomp$ppt),xmax=min(grdata$PPT_yr_norm),
-                ymin=min(grplot_data_climcomp$ppt_pred),ymax=max(grplot_data_climcomp$ppt_pred)),
-            fill="grey80",col="grey80",alpha=0.1)+
-  geom_rect(aes(xmax=max(grplot_data_climcomp$ppt),xmin=max(grdata$PPT_yr_norm),
-                ymin=min(grplot_data_climcomp$ppt_pred),ymax=max(grplot_data_climcomp$ppt_pred)),
-            fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=g_binned,aes(x=PPT,y=grow_PPT_cc,size=count_PPT),alpha=0.7)+
-  geom_line(data=grplot_data_climcomp,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
-  labs(x="30-year precipitation norm", y="Diameter increment", title="b")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none") + mytheme
-
-grow_cc_t <- ggplot(data=grdata,aes(x=T_yr_norm))+
-  geom_rect(aes(xmin=min(grplot_data_climcomp$t),xmax=min(grdata$T_yr_norm),
-                ymin=-0.002,ymax=max(grplot_data_climcomp$t_pred)),
-            fill="grey80",col="grey80",alpha=0.1)+
-  geom_rect(aes(xmax=max(grplot_data_climcomp$t),xmin=max(grdata$T_yr_norm),
-                ymin=-0.002,ymax=max(grplot_data_climcomp$t_pred)),
-            fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=g_binned,aes(x=T,y=grow_T_cc,size=count_T),alpha=0.7)+
-  geom_line(data=grplot_data_climcomp,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
-  labs(x="30-year temperature norm", y="Diameter increment", title="c")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none") + mytheme
-
-# Survival
-surv_cc_leg_plot_h<-ggplot(data=s_binned,aes(x=BALIVE,y=mort_ba_cc,size=count_ba))+
-  geom_point()+
-  guides(size=guide_legend(title="Count")) + theme(legend.position="top") + mytheme
-surv_cc_leg_plot_v<-ggplot(data=s_binned,aes(x=BALIVE,y=mort_ba_cc,size=count_ba))+
-  geom_point()+
-  guides(size=guide_legend(title="Count")) + mytheme
-
-s_cc_leg_h<-legend_fun(surv_cc_leg_plot_h)
-s_cc_leg_v<-legend_fun(surv_cc_leg_plot_v)
-
-surv_cc_d <- ggplot(data=survData,aes(x=PREVDIA))+
-  geom_rect(aes(xmin=min(splot_data_climcomp$dia),xmax=min(survData$PREVDIA),
-                ymin=0.5,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_rect(aes(xmax=max(splot_data_climcomp$dia),xmin=max(survData$PREVDIA),
-                ymin=0.5,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=s_binned,aes(x=PREVDIA,y=mort_dia_cc,size=count_dia),alpha=0.7)+
-  geom_line(data=splot_data_climcomp,aes(x=dia,y=dia_pred),col="#1b9e77",size=1.25)+
-  labs(x="Previous diameter", y="Survival", title="d")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none") + mytheme
-
-surv_cc_b <- ggplot(data=survData,aes(x=BALIVE))+
-  geom_rect(aes(xmin=min(splot_data_climcomp$ba),xmax=min(survData$BALIVE),ymin=0.2,ymax=1),
-            fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=s_binned,aes(x=BALIVE,y=mort_ba_cc,size=count_ba),alpha=0.7)+
-  geom_line(data=splot_data_climcomp,aes(x=ba,y=ba_pred),col="#1b9e77",size=1.25)+
-  labs(x="Live basal area", y="Survival", title="d")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none") + mytheme
-
-surv_cc_p <- ggplot(data=survData,aes(x=PPT_yr_norm))+
-  geom_rect(aes(xmin=min(splot_data_climcomp$ppt),xmax=min(survData$PPT_yr_norm),
-                ymin=0.6,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_rect(aes(xmax=max(splot_data_climcomp$ppt),xmin=max(survData$PPT_yr_norm),
-                ymin=0.6,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=s_binned,aes(x=PPT,y=mort_PPT_cc,size=count_PPT),alpha=0.7)+
-  geom_line(data=splot_data_climcomp,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
-  labs(x="30-year precipitation norm", y="Survival", title="e")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none") + mytheme
-
-surv_cc_t <- ggplot(data=survData,aes(x=T_yr_norm))+
-  geom_rect(aes(xmin=min(splot_data_climcomp$t),xmax=min(survData$T_yr_norm),
-                ymin=0,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_rect(aes(xmax=max(splot_data_climcomp$t),xmin=max(survData$T_yr_norm),
-                ymin=0,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=s_binned,aes(x=T,y=mort_T_cc,size=count_T),alpha=0.7)+
-  geom_line(data=splot_data_climcomp,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
-  labs(x="30-year temperature norm", y="Survival", title="f")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none") + mytheme
-
-# Recruit
-recr_cc_leg_plot_h<-ggplot(data=r_binned,aes(x=BALIVE,y=recr_ba_cc,size=count_ba))+
-  geom_point()+
-  guides(size=guide_legend(title="Count")) + theme(legend.position="top") + mytheme
-recr_cc_leg_plot_v<-ggplot(data=r_binned,aes(x=BALIVE,y=recr_ba_cc,size=count_ba))+
-  geom_point()+
-  guides(size=guide_legend(title="Count")) + mytheme
-
-r_cc_leg_h<-legend_fun(recr_cc_leg_plot_h)
-r_cc_leg_v<-legend_fun(recr_cc_leg_plot_v)
-
-recr_cc_b <- ggplot(data=rdata,aes(x=BALIVE))+
-  geom_rect(aes(xmin=min(rplot_data_climcomp$ba),xmax=min(rdata$BALIVE),
-                ymin=-0.05,ymax=2),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=r_binned,aes(x=BALIVE,y=recr_ba_cc,size=count_ba),alpha=0.7)+
-  geom_line(data=rplot_data_climcomp,aes(x=ba,y=ba_pred),col="#1b9e77",size=1.25)+
-  labs(x="Live basal area", y="Number recruits", title="g")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none") + mytheme
-
-recr_cc_p <- ggplot(data=rdata,aes(x=PPT_yr_norm))+
-  geom_rect(aes(xmin=min(rplot_data_climcomp$ppt),xmax=min(rdata$PPT_yr_norm),
-                ymin=-0.05,ymax=max(rplot_data_climcomp$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_rect(aes(xmax=max(rplot_data_climcomp$ppt),xmin=max(rdata$PPT_yr_norm),
-                ymin=-0.05,ymax=max(rplot_data_climcomp$ppt_pred)),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=r_binned,aes(x=PPT,y=recr_PPT_cc,size=count_PPT),alpha=0.7)+
-  geom_line(data=rplot_data_climcomp,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
-  labs(x="30-year precipitation norm", y="Number recruits", title="h")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none") + mytheme
-
-recr_cc_t <- ggplot(data=rdata,aes(x=T_yr_norm))+
-  geom_rect(aes(xmin=min(rplot_data_climcomp$t),xmax=min(rdata$T_yr_norm),
-                ymin=-0.05,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_rect(aes(xmax=max(rplot_data_climcomp$t),xmin=max(rdata$T_yr_norm),
-                ymin=-0.05,ymax=1),fill="grey80",col="grey80",alpha=0.1)+
-  geom_point(data=r_binned,aes(x=T,y=recr_T_cc,size=count_T),alpha=0.7)+
-  geom_line(data=rplot_data_climcomp,aes(x=t,y=t_pred),col="#1b9e77",size=1.25)+
-  labs(x="30-year temperature norm", y="Number recruits", title="i")+
-  guides(size=guide_legend(title="Count")) +
-  theme(legend.position="none") + mytheme
-
-## Climate + competition, interactions
+## Climate + competition
 # Growth
 grow_i_leg_plot_count<-ggplot(data=g_binned,aes(x=BALIVE,y=grow_ba_i,size=count_ba))+
   geom_point()+
@@ -545,10 +287,6 @@ grow_i_leg_plot_quant<-ggplot(data=g_binned,aes(x=BALIVE,y=grow_ba_i))+
 
 g_i_leg_count<-legend_fun_fun(grow_i_leg_plot_count)
 g_i_leg_quant<-legend_fun_fun(grow_i_leg_plot_quant)
-
-max_size<-max(c(g_binned$count_dia,g_binned$count_ba,g_binned$count_PPT,g_binned$count_T,
-                s_binned$count_dia,s_binned$count_ba,s_binned$count_PPT,s_binned$count_T,
-                r_binned$count_ba,r_binned$count_PPT,r_binned$count_T),na.rm=T)
 
 grow_i_d <- ggplot(data=grdata,aes(x=2.54*PREVDIA))+
   geom_rect(aes(xmin=min(2.54*grplot_data_int$dia),xmax=2.54*min(grdata$PREVDIA),
@@ -572,7 +310,8 @@ grow_i_b <- ggplot(data=grdata,aes(x=BAconvert(BALIVE)))+
             fill="grey80",col="grey80",alpha=0.1)+
   geom_point(data=g_binned,aes(x=BAconvert(BALIVE),y=2.54*grow_ba_i,size=count_ba),alpha=0.5)+
   geom_line(data=grplot_data_int,aes(x=BAconvert(ba),y=2.54*ba_pred),col="#1b9e77",size=1.25)+
-  labs(x=expression(paste("Basal area (","m"^2,"/km"^2,")")), y="Diameter increment (cm)") + mytheme +
+  scale_size(limits=c(0,max_size)) + 
+  labs(x=expression(paste("Basal area (","m"^2,"/ha)")), y="Diameter increment (cm)") + mytheme +
   theme(legend.position="none", axis.title.x=element_blank(), axis.title.y=element_blank())
   #guides(size=guide_legend(title="Count")) +
   #theme(legend.position="top",legend.box.margin=margin(-10,-10,-10,-10), legend.key.width = unit(0.5,"cm")) + mytheme
@@ -642,7 +381,7 @@ surv_i_d <- ggplot(data=survData,aes(x=2.54*PREVDIA))+
   geom_line(data=splot_data_int,aes(x=2.54*dia,y=dia_pred),col="#1b9e77",size=1.25)+
   scale_size(limits=c(0,max_size)) + 
   labs(x="Previous diameter (cm)", y="Survival", tag="D") + mytheme +
-  theme(legend.position="none", axis.title.x=element_blank(), axis.title.y=element_blank())
+  theme(legend.position="none", axis.title.y=element_blank(),plot.margin = unit(c(0,0.5,0,0), "cm"))
   #guides(size=guide_legend(title="Count")) + mytheme +
   #theme(legend.position="top",legend.box.margin=margin(-10,-10,-10,-10), 
   #      legend.key.width = unit(0.15,"cm"), legend.text=element_text(size=10)) 
@@ -654,7 +393,7 @@ surv_i_b <- ggplot(data=survData,aes(x=BAconvert(BALIVE)))+
   geom_point(data=s_binned,aes(x=BAconvert(BALIVE),y=mort_ba_i,size=count_ba),alpha=0.5)+ #,col="#1b9e77"
   geom_line(data=splot_data_int,aes(x=BAconvert(ba),y=ba_pred),col="#1b9e77",size=1.25)+
   scale_size(limits=c(0,max_size)) + 
-  labs(x=expression(paste("Live basal area (","m"^2,"/km"^2,")")), y="Survival") + mytheme +
+  labs(x=expression(paste("Live basal area (","m"^2,"/ha)")), y="Survival") + mytheme +
   theme(legend.position="none", axis.title.x=element_blank(), axis.title.y=element_blank())
   #guides(size=guide_legend(title="Count")) +
   #theme(legend.position="top",legend.box.margin=margin(-10,-10,-10,-10), legend.key.width = unit(0.3,"cm")) + mytheme
@@ -721,7 +460,7 @@ recr_i_b <- ggplot(data=rdata,aes(x=BAconvert(BALIVE)))+
   geom_point(data=r_binned,aes(x=BAconvert(BALIVE),y=recr_ba_i,size=count_ba),alpha=0.5)+
   geom_line(data=rplot_data_int,aes(x=BAconvert(ba),y=ba_pred),col="#1b9e77",size=1.25)+
   scale_size(limits=c(0,max_size)) + 
-  labs(x=expression(paste("Live basal area (","m"^2,"/km"^2,")")), y="Number recruits") + mytheme +
+  labs(x=expression(paste("Live basal area (","m"^2,"ha)")), y="Number recruits") + mytheme +
   theme(legend.position="none", axis.title.x=element_blank(), axis.title.y=element_blank())
   #guides(size=guide_legend(title="Count")) +
   #theme(legend.position="top",legend.box.margin=margin(-10,-10,-10,-10), legend.key.width = unit(0.5,"cm")) + mytheme
@@ -772,42 +511,15 @@ recr_i_t <- ggplot(data=rdata,aes(x=T_yr_norm))+
 # , tag="i"
 
 ## Save plots
+# Climate-only
+ggsave(file="ci_leg_col.png", plot=ci_leg_col)
 
-# Climate-only, no interactions
-ggsave(file="gam_PIED_manuscript_grow_c_d.png", plot=grow_c_d,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="gam_PIED_manuscript_grow_c_p.png", plot=grow_c_p,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="gam_PIED_manuscript_grow_c_t.png", plot=grow_c_t,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="grow_c_leg_h.png", plot=g_c_leg_h)
-ggsave(file="grow_c_leg_v.png", plot=g_c_leg_v)
-
-ggsave(file="gam_PIED_manuscript_surv_c_d.png", plot=surv_c_d,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="gam_PIED_manuscript_surv_c_p.png", plot=surv_c_p,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="gam_PIED_manuscript_surv_c_t.png", plot=surv_c_t,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="surv_c_leg_h.png", plot=s_c_leg_h)
-ggsave(file="surv_c_leg_v.png", plot=s_c_leg_v)
-
-ggsave(file="gam_PIED_manuscript_recr_c_p.png", plot=recr_c_p,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="gam_PIED_manuscript_recr_c_t.png", plot=recr_c_t,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="recr_c_leg_h.png", plot=r_c_leg_h)
-ggsave(file="recr_c_leg_v.png", plot=r_c_leg_v)
-
-# Climate-only, interactions
 ggsave(file="gam_PIED_manuscript_grow_ci_d.png", plot=grow_ci_d,
        width=4,height=3,units="in",dpi=600)
 ggsave(file="gam_PIED_manuscript_grow_ci_p.png", plot=grow_ci_p,
        width=4,height=3,units="in",dpi=600)
 ggsave(file="gam_PIED_manuscript_grow_ci_t.png", plot=grow_ci_t,
        width=4,height=3,units="in",dpi=600)
-#ggsave(file="grow_ci_leg_h.png", plot=g_ci_leg_h)
-#ggsave(file="grow_ci_leg_v.png", plot=g_ci_leg_v)
 
 ggsave(file="gam_PIED_manuscript_surv_ci_d.png", plot=surv_ci_d,
        width=4,height=3,units="in",dpi=600)
@@ -825,39 +537,7 @@ ggsave(file="gam_PIED_manuscript_recr_ci_t.png", plot=recr_ci_t,
 #ggsave(file="recr_ci_leg_h.png", plot=r_ci_leg_h)
 #ggsave(file="recr_ci_leg_v.png", plot=r_ci_leg_v)
 
-# Climate + competition, no interactions
-ggsave(file="gam_PIED_manuscript_grow_cc_d.png", plot=grow_cc_d,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="gam_PIED_manuscript_grow_cc_b.png", plot=grow_cc_b,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="gam_PIED_manuscript_grow_cc_p.png", plot=grow_cc_p,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="gam_PIED_manuscript_grow_cc_t.png", plot=grow_cc_t,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="grow_cc_leg_h.png", plot=g_cc_leg_h)
-ggsave(file="grow_cc_leg_v.png", plot=g_cc_leg_v)
-
-ggsave(file="gam_PIED_manuscript_surv_cc_d.png", plot=surv_cc_d,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="gam_PIED_manuscript_surv_cc_b.png", plot=surv_cc_b,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="gam_PIED_manuscript_surv_cc_p.png", plot=surv_cc_p,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="gam_PIED_manuscript_surv_cc_t.png", plot=surv_cc_t,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="surv_cc_leg_h.png", plot=s_cc_leg_h)
-ggsave(file="surv_cc_leg_v.png", plot=s_cc_leg_v)
-
-ggsave(file="gam_PIED_manuscript_recr_cc_b.png", plot=recr_cc_b,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="gam_PIED_manuscript_recr_cc_p.png", plot=recr_cc_p,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="gam_PIED_manuscript_recr_cc_t.png", plot=recr_cc_t,
-       width=4,height=3,units="in",dpi=600)
-ggsave(file="recr_cc_leg_h.png", plot=r_cc_leg_h)
-ggsave(file="recr_cc_leg_v.png", plot=r_cc_leg_v)
-
-# Climate + competition, interactions
+# Climate + competition
 ggsave(file="gam_PIED_manuscript_grow_i_d.png", plot=grow_i_d,
        width=4,height=3,units="in",dpi=600)
 ggsave(file="gam_PIED_manuscript_grow_i_b.png", plot=grow_i_b,
@@ -866,7 +546,8 @@ ggsave(file="gam_PIED_manuscript_grow_i_p.png", plot=grow_i_p,
        width=4,height=3,units="in",dpi=600)
 ggsave(file="gam_PIED_manuscript_grow_i_t.png", plot=grow_i_t,
        width=4,height=3,units="in",dpi=600)
-ggsave(file="grow_i_leg_count.png", plot=g_i_leg_count)
+ggsave(file="grow_i_leg_count.png", plot=grow_i_leg_plot_count,
+       width=4,height=3,units="in",dpi=600)
 ggsave(file="grow_i_leg_quant.png", plot=g_i_leg_quant)
 
 ggsave(file="gam_PIED_manuscript_surv_i_d.png", plot=surv_i_d,
@@ -928,7 +609,9 @@ lambda_ci_b <- ggplot(data = predictorDFs_climint[[1]], aes(x = BAconvert(BALIVE
   #              ymin=min(predictorDFs_climint[[1]]$lambda),ymax=max(predictorDFs_climint[[1]]$lambda)),
   #          fill="grey80",col="grey80",alpha=0.1)+
   geom_line(col="black",size=1.25) +
-  labs(x=expression(paste("Plot basal area (","m"^2,"/km"^2,")")), y=expression(lambda),tag="C") + mytheme 
+  labs(x=expression(paste("Plot basal area (","m"^2,"/ha)")), y=expression(lambda),tag="C") + mytheme + 
+  theme(plot.tag=element_text(size=18),axis.text=element_text(size=16),
+        axis.title.x=element_text(size=18),axis.title.y=element_text(size=18))
 
 lambda_ci_p <- ggplot(data = predictorDFs_climint[[2]], aes(x = PPT_yr, y = lambda)) + 
   geom_rect(aes(xmin=min(predictorDFs_climint[[2]]$PPT_yr),xmax=min(FIA$PPT_yr),
@@ -984,7 +667,9 @@ lambda_i_b <- ggplot(data = predictorDFs_int[[1]], aes(x = BAconvert(BALIVE), y 
                 #ymin=min(predictorDFs_int[[1]]$lambda),ymax=max(predictorDFs_int[[1]]$lambda)),
             #fill="grey80",col="grey80",alpha=0.1)+
   geom_line(col="black",size=1.25) +
-  labs(x=expression(paste("Basal area (","m"^2,"/km"^2,")")), y=expression(paste(lambda)), tag= "C") + mytheme
+  labs(x=expression(paste("Basal area (","m"^2,"/ha)")), y=expression(paste(lambda)), tag= "C") + mytheme + 
+  theme(plot.tag=element_text(size=18),axis.text=element_text(size=16),
+        axis.title.x=element_text(size=18),axis.title.y=element_text(size=18))
 
 lambda_i_p <- ggplot(data = predictorDFs_int[[2]], aes(x = PPT_yr, y = lambda)) + 
   geom_rect(aes(xmin=min(predictorDFs_int[[2]]$PPT_yr),xmax=min(FIA$PPT_yr),
@@ -1424,7 +1109,9 @@ niche_ci<-ggplot(data=interpdf_ci,aes(x=x,y=y))+
   geom_density2d(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),color="black")+
   geom_encircle(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),col="black",expand=0.01)+
   scale_fill_distiller(palette="BrBG",values=rescale(cuts_ci),name=expression(lambda),direction=1)+
-  labs(x="MAP (mm)",y=expression(paste("MAT (",degree,"C)")),tag="B") + mytheme
+  labs(x="MAP (mm)",y=expression(paste("MAT (",degree,"C)")),tag="B") + mytheme + 
+  theme(plot.tag=element_text(size=11),axis.text=element_text(size=9),
+        axis.title.x=element_text(size=11),axis.title.y=element_text(size=11),legend.position="none")
 
 niche_cc<-ggplot(data=interpdf_cc,aes(x=x,y=y))+
   geom_tile(aes(fill=z))+
@@ -1438,7 +1125,10 @@ niche_i<-ggplot(data=interpdf_i,aes(x=x,y=y))+
   geom_density2d(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),color="black")+
   geom_encircle(data=FIA_pied_pres,aes(x=PPT_yr,y=T_yr),col="black",expand=0.01)+
   scale_fill_distiller(palette="BrBG",values=rescale(cuts_i),direction=1,name=expression(paste(lambda)))+
-  labs(x="MAP (mm)",y=expression(paste("MAT (",degree,"C)")),tag="B") + mytheme
+  labs(x="MAP (mm)",y=expression(paste("MAT (",degree,"C)")),tag="B") + mytheme + 
+  theme(plot.tag=element_text(size=11),axis.text=element_text(size=9),
+        axis.title.x=element_text(size=11),axis.title.y=element_text(size=11),legend.position="none")
+
 
 # Deviation from mean lambda
 niche_c_diff<-ggplot(data=interpdf_c,aes(x=x,y=y))+
@@ -1476,9 +1166,9 @@ niche_i_diff<-ggplot(data=interpdf_i,aes(x=x,y=y))+
 
 # Save plots
 save_plot(file="niche_c.png",niche_c,base_asp = 1.5)
-save_plot(file="niche_ci.png",niche_ci,base_width = 4, base_height = 3)
+save_plot(file="niche_ci.png",niche_ci,base_width = 3, base_height = 3)
 save_plot(file="niche_cc.png",niche_cc,base_asp = 1.5)
-save_plot(file="niche_i.png",niche_i,base_width = 4, base_height = 3)
+save_plot(file="niche_i.png",niche_i,base_width = 3, base_height = 3)
 
 save_plot(file="niche_c_diff.png",niche_c_diff,base_asp = 1.5)
 save_plot(file="niche_ci_diff.png",niche_ci_diff,base_asp = 1.5)
@@ -1489,6 +1179,9 @@ save_plot(file="niche_i_diff.png",niche_i_diff,base_width = 4, base_height = 3)
 ### Residual analysis ----
 ## Data
 load("./Output/residual_gam.rda") # Same data used in presence-absence plots
+FIA <- read.csv("./Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
+# filter out trees killed by fire
+FIA <- FIA[!(FIA$DSTRBCD1 %in% c(30, 31, 32, 80)), ]
 
 ## Residuals vs predictors
 
@@ -1534,7 +1227,9 @@ ba_resid_leg_plot<-ggplot(data=subset(res2_binned,model=="ci"|model=="i"),aes(x=
 resid_leg<-legend(ba_resid_leg_plot)
 
 ba_resid2_plot<-ggplot(data=subset(res2_binned,model=="ci"|model=="i"),aes(x=BAconvert(ba),y=resid_ba,colour=model))+
-  geom_abline(intercept=0,slope=0)+
+  geom_rect(aes(xmin=min(BAconvert(res2_binned$ba)),xmax=min(BAconvert(FIA$BALIVE)),
+                ymin=-1.3,ymax=0.71),
+            fill="grey80",col="grey80",alpha=0.1)+geom_abline(intercept=0,slope=0)+
   geom_point(aes(size=count_ba),alpha=0.7)+
   scale_colour_manual(breaks=c("ci","i"), 
                       values=c("ci"="#d95f02",
@@ -1544,9 +1239,16 @@ ba_resid2_plot<-ggplot(data=subset(res2_binned,model=="ci"|model=="i"),aes(x=BAc
   guides(size=guide_legend(title="Count"),color=F) +
   mytheme+ theme(legend.position="top",legend.box = "vertical",legend.margin=margin(-5,-5,-8,-10),
                  legend.box.margin=margin(-10,-10,-2,-10), legend.key.width = unit(0.5,"cm")) + 
-  labs(x = expression(paste("Basal area (","m"^2,"/km"^2,")")), y = "Residuals", tag = "E")
+  labs(x = expression(paste("Basal area (","m"^2,"/ha)")), y = "Residuals", tag = "E") +
+  coord_cartesian(ylim = c(-1.3, 0.71))
 
 ppt_resid2_plot<-ggplot(data=subset(res2_binned,model=="ci"|model=="i"),aes(x=ppt,y=resid_ppt,colour=model))+
+  geom_rect(aes(xmin=min(res2_binned$ppt,na.rm=T),xmax=min(FIA$PPT_yr),
+                ymin=-1.3,ymax=0.71),
+            fill="grey80",col="grey80",alpha=0.1)+
+  geom_rect(aes(xmin=max(FIA$PPT_yr),xmax=max(res2_binned$ppt,na.rm=T),
+                ymin=-1.3,ymax=0.71),
+            fill="grey80",col="grey80",alpha=0.1)+
   geom_abline(intercept=0,slope=0)+
   geom_point(aes(size=count_ppt),alpha=0.7)+
   scale_colour_manual(breaks=c("ci","i"), 
@@ -1557,9 +1259,16 @@ ppt_resid2_plot<-ggplot(data=subset(res2_binned,model=="ci"|model=="i"),aes(x=pp
   guides(size=guide_legend(title="Count"),color=F) +
   mytheme+ theme(legend.position="top",legend.box = "vertical",legend.margin=margin(-5,-5,-8,-10),
                  legend.box.margin=margin(-10,-10,-2,-10), legend.key.width = unit(0.5,"cm")) + 
-  labs(x = "MAP (mm)", y = "Residuals", tag = "C")
+  labs(x = "MAP (mm)", y = "Residuals", tag = "C") +
+  coord_cartesian(ylim = c(-1.3, 0.71))
 
 t_resid2_plot<-ggplot(data=subset(res2_binned,model=="ci"|model=="i"),aes(x=t,y=resid_t,colour=model))+
+  geom_rect(aes(xmin=min(res2_binned$t,na.rm=T),xmax=min(FIA$T_yr),
+                ymin=-1.3,ymax=0.71),
+            fill="grey80",col="grey80",alpha=0.1)+
+  geom_rect(aes(xmin=max(FIA$T_yr),xmax=max(res2_binned$t,na.rm=T),
+                ymin=-1.3,ymax=0.71),
+            fill="grey80",col="grey80",alpha=0.1)+
   geom_abline(intercept=0,slope=0)+
   geom_point(aes(size=count_t),alpha=0.7)+
   scale_colour_manual(breaks=c("ci","i"), 
@@ -1570,7 +1279,8 @@ t_resid2_plot<-ggplot(data=subset(res2_binned,model=="ci"|model=="i"),aes(x=t,y=
   guides(size=guide_legend(title="Count"),color=F) +
   mytheme+ theme(legend.position="top",legend.box = "vertical",legend.margin=margin(-5,-5,-8,-10),
                  legend.box.margin=margin(-10,-10,-2,-10), legend.key.width = unit(0.5,"cm")) + 
-  labs(x = expression(paste("MAT (",degree,"C)")), y = "Residuals", tag = "D")
+  labs(x = expression(paste("MAT (",degree,"C)")), y = "Residuals", tag = "D") +
+  coord_cartesian(ylim = c(-1.3, 0.71))
 
 # Save plots
 ggsave(file="resid_leg.png", plot=resid_leg)
@@ -1668,7 +1378,8 @@ lam_elev_plot_ci<-ggplot(data=subset(lam_elev_data, Model=="ci"),aes(x=0.3048*El
             fill="grey80",col="grey80",alpha=0.1)+
   geom_line(size=1)+
   labs(x = "Elevation (m)", y = expression(lambda),tag="D")+
-  mytheme
+  mytheme + theme(plot.tag=element_text(size=18),axis.text=element_text(size=16),
+                  axis.title.x=element_text(size=18),axis.title.y=element_text(size=18))
 
 lam_elev_plot_cc<-ggplot(data=subset(lam_elev_data, Model=="cc"),aes(x=Elevation,y=Lambda))+
   geom_rect(aes(xmin=min(lam_elev_data$Elevation),xmax=min_elev_pied,
@@ -1690,7 +1401,8 @@ lam_elev_plot_i<-ggplot(data=subset(lam_elev_data, Model=="i"),aes(x=0.3048*Elev
             fill="grey80",col="grey80",alpha=0.1)+
   geom_line(size=1)+
   labs(x = "Elevation (m)", y = expression(lambda), tag = "D")+
-  mytheme
+  mytheme + theme(plot.tag=element_text(size=18),axis.text=element_text(size=16),
+                  axis.title.x=element_text(size=18),axis.title.y=element_text(size=18))
 
 lam_elev_plot<-ggplot(data=lam_elev_data,aes(x=Elevation,y=Lambda,colour=Model))+
   geom_rect(aes(xmin=min(lam_elev_data$Elevation),xmax=min_elev_pied,
@@ -1789,15 +1501,13 @@ ggsave(file="elast_plot_vital_cc.png", plot=elast_plot_vital_cc,width=4,height=3
 ggsave(file="elast_plot_vital_i.png", plot=elast_plot_vital_i,width=4,height=3,units="in",dpi=600)
 
 
-perturb_plot_growth<-ggplot(data=subset(perturb_data_vital2,Rate=="Growth"),aes(x=(-1*Perturb),y=Lambda,col=Model))+
+perturb_plot_growth<-ggplot(data=subset(perturb_data_vital2,Rate=="Growth" & Model=="Elast_i"),aes(x=(-1*Perturb),y=Lambda))+
   geom_abline(intercept=1,slope=0)+
   geom_line(size=1)+
-  scale_colour_manual(breaks=c("Elast_c","Elast_cc","Elast_i"), 
-                      values=c("Elast_c"="#1b9e77","Elast_cc"="#d95f02","Elast_i"="#7570b3"),
-                      labels=c("Clim","ClimComp","ClimCompInt"),
-                      name="Model")+
+  #geom_segment(x=100*x_i_s,xend=100*x_i_s,y=1,yend=0,col="#1b9e77",linetype="dashed")+
+  geom_line(size=1,col="#1b9e77")+
   labs(x = "Percent perturbation", y ="Lambda")+
-  mytheme2
+  mytheme
 ggsave(file="perturb_plot_growth.png", plot=perturb_plot_growth,width=4,height=3,units="in",dpi=600)
 
 x_c_s<-(-1)*max(subset(perturb_data_vital2,Rate=="Survival" & Model=="Elast_c" & Lambda<1)$Perturb)

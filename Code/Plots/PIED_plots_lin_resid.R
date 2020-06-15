@@ -930,7 +930,7 @@ surv_i_p <- ggplot(data=survData,aes(x=PPT_yr_norm))+
   #geom_line(data=splot_data_int,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
   geom_line(data=splot_data_int.lin,aes(x=ppt,y=ppt_pred),col="#1b9e77",size=1.25)+
   #geom_line(data=splot_data_int.lin,aes(x=ppt,y=ppt_pred_c),col="#1b9e77",linetype="dotted",size=1.25)+
-  labs(x="MAP (mm)", y="Mortality")+
+  labs(x="MAP (mm)", y="Mortality", tag="B")+
   guides(size=guide_legend(title="Count")) +
   theme(legend.position="top")+mytheme
 

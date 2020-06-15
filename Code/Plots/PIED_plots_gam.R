@@ -16,7 +16,7 @@ library(MuMIn)
 
 load("./Code/IPM/GrRescaling_gam.Rdata")
 load("./Code/IPM/SurvRescaling_gam.Rdata")
-#load("./Code/IPM/SurvRescalingFire_gam.Rdata")
+load("./Code/IPM/SurvRescalingFire_gam.Rdata")
 load("./Code/IPM/RecruitRescaling_gam.Rdata")
 load("./Code/IPM/recrstats.rda")
 
@@ -445,6 +445,8 @@ s_fun_fire<-function(dia,ba,ppt,t,ci,plot,model,clampt=F){
                                                                         names(surv.scaling.fire$scale))], 
                                   center = surv.scaling.fire$center[match(names(sdata), 
                                                                           names(surv.scaling.fire$center))])) 
+  scaled.sdata$PPT_yr_norm=as.matrix(scaled.sdata$PPT_yr_norm)
+  scaled.sdata$T_yr_norm=as.matrix(scaled.sdata$T_yr_norm)
   scaled.sdata = cbind(scaled.sdata,CENSUS_INTERVAL = ci)
   scaled.sdata$PLT_CN_factor = plot
   return(predict(model, newdata = scaled.sdata, type = "response", re.form = NA))
@@ -458,6 +460,8 @@ s_fun_mean_fire<-function(dia,ba,ppt,t,ci,model,clampt=F){
                                                                    names(surv.scaling.fire$scale))], 
                                   center = surv.scaling.fire$center[match(names(sdata), 
                                                                      names(surv.scaling.fire$center))])) 
+  scaled.sdata$PPT_yr_norm=as.matrix(scaled.sdata$PPT_yr_norm)
+  scaled.sdata$T_yr_norm=as.matrix(scaled.sdata$T_yr_norm)
   scaled.sdata = cbind(scaled.sdata,CENSUS_INTERVAL = ci)
   scaled.sdata$PLT_CN_factor = 14546600020004
   return(predict(model, newdata = scaled.sdata, type = "response", re.form = NA, exclude = "s(PLT_CN_factor)"))
@@ -731,6 +735,6 @@ rplot_data_int<-cbind(data.frame(ba_pred=r_fun(seq$ba,means[2],means[3],means[4]
 
 save(grdata,survData,rdata,g_binned,s_binned,r_binned,
      grplot_data_clim,grplot_data_climint,grplot_data_climcomp,grplot_data_int, 
-     splot_data_clim,splot_data_climint,splot_data_climcomp,splot_data_int, 
+     splot_data_clim,splot_data_climint,splot_data_climint_fire,splot_data_climcomp,splot_data_int, 
      rplot_data_clim,rplot_data_climint,rplot_data_climcomp,rplot_data_int, 
      file="./Output/vital_effects_gam.rda")
