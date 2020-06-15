@@ -216,16 +216,16 @@ smodel.int.gam <- bam(mort ~ s(PREVDIA,k=3) + s(BALIVE,k=k) + s(PPT_yr_norm,k=5)
                         s(PLT_CN_factor,bs = "re") + offset(log(CENSUS_INTERVAL)),
                       family = binomial(link = cloglog), data = survData3.scaled)
 
-smodel.clim.fire.gam <- bam(mort ~ s(PREVDIA,k=3) + s(PPT_yr_norm,k=k) + s(T_yr_norm,k=5)+ 
+smodel.clim.fire.gam <- bam(mort ~ s(PREVDIA,k=3) + s(PPT_yr_norm,k=k) + T_yr_norm + 
                               s(PLT_CN_factor,bs = "re") + offset(log(CENSUS_INTERVAL)),
                             family = binomial(link = cloglog), data = survData.scaled)
-smodel.clim.int.fire.gam <- bam(mort ~ s(PREVDIA,k=3) + te(PPT_yr_norm,T_yr_norm,k=5)+ 
+smodel.clim.int.fire.gam <- bam(mort ~ s(PREVDIA,k=3) + s(PPT_yr_norm) + T_yr_norm + T_yr_norm:PPT_yr_norm +
                                   s(PLT_CN_factor,bs = "re") + offset(log(CENSUS_INTERVAL)),
                                 family = binomial(link = cloglog), data = survData.scaled)
-smodel.clim.comp.fire.gam <- bam(mort ~ s(PREVDIA,k=3) + s(BALIVE,k=k) + s(PPT_yr_norm,k=k) + s(T_yr_norm,k=5)+ 
+smodel.clim.comp.fire.gam <- bam(mort ~ s(PREVDIA,k=3) + s(BALIVE,k=k) + s(PPT_yr_norm,k=k) + T_yr_norm + 
                                    s(PLT_CN_factor,bs = "re") + offset(log(CENSUS_INTERVAL)),
                                  family = binomial(link = cloglog), data = survData.scaled)
-smodel.int.fire.gam <- bam(mort ~ s(PREVDIA,k=3) + s(BALIVE,k=k) + te(PPT_yr_norm,T_yr_norm,k=5)+ 
+smodel.int.fire.gam <- bam(mort ~ s(PREVDIA,k=3) + s(BALIVE,k=k) + s(PPT_yr_norm) + T_yr_norm + T_yr_norm:PPT_yr_norm +
                              s(PLT_CN_factor,bs = "re") + offset(log(CENSUS_INTERVAL)),
                            family = binomial(link = cloglog), data = survData.scaled)
 
