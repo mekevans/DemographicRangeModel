@@ -2,14 +2,14 @@
 #### https://apps.fs.usda.gov/fia/datamart/CSV/datamart_csv.html
 
 ### code developed by Michiel Pillet
-### modified by M. Evans, L. Huelsmann
-
+### modified by M. Evans, L. Huelsmann, E. Schultz
+### last modified: 17 Jun 2020
 
 plot.path <- "./FIAdata/plots/"
 tree.path <- "./FIAdata/trees/"
 cond.path <- "./FIAdata/conds/"
 
-# Combine plots
+# Combine plot data tables
 plot_list <- list.files(path=paste(plot.path,sep=''), pattern="*.csv")
 plots_combined <- do.call("rbind",
                          lapply(plot_list,
@@ -19,7 +19,7 @@ plots_combined <- do.call("rbind",
 write.csv(plots_combined, "./FIAdata/PLOT_COMBINED.csv")
 
 
-# Combine trees
+# Combine tree data tables
 tree_list <- list.files(path=paste(tree.path,sep=''), pattern="*.csv")
 trees_combined <- do.call("rbind",
                           lapply(tree_list,
@@ -29,7 +29,7 @@ trees_combined <- do.call("rbind",
 trees_combined$PLT_CN <- as.character(trees_combined$PLT_CN)
 write.csv(trees_combined, "./FIAdata/TREE_COMBINED.csv")
 
-# Combine conditions
+# Combine condition data tables
 cond_list <- list.files(path=paste(cond.path,sep=''), pattern="*.csv")
 conds_combined <- do.call("rbind",
                           lapply(cond_list,
