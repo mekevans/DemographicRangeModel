@@ -1,3 +1,5 @@
+#### Use PRISM 30-year climate normal data to create rasters of monthly climate normals in PIED study region
+
 library(raster)
 library(rgdal)
 

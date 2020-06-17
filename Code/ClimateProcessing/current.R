@@ -1,3 +1,5 @@
+#### Use PRISM 30-year climate normal data to create rasters of annual and seasonal climate normals in PIED study region
+
 library(raster)
 library(rgdal)
 
@@ -94,7 +96,7 @@ T_fs <- crop(T_fs, ext)
 T_wd <- crop(T_wd, ext)
 T_m <- crop(T_m, ext)
 
-# Export seasonal normals
+# Export annual and seasonal normals
 writeRaster(PPT_year, paste0(PRISM.norm.path, "PPT_year.tif"), overwrite = T)
 writeRaster(PPT_c, paste0(PRISM.norm.path, "PPT_c.tif"), overwrite = T)
 writeRaster(PPT_pf, paste0(PRISM.norm.path, "PPT_pf.tif"), overwrite = T)

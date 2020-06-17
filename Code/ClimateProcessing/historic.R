@@ -1,8 +1,10 @@
+#### Use PRISM climate data to create rasters of monthly climate variables in PIED study region
+
 library(raster)
 
-### PRISM download June 14, 2018
-### January 1981 through November 2017
-### (36*12) + 11 = 443 files
+### PRISM download January 22, 2019
+### January 1981 through June 2018
+### (37*12) + 6 = 450 files
 
 # Search for PRISM files
 PRISM.path <-  "./ClimateData/PRISM/"
