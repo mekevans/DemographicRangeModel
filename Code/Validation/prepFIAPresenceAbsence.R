@@ -1,20 +1,13 @@
+library(raster)
+
 # Read in data
-setwd("D:/EvansLab/Final/Data/FIA/")
-UT <- read.csv("UT_TREE.csv", header = T, stringsAsFactors = F)
-AZ <- read.csv("AZ_TREE.csv", header = T, stringsAsFactors = F)
-NM <- read.csv("NM_TREE.csv", header = T, stringsAsFactors = F)
-CO <- read.csv("CO_TREE.csv", header = T, stringsAsFactors = F)
-all <- rbind(AZ, CO, NM, UT)
+all <- read.csv("./FIAdata/TREE_COMBINED.csv", header = T, stringsAsFactors = F)
 
 # Keep only plot and species code
 all <- all[, c("PLT_CN", "SPCD")]
 
 # Read in plots
-UT <- read.csv("UT_PLOT.csv", header = T, stringsAsFactors = F)
-AZ <- read.csv("AZ_PLOT.csv", header = T, stringsAsFactors = F)
-NM <- read.csv("NM_PLOT.csv", header = T, stringsAsFactors = F)
-CO <- read.csv("CO_PLOT.csv", header = T, stringsAsFactors = F)
-plots <- rbind(AZ, CO, NM, UT)
+plots <- read.csv("./FIAdata/PLOT_COMBINED.csv")
 plots <- plots[, c("CN", "LAT", "LON")]
 
 # Processing
@@ -32,11 +25,10 @@ for (i in plots$CN) {
 }
 
 # Export
-setwd("D:/EvansLab/Final/Data/Processed/Validation")
-write.csv(all, "validationRecords.csv", row.names = F)
+write.csv(all, "./Processed/Validation/validationRecords.csv", row.names = F)
 
 # Read in a raster for alignment
-pres <- raster("D:/EvansLab/Final/Output/B/lambda.tif")
+pres <- raster("./Output/tifs/PIED.clim_lambda_gam.tif")
 pres <- setValues(pres, NA)
 
 # Make records spatial
@@ -62,8 +54,21 @@ for (i in 1:ncell(pres)) {
   if (nrow(tmp) > 0) {
     if (PIED %in% unique(tmp$SPCD)) pres[i] <- 1
     else pres[i] <- 0
-  }
+  } else pres[i] <- 0
 }
 
 # Export presence/absence raster
-writeRaster(pres, "presenceAbsenceRaster.tif", overwrite = T)
+writeRaster(pres, "./Processed/Validation/presenceAbsenceRaster2.tif", overwrite = T)
+
+climate_wna<-plots %>%
+  group_by(PLOT) %>%
+  summarise(lat=mean(LAT,na.rm=T),long=mean(LON,na.rm=T),el=(mean(ELEV,na.rm=T)*0.3048)) %>%
+  mutate(ID2=".")
+
+names(climate_wna)[1]<-"ID1"
+
+write.csv(climate_wna[1:4215,],"./ClimateData/FIA_climateWNA1.csv",row.names=F)
+write.csv(climate_wna[4216:8430,],"./ClimateData/FIA_climateWNA2.csv",row.names=F)
+write.csv(climate_wna[8431:12645,],"./ClimateData/FIA_climateWNA3.csv",row.names=F)
+write.csv(climate_wna[12646:16863,],"./ClimateData/FIA_climateWNA4.csv",row.names=F)
+

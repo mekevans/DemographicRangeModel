@@ -1,11 +1,13 @@
+#### Use PRISM climate data to create rasters of monthly climate variables in PIED study region
+
 library(raster)
 
-### PRISM download June 14, 2018
-### January 1981 through November 2017
-### (36*12) + 11 = 443 files
+### PRISM download January 22, 2019
+### January 1981 through June 2018
+### (37*12) + 6 = 450 files
 
 # Search for PRISM files
-PRISM.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/PRISM/"
+PRISM.path <-  "./ClimateData/PRISM/"
 pptFiles <- list.files(path = PRISM.path, pattern = glob2rx("*ppt*.bil"), full.names = TRUE)
 tmpFiles <- list.files(path = PRISM.path, pattern = glob2rx("*tmean*.bil"), full.names = TRUE)
 #vpdminFiles <- list.files(path = PRISM.path, pattern = glob2rx("*vpdmin*.bil"), full.names = TRUE)
@@ -27,17 +29,19 @@ for (i in tmpFiles) {
 vpdStack <- stack()
 for (i in 1:length(vpdmaxFiles)) {
   print(i)
-  vpdStack <- stack(vpdStack, raster(vpdmaxFiles[i]))
+  rast<-raster(vpdmaxFiles[i])
+  if(i == 431 | i == 432){crs(rast)<-crs(raster(vpdmaxFiles[1]))}
+  vpdStack <- stack(vpdStack, rast)
 }
 
 # Crop to extent of FIA Pinus edulis occurrences
-cropExtent <- extent(raster("C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/BA/BA.tif"))
+cropExtent <- extent(raster("./BA/BA.tif"))
 pptStackCropped <- crop(pptStack, cropExtent)
 tmpStackCropped <- crop(tmpStack, cropExtent)
 vpdStackCropped <- crop(vpdStack, cropExtent)
 
 # Export rasters
-clim.path <-  "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/"
+clim.path <-  "./ClimateData/"
 writeRaster(pptStackCropped, paste0(clim.path, "pptStack.tif"), overwrite = T)
 writeRaster(tmpStackCropped, paste0(clim.path, "tmpStack.tif"), overwrite = T)
 writeRaster(vpdStackCropped, paste0(clim.path, "vpdStack.tif"), overwrite = T)
