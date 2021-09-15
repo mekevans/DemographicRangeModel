@@ -1,5 +1,5 @@
 # DemographicRangeModel
-make a range-wide integral projection model based on USFS forest inventory data
+Below are descriptions of the scripts used to make a range-wide integral projection model for Pinus edulis based on USFS forest inventory data
 
 Preprocessing
 1)	Code/BasalArea/createSurface.R: creates a points shapefile of plot basal area to be used as input for creating a spatial surface of basal area; uses FIA data; creating basal area map is done using interpolation in ArcGIS
@@ -44,12 +44,12 @@ Validation
 4)	Code/Validation/validateWithFIA.R: does the main validation: AUC, simple RMSE, quadrant analysis, scale analysis
 
 Plots
-1) Code/Plots/PIED_plots.R:
-2) Code/Plots/PIED_plots_all.R:
-3) Code/Plots/PIED_plots_gam.R:
-4) Code/Plots/PIED_plots_lin.R:
-5) Code/Plots/PIED_plots_lin_resid.R:
-6) Code/Plots/PIED_plots_resid.R:
+1) Code/Plots/PIED_plots.R: creates plots of predictors vs vital rates, using vital rate models (linear models, with quadratic terms)
+2) Code/Plots/PIED_plots_resid.R: creates plots of predictors vs residuals of vital rate models, using vital rate models (linear models, with quadratic terms)
+3) Code/Plots/PIED_plots_lin_resid.R: creates plots of predictors vs residuals of vital rate models, using vital rate models (linear models, without quadratic terms)
+4) Code/Plots/PIED_plots_lin.R:  creates plots of predictors vs vital rates, using vital rate models (linear models, without quadratic terms)
+5) Code/Plots/PIED_plots_gam.R: generates data frames with output of vital rate models (GAMS) and predictors to use for plots of predictors vs vital rates; these dataframes get passed to PIED_plots_all.R
+6) Code/Plots/PIED_plots_all.R: uses data from IPM scripts, validation scripts, and PIED_plots_all.R to create figures
 
 Fire
 1) Code/Fire/Fire_prelim.R: uses FIA data to calculate mortality rates of Pinus edulis in surface and crown fires
