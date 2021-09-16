@@ -4,7 +4,7 @@ Below are descriptions of the scripts used to make a range-wide integral project
 Preprocessing
 1)	Code/BasalArea/createSurface.R: creates a points shapefile of plot basal area to be used as input for creating a spatial surface of basal area; uses FIA data; creating basal area map is done using interpolation in ArcGIS
 2)	Code/CensusProcessing/censusProcessing.R: takes all FIA plots, subsets AZ, CO, NM, UT plots; combines all tree and condition records for these states as well
-3)	Code/CensusProcessing/createOccurrences.R: takes the processed recruitment data, and uses it to create a points shapefile of pinon occurrences   *** I don’t think we use this output
+3)	Code/CensusProcessing/createOccurrences.R: takes the processed recruitment data, and uses it to create a points shapefile of pinon occurrences   
 4)	Code/ClimateProcessing/current.R: creates annual and seasonal normals from PRISM data for current time
 5)	Code/ClimateProcessing/normals.R: creates monthly normals from PRISM data for current time
 6)	Code/ClimateProcessing/future.R: creates seasonal normals from WorldClim data for future time
@@ -27,45 +27,25 @@ Recruitment
 3)	Code/Recruitment/recruitSize.R: calculates mean size and SD of size of recruits (needed for kernel)
 
 GAMS
-1)	Code/GAMs/vital_gams.R: runs GAM models for growth, survival, and recruitments. Saves output to be used in IPMs.
+1)	Code/GAMs/vital_gams.R: runs GAM models for growth, survival, and recruitment. Saves output to be used in IPMs.
 
 IPM
 1)	Code/IPMBinSize/IPM_binSize.R: selects a bin size for the IPM kernel
-2)	Code/IPM/BuildIPM.R: creates the survival rate functions and the function for the IPM kernal
+2)	Code/IPM/BuildIPM.R: creates the vital rate functions and the function for the IPM kernal
 3)	Code/IPM/EvalIPM.R: uses the IPM function from BuildIPM.R and predictor rasters to do spatial projections of lambda
 4)	Code/IPM/diagnosticPlots.R: creates plots of lambda and vital rates as a function of input variables
 5)	Code/IPM/LTRE.R: uses the IPM function from BuildIPM.R and predictor rasters to do life table response experiment and elasticity analysis
 6)	Code/IPM/Bootstrapping.R: uses the IPM function from BuildIPM.R and predictor rasters to calculate uncertainty around lambda estimates, using bootstrapping
 
 Validation
-1)	Code/Validation/createFig3.R: does the double-threshold validation that optimizes NRMSE and creates manuscript figure 3
-2)	Code/Validation/Landscape_CurrentRange.R: creates histogram of lambda in current range versus the background values
-3)	Code/Validation/prepFIAPresenceAbsence.R: creates a raster of cells coding pinon presence/absence
-4)	Code/Validation/validateWithFIA.R: does the main validation: AUC, simple RMSE, quadrant analysis, scale analysis
+1)	Code/Validation/prepFIAPresenceAbsence.R: creates a raster of cells coding pinon presence/absence
+2)	Code/Validation/ResidualAnalysis.R: uses output of EvalIPM.R and prepFIAPresenceAbsence to validate models using occurrence data and residual analysis
 
-Plots
-1) Code/Plots/PIED_plots.R: creates plots of predictors vs vital rates, using vital rate models (linear models, with quadratic terms)
-2) Code/Plots/PIED_plots_resid.R: creates plots of predictors vs residuals of vital rate models, using vital rate models (linear models, with quadratic terms)
-3) Code/Plots/PIED_plots_lin_resid.R: creates plots of predictors vs residuals of vital rate models, using vital rate models (linear models, without quadratic terms)
-4) Code/Plots/PIED_plots_lin.R:  creates plots of predictors vs vital rates, using vital rate models (linear models, without quadratic terms)
-5) Code/Plots/PIED_plots_gam.R: generates data frames with output of vital rate models (GAMS) and predictors to use for plots of predictors vs vital rates; these dataframes get passed to PIED_plots_all.R
-6) Code/Plots/PIED_plots_all.R: uses data from IPM scripts, validation scripts, and PIED_plots_all.R to create figures
+Data visualization
+1) Code/Plots/PIED_plots_resid.R: creates plots of predictors vs vital rates, using vital rate models (linear models, with quadratic terms)
+2) Code/Plots/PIED_plots_lin_resid.R: creates plots of predictors vs vital rates, using vital rate models (linear models, without quadratic terms)
+3) Code/Plots/PIED_plots_gam.R: generates data frames with output of vital rate models (GAMS) and predictors to use for plots of predictors vs vital rates; these dataframes get passed to PIED_plots_all.R
+4) Code/Plots/PIED_plots_all.R: uses data from IPM scripts, validation scripts, and PIED_plots_all.R to create figures used in the manuscript Schultz et al.
 
 Fire
-1) Code/Fire/Fire_prelim.R: uses FIA data to calculate mortality rates of Pinus edulis in surface and crown fires
-
-The following are in the OldCode folder and were not used for the final manuscript analysis
-MaxEnt
-1)	Code/MaxEnt/maxent.R: code for MaxEnt model for pinon
-
-Forecasts
-1)	Code/Forecasts/…: several files to rerun IPMs under certain scenarios for future
-
-Predictor maps
-1)	Code/PredictorMaps/mapPredictors.R: creates maps of the predictors for visualization
-
-Other
-1)	Code/IPM/createS12.R: creates figures showing difference of lambdas between BA-only and other model sets (climate-only and BA + climate)
-2)	Code/OldCode/resample_BA_elev.R: resamples basal area and elevation rasters to resolution of PRISM normals
-
-
+1) Code/Fire/Fire_prelim.R: uses FIA data to calculate mortality rates of Pinus edulis in surface and crown fires used in Discussion in Schultz et al.
