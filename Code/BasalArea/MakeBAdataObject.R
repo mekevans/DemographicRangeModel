@@ -5,12 +5,11 @@ library(effects)
 library(mgcv)
 
 # path
-path = "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/"
-climate.path <- "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/"
+climate.path <- "./ClimateData/"
 
 ### create data object with BALIVE and climate normals ------------------------------------------------------------------------------------
 
-conds <- read.csv(paste0(path,"FIAdata/COND_COMBINED.csv",sep=''), header = T, stringsAsFactors = F)
+conds <- read.csv("./FIAdata/COND_COMBINED.csv", header = T, stringsAsFactors = F)
 # Remove non-forest conditions (missing BALIVE, coded as 0 so causes underestimation)
 # conds <- subset(conds, COND_STATUS_CD == 1) # "accessible forest land" by FIA classification
 
@@ -30,7 +29,7 @@ conds <- subset(conds, BALIVE < 1000) # removes one outlier!
 # another data point that perhaps should be removed is #2919 (see resids vs. leverage)
 
 # Read in plot data and get coordinates and previous measurement year
-plots <- read.csv(paste0(path,"FIAdata/PLOT_COMBINED.csv",sep=''), header = T, stringsAsFactors = F)
+plots <- read.csv("./FIAdata/PLOT_COMBINED.csv", header = T, stringsAsFactors = F)
 
 conds$LAT <- plots$LAT[match(conds$PLT_CN, plots$CN)]
 conds$LON <- plots$LON[match(conds$PLT_CN, plots$CN)]
@@ -98,4 +97,4 @@ output <- conds[, c("PLT_CN", "CONDID", "CONDPROP_UNADJ",
                     "PPT_m_norm", "T_m_norm", "VPD_m_norm",
                     "PPT_yr_norm", "T_yr_norm", "VPD_yr_norm")]
 # write.csv(output, paste0(path, "BA/BALIVEdata.csv"), row.names = F)
-write.csv(output, paste0(path, "BA/BALIVEdata2.csv"), row.names = F)
+write.csv(output,"./BA/BALIVEdata2.csv", row.names = F)

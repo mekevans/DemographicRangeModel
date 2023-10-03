@@ -1,145 +1,187 @@
 library(ggplot2)
 library(cowplot)
+library(glmmTMB)
+library(raster)
 
-# Load models and parameters
-load("D:/EvansLab/Final/Models/BC/grow.rda")
-load("D:/EvansLab/Final/Models/BC/surv.rda")
-load("D:/EvansLab/Final/Models/BC/recr.rda")
-load("D:/EvansLab/Final/Models/BC/recrstats.rda")
+# Load IPM functions
+source("./Code/IPM/BuildIPM.R")
 
-# Load FIA data
-FIA <- read.csv("D:/EvansLab/Final/Data/Processed/Growth/GrowthData.csv")
+PRISM.norm.path <-  "./ClimateData/PRISM/Normals/"
 
-# Survival
-s.x <- function(x, elev, ba, ppt_c, ppt_w, vpd_c, vpd_w) {
-  sdata <- data.frame(PREV_DRYBIO_AG = x,
-                      elev = elev,
-                      baLive = ba,
-                      PPT_c = ppt_c,
-                      PPT_w = ppt_w,
-                      VPD_c = vpd_c, 
-                      VPD_w = vpd_w)
-  spred <- predict(smodel, sdata, type = "response")
-  return(1 - spred)
-}
+# Load climate layers
+# these created using the script "current.R"
+ppt_yr_raster <- raster(paste0(PRISM.norm.path, "PPT_year.tif"))
+t_yr_raster <- raster(paste0(PRISM.norm.path, "T_year.tif"))
+# stand-level basal area raster
+ba_raster <- raster("./BA/balive_RF.tif")
 
-# Growth
-g.yx <- function(xp, x, elev, ba, ppt_c, ppt_w, vpd_c, vpd_w) {
-  gdata <- data.frame(DRYBIO_AG = x,
-                      elev = elev,
-                      baLive = ba,
-                      PPT_c = ppt_c,
-                      PPT_w = ppt_w,
-                      VPD_c = vpd_c, 
-                      VPD_w = vpd_w)
-  gpred <- predict(gmodel, gdata, type = "response")
-  return(dnorm(xp - x, gpred, growSD))
-}
+# load models and scaling --------------------------------------------------
 
-g.mean <- function(x, elev, ba, ppt_c, ppt_w, vpd_c, vpd_w) {
-  gdata <- data.frame(DRYBIO_AG = x,
-                      elev = elev,
-                      baLive = ba,
-                      PPT_c = ppt_c,
-                      PPT_w = ppt_w,
-                      VPD_c = vpd_c, 
-                      VPD_w = vpd_w)
-  gpred <- predict(gmodel, gdata, type = "response")
-  return(gpred)
-}
+# growth model + scaling
+# from modelSelection_Growth.R
+load("./Code/IPM/GrRescaling.Rdata")
 
-# Fecundity
-fec <- function(xp, x, elev, ba, ppt_c, ppt_w, vpd_c, vpd_w) {
-  rdata <- data.frame(AGB_intra = x,
-                      measInterval = 1,
-                      elev = elev,
-                      baLive = ba,
-                      PPT_c_window_25 = ppt_c,
-                      PPT_w_window_25 = ppt_w,
-                      VPD_c_window_25 = vpd_c,
-                      VPD_w_window_25 = vpd_w)
-  rpred <- predict(rmodel, rdata, type = "response")
-  return(dnorm(log(xp), sizemean, sizesd) * rpred)
-}
+# survival model + scaling
+# from modelSelection_Survival.R
+# load(paste0(path, "Code/IPM/SurvRescaling.Rdata"))
+load("./Code/IPM/SurvRescaling.Rdata")
+#load(paste0(path, "Code/IPM/SurvRescalingBA.Rdata"))
 
-f.mean <- function(x, elev, ba, ppt_c, ppt_w, vpd_c, vpd_w) {
-  rdata <- data.frame(AGB_intra = x,
-                      measInterval = 1,
-                      elev = elev,
-                      baLive = ba,
-                      PPT_c_window_25 = ppt_c,
-                      PPT_w_window_25 = ppt_w,
-                      VPD_c_window_25 = vpd_c,
-                      VPD_w_window_25 = vpd_w)
-  rpred <- predict(rmodel, rdata, type = "response")
-  return(rpred)
-}
-# Set IPM parameters
-min.size <- 0.01*min(FIA$DRYBIO_AG, na.rm = T)
-max.size <- 1.5*max(FIA$DRYBIO_AG, na.rm = T)
-n <- 500
-b <- min.size+c(0:n)*(max.size-min.size)/n 
-y <- 0.5*(b[1:n]+b[2:(n+1)])
-h <- y[2]-y[1]
+# recruitment model + scaling
+# from modelSelection_Recruit.R
+load("./Code/IPM/RecruitRescaling.Rdata")
 
-# Create IPM function
-lambdaCalc <- function(elev_val, ba_val, ppt_c_val, ppt_w_val, vpd_c_val, vpd_w_val) {
-  # Growth and survival
-  G <- h*outer(y, y, g.yx, elev = elev_val, ba = ba_val, ppt_c = ppt_c_val, ppt_w = ppt_w_val, vpd_c = vpd_c_val, vpd_w = vpd_w_val)
-  S <- s.x(x = y, elev = elev_val, ba = ba_val, ppt_c = ppt_c_val, ppt_w = ppt_w_val, vpd_c = vpd_c_val, vpd_w = vpd_w_val)
-  P <- G
-  for (k in 1:n) P[,k] <- G[,k]*S
-  # Recruitment
-  R <- h*outer(y, y, fec, elev = elev_val, ba = ba_val, ppt_c = ppt_c_val, ppt_w = ppt_w_val, vpd_c = vpd_c_val, vpd_w = vpd_w_val)
-  # Entire kernel
-  K <- P + R
-  # Calculate lambda
-  lambda_val <- Re(eigen(K)$values[1])
-  print(lambda_val)
-  return(lambda_val)
-}
+# information on the size distribution of recruits (ingrowth)
+# from dataPrepRecruitment.R
+load("./Code/IPM/recrstats.rda")
+
+# Alternative models - gams
+load("./Code/IPM/GrRescaling_gam.Rdata")
+load("./Code/IPM/SurvRescaling_gam.Rdata")
+load("./Code/IPM/RecruitRescaling_gam.Rdata")
+load("./Code/IPM/recrstats.rda")
+
+# Load FIA survival, growth data
+FIA <- read.csv("./Processed/Survival/SurvivalData.csv", header = T, stringsAsFactors = F)
+# when running IPM without trees killed by fire, technically should filter out those trees
+# prolly makes ~0 difference
+FIA <- FIA[!(FIA$DSTRBCD1 %in% c(30, 31, 32, 80)), ]
+
+min.size <- 1*min(FIA$PREVDIA, na.rm = T) # minimum size is 1.0 inches diameter at root collar
+max.size <- 1.5*max(FIA$PREVDIA, na.rm = T) # maximum size is 39.4 inches DRC
+n_dim <- 500
+
+mins<-c(cellStats(ba_raster,stat="min"),cellStats(ppt_yr_raster,stat="min"),
+        cellStats(t_yr_raster,stat="min"))
+maxs<-c(cellStats(ba_raster,stat="max"),cellStats(ppt_yr_raster,stat="max"),
+        cellStats(t_yr_raster,stat="max"))
 
 # Prepare prediction data frame
 noPoints <- 50
-predictorNames <- c("elev", "baLive", "PPT_c", "PPT_w", "VPD_c", "VPD_w")
+predictorNames <- c("BALIVE", "PPT_yr_norm", "T_yr_norm") #, "T_wd_norm", "T_c_norm", "T_m_norm")
 predictors <- FIA[, predictorNames]
-predictorDFs <- list()
+predictorDFs_clim <- list()
 for (i in 1:ncol(predictors)) {
   currentPredictor <- predictorNames[i]
-  print(currentPredictor)
-  predictorVals <- data.frame(elev = rep(median(FIA$elev), noPoints), 
-                              baLive = rep(median(FIA$baLive), noPoints), 
-                              PPT_c = rep(median(FIA$PPT_c), noPoints), 
-                              PPT_w = rep(median(FIA$PPT_w), noPoints), 
-                              VPD_c = rep(median(FIA$VPD_c), noPoints), 
-                              VPD_w = rep(median(FIA$VPD_w), noPoints), 
+  predictorVals <- data.frame(BALIVE = rep(median(FIA$BALIVE), noPoints), 
+                              PPT_yr = rep(median(FIA$PPT_yr_norm), noPoints), 
+                              T_yr = rep(median(FIA$T_yr_norm), noPoints), 
+                              #T_wd_norm = rep(median(FIA$T_wd_norm), noPoints), 
+                              #T_c_norm = rep(median(FIA$T_c_norm), noPoints), 
+                              #T_m_norm = rep(median(FIA$T_m_norm), noPoints), 
                               lambda = rep(0, noPoints))
-  predictorVals[, i] <- seq(0.5*min(predictors[, i]), 1.5*max(predictors[, i]), length.out = noPoints)
+  predictorVals[, i] <- seq(mins[i], maxs[i], length.out = noPoints)
   for (j in 1:nrow(predictorVals)) {
-    predictorVals[j, "lambda"] <- lambdaCalc(predictorVals[j, 1], predictorVals[j, 2], predictorVals[j, 3], predictorVals[j, 4], predictorVals[j, 5], predictorVals[j, 6])
+    predictorVals[j, "lambda"] <- Re(eigen(ipm_fun(min=min.size, max=max.size, n=n_dim, 
+                                                   gmodel=gmodel.clim.gam, 
+                                                   smodel=smodel.clim.gam, 
+                                                   rmodel=rmodel.clim.gam, 
+                                                   gSD=growSD.clim.gam,
+                                                   data=predictorVals[j,],
+                                                   s.t.clamp=F,g.t.clamp=F,g.ba.clamp=F,r.ba.clamp=F))$values[1])
   }
-  predictorDFs[[i]] <- predictorVals
+  predictorDFs_climint[[i]] <- predictorVals
 }
 
-A <- ggplot(data = predictorDFs[[1]], aes(x = elev, y = lambda)) + geom_point() + geom_line() +
-  xlab("Elevation") + ylab("Lambda")
-B <- ggplot(data = predictorDFs[[2]], aes(x = baLive, y = lambda)) + geom_point() + geom_line() +
-  xlab("Plot basal area") + ylab("Lambda")
-C <- ggplot(data = predictorDFs[[3]], aes(x = PPT_c, y = lambda)) + geom_point() + geom_line() +
-  xlab("Cool-season precipitation") + ylab("Lambda")
-D <- ggplot(data = predictorDFs[[4]], aes(x = PPT_w, y = lambda)) + geom_point() + geom_line() +
-  xlab("Warm-season precipitation") + ylab("Lambda")
-E <- ggplot(data = predictorDFs[[5]], aes(x = VPD_c, y = lambda)) + geom_point() + geom_line() +
-  xlab("Cool-season VPD") + ylab("Lambda")
-F <- ggplot(data = predictorDFs[[6]], aes(x = VPD_w, y = lambda)) + geom_point() + geom_line() +
-  xlab("Warm-season VPD") + ylab("Lambda")
-all <- plot_grid(A, B, C, D, F, labels = c("A", "B", "C", "D", "E"), align = "hv")
-save_plot("D:/EvansLab/Final/Manuscript/Fig2.png", all, base_aspect_ratio = 2)
-
-# Plot
-pdf("D:/EvansLab/Final/Output/BC/Diagnostics.pdf")
-par(mfrow = c(3,2))
+predictorNames <- c("BALIVE", "PPT_yr_norm", "T_yr_norm") #, "T_wd_norm", "T_c_norm", "T_m_norm")
+predictors <- FIA[, predictorNames]
+predictorDFs_climint <- list()
 for (i in 1:ncol(predictors)) {
-  plot(predictorDFs[[i]][, "lambda"] ~ predictorDFs[[i]][, i], main = predictorNames[i], ylab = "lambda", xlab = predictorNames[i])
+  currentPredictor <- predictorNames[i]
+  predictorVals <- data.frame(BALIVE = rep(median(FIA$BALIVE), noPoints), 
+                              PPT_yr = rep(median(FIA$PPT_yr_norm), noPoints), 
+                              T_yr = rep(median(FIA$T_yr_norm), noPoints), 
+                              #T_wd_norm = rep(median(FIA$T_wd_norm), noPoints), 
+                              #T_c_norm = rep(median(FIA$T_c_norm), noPoints), 
+                              #T_m_norm = rep(median(FIA$T_m_norm), noPoints), 
+                              lambda = rep(0, noPoints))
+  predictorVals[, i] <- seq(mins[i], maxs[i], length.out = noPoints)
+  for (j in 1:nrow(predictorVals)) {
+    predictorVals[j, "lambda"] <- Re(eigen(ipm_fun(min=min.size, max=max.size, n=n_dim, 
+                                                   gmodel=gmodel.clim.int.gam, 
+                                                   smodel=smodel.clim.int.gam, 
+                                                   rmodel=rmodel.clim.int.gam, 
+                                                   gSD=growSD.clim.int.gam,
+                                                   data=predictorVals[j,],
+                                                   s.t.clamp=F,g.t.clamp=F,g.ba.clamp=F,r.ba.clamp=F))$values[1])
+  }
+  predictorDFs_clim[[i]] <- predictorVals
 }
-dev.off()
+
+predictorNames <- c("BALIVE", "PPT_yr_norm", "T_yr_norm") #, "T_wd_norm", "T_c_norm", "T_m_norm")
+predictors <- FIA[, predictorNames]
+predictorDFs_climcomp <- list()
+for (i in 1:ncol(predictors)) {
+  currentPredictor <- predictorNames[i]
+  predictorVals <- data.frame(BALIVE = rep(median(FIA$BALIVE), noPoints), 
+                              PPT_yr = rep(median(FIA$PPT_yr_norm), noPoints), 
+                              T_yr = rep(median(FIA$T_yr_norm), noPoints), 
+                              #T_wd_norm = rep(median(FIA$T_wd_norm), noPoints), 
+                              #T_c_norm = rep(median(FIA$T_c_norm), noPoints), 
+                              #T_m_norm = rep(median(FIA$T_m_norm), noPoints), 
+                              lambda = rep(0, noPoints))
+  predictorVals[, i] <- seq(mins[i], maxs[i], length.out = noPoints)
+  for (j in 1:nrow(predictorVals)) {
+    predictorVals[j, "lambda"] <- Re(eigen(ipm_fun(min=min.size, max=max.size, n=n_dim, 
+                                                   gmodel=gmodel.clim.comp.gam, 
+                                                   smodel=smodel.clim.comp.gam, 
+                                                   rmodel=rmodel.clim.comp.gam,
+                                                   gSD=growSD.clim.comp.gam,
+                                                   data=predictorVals[j,],
+                                                   s.t.clamp=F,g.t.clamp=F,g.ba.clamp=F,r.ba.clamp=F))$values[1])
+  }
+  predictorDFs_climcomp[[i]] <- predictorVals
+}
+
+predictorNames <- c("BALIVE", "PPT_yr_norm", "T_yr_norm") #, "T_wd_norm", "T_c_norm", "T_m_norm")
+predictors <- FIA[, predictorNames]
+predictorDFs_climcompfire <- list()
+for (i in 1:ncol(predictors)) {
+  currentPredictor <- predictorNames[i]
+  predictorVals <- data.frame(BALIVE = rep(median(FIA$BALIVE), noPoints), 
+                              PPT_yr = rep(median(FIA$PPT_yr_norm), noPoints), 
+                              T_yr = rep(median(FIA$T_yr_norm), noPoints), 
+                              #T_wd_norm = rep(median(FIA$T_wd_norm), noPoints), 
+                              #T_c_norm = rep(median(FIA$T_c_norm), noPoints), 
+                              #T_m_norm = rep(median(FIA$T_m_norm), noPoints), 
+                              lambda = rep(0, noPoints))
+  predictorVals[, i] <- seq(mins[i], maxs[i], length.out = noPoints)
+  for (j in 1:nrow(predictorVals)) {
+    predictorVals[j, "lambda"] <- Re(eigen(ipm_fun(min=min.size, max=max.size, n=n_dim, 
+                                                   gmodel=gmodel.clim.comp, 
+                                                   smodel=smodel.clim.comp.fire.lin, 
+                                                   rmodel=rmodel.clim.comp.lin,
+                                                   gSD=growSD.clim.comp,
+                                                   data=predictorVals[j,],s.t.clamp=F))$values[1])
+  }
+  predictorDFs_climcompfire[[i]] <- predictorVals
+}
+
+predictorNames <- c("BALIVE", "PPT_yr_norm", "T_yr_norm") #, "T_wd_norm", "T_c_norm", "T_m_norm")
+predictors <- FIA[, predictorNames]
+predictorDFs_int <- list()
+for (i in 1:ncol(predictors)) {
+  currentPredictor <- predictorNames[i]
+  predictorVals <- data.frame(BALIVE = rep(median(FIA$BALIVE), noPoints), 
+                              PPT_yr = rep(median(FIA$PPT_yr_norm), noPoints), 
+                              T_yr = rep(median(FIA$T_yr_norm), noPoints), 
+                              #T_wd_norm = rep(median(FIA$T_wd_norm), noPoints), 
+                              #T_c_norm = rep(median(FIA$T_c_norm), noPoints), 
+                              #T_m_norm = rep(median(FIA$T_m_norm), noPoints), 
+                              lambda = rep(0, noPoints))
+  predictorVals[, i] <- seq(mins[i], maxs[i], length.out = noPoints)
+  for (j in 1:nrow(predictorVals)) {
+    predictorVals[j, "lambda"] <- Re(eigen(ipm_fun(min=min.size, max=max.size, n=n_dim, 
+                                                   gmodel=gmodel.int.gam, 
+                                                   smodel=smodel.int.gam, 
+                                                   rmodel=rmodel.int.gam, 
+                                                   gSD=growSD.int.gam,
+                                                   data=predictorVals[j,],
+                                                   s.t.clamp=F,g.t.clamp=F,g.ba.clamp=F,r.ba.clamp=F))$values[1])
+  }
+  predictorDFs_int[[i]] <- predictorVals
+}
+
+save(predictorDFs_clim, predictorDFs_climint, predictorDFs_climcomp, 
+     predictorDFs_int, FIA, file="./Output/lambda_effects_gam.rda")
+

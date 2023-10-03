@@ -4,6 +4,7 @@
 library(mlr)
 library(missForest)
 library(raster)
+library(ranger)
 
 set.seed(123)
 
@@ -11,10 +12,9 @@ set.seed(123)
 # Path structure ---------------------------------------------------------
 
 # path = "C:/Users/mekevans/Documents/old_user/Documents/CDrive/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/"
-path = ""
 
 # climate.path <- "E:/Bayes/DemogRangeMod/ProofOfConcept/FIA-data/westernData/NewData/IWStates/PiedIPM/MEKEvans/ClimateData/"
-climate.path = "ClimateData/"
+climate.path = "./ClimateData/"
 
 
 
@@ -23,13 +23,13 @@ climate.path = "ClimateData/"
 
 
 ######## basal area
-BAdata <- read.csv(paste0(path, "BA/BALIVEdata2.csv"), header = T, stringsAsFactors = F)
-BAdataold <- read.csv(paste0(path, "BA/BALIVEdata.csv"), header = T, stringsAsFactors = F)
+BAdata <- read.csv("./BA/BALIVEdata2.csv", header = T, stringsAsFactors = F)
+BAdataold <- read.csv("./BA/BALIVEdata.csv", header = T, stringsAsFactors = F)
 
 ######## climate layers
 # these created using the script "current.R"
-ppt_yr_raster <- raster(paste0(climate.path, "PPT_year.tif"))
-t_yr_raster <- raster(paste0(climate.path, "T_year.tif"))
+ppt_yr_raster <- raster(paste0(climate.path, "/PRISM/Normals/PPT_year.tif"))
+t_yr_raster <- raster(paste0(climate.path, "/PRISM/Normals/T_year.tif"))
 
 
 
@@ -76,7 +76,7 @@ getFeatureImportance(model)$res/1e6
 performance(pred, rmse)
 performance(pred, rsq)
 # 50.4 % Rsquared in independent sample
-
+#ELS update: 53.1% Rsquared
 
 
 ######## training: 100% train for predicting with rasters
@@ -111,12 +111,12 @@ plot(balive)
 
 # Save map ----------------------------------------------------------------
 
-pdf(paste0(path, "BA/BAmap_RF.pdf"))
+pdf("./BA/BAmap_RF.pdf")
 plot(balive, main = "BALIVE")
 dev.off()
 
 # as raster (for use in building IPM)
-writeRaster(balive, paste0(path, "BA/balive_RF.tif"), overwrite = T)
+writeRaster(balive, "./BA/balive_RF.tif", overwrite = T)
 
 
 
